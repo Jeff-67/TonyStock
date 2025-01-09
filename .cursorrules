@@ -1,0 +1,485 @@
+# Instructions
+
+During you interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+
+You should also use the `.cursorrules` file as a scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
+[X] Task 1
+[ ] Task 2
+Also update the progress of the task in the Scratchpad when you finish a subtask.
+Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the scratchpad to reflect and plan.
+The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+
+If the task is about stock analysis, try to expand the scope of the task to include more information and more data and if any information is needed, you can further use the `web_scraper.py` file to scrape the web page content and use `search_engine.py` to search the web.
+
+# Tools
+
+Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+You need to execute the the python tools in the conda environment called 'stock', so you need to activate the environment before you use the tools.
+```
+conda activate stock
+```
+
+## LLM
+
+You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
+```
+python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
+```
+
+But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
+
+## Web browser
+
+You could use the `tools/web_scraper.py` file to scrape the web.
+```
+python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
+```
+This will output the content of the web pages.
+
+## Search engine
+
+You could use the `tools/search_engine.py` file to search the web.
+```
+python ./tools/search_engine.py "your search keywords"
+```
+This will output the search results in the following format:
+```
+URL: https://example.com
+Title: This is the title of the search result
+Snippet: This is a snippet of the search result
+```
+You can further use the `web_scraper.py` file to scrape the web page content.
+
+# Lessons
+
+## User Specified Lessons
+
+- Include info useful for debugging in the program output.
+- Read the file before you try to edit it.
+- Use LLM to perform flexible text understanding tasks. First test on a few files. After success, make it parallel.
+
+## Cursor learned
+
+- For website image paths, always use the correct relative path (e.g., 'images/filename.png') and ensure the images directory exists
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
+- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+- Always use run_terminal_cmd to execute Python scripts instead of trying to invoke them directly as tools - this ensures proper environment activation and script execution
+
+## Financial Analysis Best Practices
+
+1. Data Collection Strategy
+- Always gather at least 4-8 quarters of historical data for trend analysis
+- Focus on both absolute numbers and year-over-year growth rates
+- Compare with industry averages and peer companies
+- Check multiple data sources to ensure accuracy
+
+2. Key Metrics to Monitor
+- Revenue: Monthly revenue, YoY growth, QoQ growth
+- Profitability: Gross margin, Operating margin, Net margin
+- Operational Efficiency: Inventory turnover, Receivables turnover
+- Cash Flow: Operating cash flow ratio, Free cash flow
+- Financial Health: Contract liabilities, Debt levels
+
+3. Analysis Framework
+- Start with latest monthly/quarterly performance
+- Follow with historical trend analysis
+- Include industry position and market share
+- Analyze operational efficiency metrics
+- Examine cash flow and financial health
+- Consider external factors (raw materials, industry trends)
+
+4. Report Structure
+- Begin with key findings and summary
+- Present detailed analysis with supporting data
+- Include both positive and negative factors
+- Add risk analysis and future outlook
+- Use charts and tables for better visualization
+
+5. Data Sources Priority
+- Primary: Official financial statements (公開資訊觀測站)
+- Secondary: Financial websites (CMoney, Statementdog)
+- Supplementary: News articles and industry reports
+- Cross-reference: Multiple sources for verification
+
+6. Common Pitfalls to Avoid
+- Don't rely on single time period data
+- Consider seasonal factors in analysis
+- Account for industry-specific metrics
+- Watch for one-time events affecting numbers
+
+7. Tools and Resources
+- Use web_scraper.py for detailed data collection
+- Employ search_engine.py for news and updates
+- Utilize LLM for text analysis and summarization
+- Maintain structured data storage for historical comparison
+
+8. Update Frequency
+- Monthly: Revenue and basic operational metrics
+- Quarterly: Full financial analysis
+- Real-time: Major news and market events
+- Annually: Comprehensive industry analysis
+
+9. Industry Analysis Framework
+- 產業結構分析
+  * 全球市場規模與趨勢
+  * 區域市場分布與特性
+  * 產業價值鏈分析
+  * 競爭格局變化
+
+- 競爭對手分析
+  * 市占率變化追蹤
+  * 營運策略比較
+  * 財務表現對比
+  * 競爭優勢分析
+
+- 市場動態追蹤
+  * 最新產業政策
+  * 技術發展趨勢
+  * 終端需求變化
+  * 供應鏈重組情況
+
+10. 多維度資訊整合
+- 產業鏈整體思維
+  * 上游供應商動態
+  * 下游客戶需求
+  * 替代產品威脅
+  * 新進入者分析
+
+- 跨領域影響評估
+  * AI對產業影響
+  * 車用電子發展
+  * 區域政策變化
+  * 總體經濟影響
+
+11. 分析深度提升方法
+- 觸類旁通
+  * 關聯產業研究
+  * 上下游整合分析
+  * 跨區域市場比較
+  * 新興技術影響
+
+- 多角度驗證
+  * 產業數據交叉比對
+  * 競爭對手訊息驗證
+  * 供應鏈情報整合
+  * 市場調研報告參考
+
+12. 報告架構優化
+- 層次分明
+  * 總體產業環境
+  * 細分市場分析
+  * 公司競爭位置
+  * 未來發展建議
+
+- 重點突出
+  * 關鍵數據圖表化
+  * 核心觀點強調
+  * 風險因素提示
+  * 機會點分析
+
+## Lessons Learned
+- 產業分析要注重整體框架，從宏觀到微觀逐層深入
+- 競爭分析需要持續追蹤，及時更新市場變化
+- 新興技術（如AI）對傳統產業的影響需要特別關注
+- 區域市場差異性分析有助於理解公司全球布局
+- 產業鏈各環節的整合分析有助於預測未來趨勢
+- 數據收集要多方驗證，避免單一來源偏誤
+- 分析報告需要邏輯清晰，重點突出
+- 所有重要數據和論點都需要明確標註來源，確保分析可信度
+- 將新聞來源按照主題分類（財務數據、產品發展、市場預測等），使分析更有條理
+- 在引用外部預測或評級時，需要標明時間點，避免使用過時信息
+
+## Stock Analysis Specific Lessons
+- 存貨周轉天數和應收帳款周轉天數的變化趨勢，往往是營運效率的領先指標
+- 合約負債對股本比率的變化可作為未來營收的預測指標
+- 現金流量分析要特別關注營運現金流量佔稅後盈餘比率的變化
+- 產業排名分析要細分到不同層級（如：全產業、次產業、細分產業）
+- 月營收數據要同時分析月增率和年增率，避免季節性因素影響判斷
+- 毛利率、營業利益率、淨利率三者的變化趨勢要一起分析，找出獲利能力的關鍵
+- 技術分析要配合基本面變化，特別是在重大產業事件發生時
+
+## Data Collection Enhancement
+1. 財務數據收集
+   - 使用web_scraper.py時要設置合理的timeout值
+   - 對於重要網站要建立備用數據源
+   - 建立數據抓取的優先順序和重試機制
+
+2. 新聞資訊整合
+   - 使用search_engine.py時要注意關鍵詞的組合方式
+   - 新聞要分類處理（產業新聞、公司新聞、市場新聞）
+   - 建立新聞重要性的評分機制
+
+3. 產業資訊追蹤
+   - 定期更新產業供需數據
+   - 追蹤上下游產業鏈的變化
+   - 關注競爭對手的動態
+
+4. 數據品質控制
+   - 交叉驗證不同來源的數據
+   - 建立異常數據的檢測機制
+   - 保持數據的時效性
+
+## Analysis Process Optimization
+1. 報告生成流程
+   - 先收集原始數據
+   - 進行數據清理和標準化
+   - 生成初步分析報告
+   - 加入產業觀點和市場分析
+   - 形成最終綜合報告
+
+2. 分析框架優化
+   - 建立標準化的分析模板
+   - 設定關鍵指標的警戒值
+   - 加入動態更新機制
+   - 強化視覺化展示
+
+3. 持續改進機制
+   - 定期回顧分析準確度
+   - 更新分析方法和工具
+   - 擴充數據來源
+   - 優化報告格式和內容
+
+## Scratchpad
+
+# Current Task: 群聯電子 (8299) 產業動態與競爭分析
+
+## Analysis Plan
+[ ] Industry Framework Analysis
+    - NAND控制晶片產業結構
+    - 全球市場規模與趨勢
+    - 產業價值鏈分析
+[ ] Competitive Analysis
+    - 主要競爭對手分析
+    - 市占率比較
+    - 競爭優勢分析
+[ ] Market Dynamics
+    - 最新產業新聞
+    - 市場需求變化
+    - 技術發展趨勢
+
+## Data Collection Focus
+1. Industry Data
+   [ ] 全球NAND控制IC市場規模
+   [ ] SSD與消費性電子需求預測
+   [ ] 區域市場分布
+   [ ] 主要客戶產業動態
+
+2. Competitor Analysis
+   [ ] Silicon Motion (慧榮)
+   [ ] Marvell
+   [ ] 其他控制IC廠商
+   [ ] 市占率數據
+
+3. Market Trends
+   [ ] AI儲存需求影響
+   [ ] PCIe Gen5發展
+   [ ] 供應鏈變化
+   [ ] 新興應用機會
+
+## Key Focus Areas
+- AI時代的儲存需求變化
+- 車用儲存市場布局
+- 全球供應鏈重組趨勢
+- 技術創新與專利優勢
+
+## Data Sources
+- Taiwan Stock Exchange (TWSE)
+- Market news sources
+- Financial statements
+- Technical analysis data
+
+## Tools Required
+- web_scraper.py for financial data collection
+- search_engine.py for news gathering
+- enhanced_stock_analyzer.py for technical analysis
+- news_sentiment_analyzer.py for sentiment analysis
+
+## Stock Analysis Enhancement
+1. 數據引用規範
+   - 每個關鍵數據都需要標註具體來源
+   - 財務數據優先使用公司公告或證交所資料
+   - 市場預測需標註分析師/券商來源
+   - 新聞引用需注明發布時間
+
+2. 分析架構優化
+   - 先匯總所有相關數據和新聞
+   - 按主題分類整理（財務、產品、市場等）
+   - 提出論點時需有具體數據支持
+   - 風險提醒需基於實際新聞或數據
+
+3. 報告呈現方式
+   - 重要數據直接在內文標註來源
+   - 使用清晰的分類層級
+   - 同一主題的不同來源交叉驗證
+   - 結論需基於已引用的數據支持
+
+4. 持續追蹤機制
+   - 定期更新重要數據來源
+   - 關注預測與實際的差異
+   - 持續補充新的市場資訊
+   - 及時調整分析觀點
+
+## Investment Director Report Guidelines
+1. 報告結構規範
+   - 開門見山的核心觀點
+   - 關鍵數據速覽（最新營運表現）
+   - 3-5個投資亮點（各點均需數據支持）
+   - 明確的風險提示
+   - 具體可執行的投資建議
+   - 清晰的後續觀察重點
+
+2. 數據呈現原則
+   - 優先使用最新月季數據
+   - 同時呈現年增率和環比成長
+   - 重要數據需要同業比較
+   - 所有數據標註來源
+   - 使用精簡的圖表輔助
+
+3. 論點建構方法
+   - 先有數據，再有結論
+   - 從營運→競爭力→市場→風險，層層遞進
+   - 短中長期影響分開討論
+   - 突出差異化競爭優勢
+   - 連結總體產業趨勢
+
+4. 風險評估框架
+   - 區分短期與中長期風險
+   - 提供風險緩解方案
+   - 設定關鍵指標預警值
+   - 持續追蹤競爭對手動向
+
+5. 投資建議規範
+   - 基於具體數據與事實
+   - 提供明確的進場時機建議
+   - 設定獲利目標和停損點
+   - 列出重要觀察指標
+   - 定期回顧修正建議
+
+6. 報告品質控制
+   - 確保所有數據可追溯
+   - 交叉驗證重要信息
+   - 避免過度推測
+   - 定期更新重要數據
+   - 保持客觀中立立場
+
+## Report Writing Best Practices
+1. 內容組織
+   - 遵循「重要性原則」排序
+   - 使用層級式標題
+   - 關鍵信息圖表化
+   - 適當使用項目符號
+   - 保持邏輯連貫性
+
+2. 表達方式
+   - 精準簡潔
+   - 避免模糊措辭
+   - 使用專業術語
+   - 數據可視化呈現
+   - 重點醒目標示
+
+3. 時效性管理
+   - 標註報告製作日期
+   - 註明數據截止時間
+   - 定期更新關鍵指標
+   - 及時反映市場變化
+   - 持續追蹤預測準確度
+
+## Stock Analysis Report Structure Best Practices
+1. 營運數據分析框架：
+```
+月度營收表現：
+- 最新月營收
+  * 月增率
+  * 年增率
+- 年度累計
+  * 年增率變化
+```
+
+2. 獲利能力指標框架：
+```
+每股盈餘(EPS)：
+- 最新季度
+- 法人預估全年
+
+毛利率結構：
+- 各業務線佔比
+- 高毛利業務分析
+- 穩定收入來源
+```
+
+3. 訂單動能分析框架：
+```
+年度重點專案：
+- 新進案件進度
+- 重要客戶訂單
+- 製程技術分布
+
+產能配置：
+- 先進/成熟製程佔比
+- 產能利用率
+```
+
+4. 市場表現指標框架：
+```
+產業地位：
+- 市場排名
+- 全球競爭力
+- 技術優勢
+
+技術實力：
+- 製程能力
+- 專利數量
+- 研發成果
+```
+
+5. 風險指標框架：
+```
+短期風險：
+- 產能限制
+- 地緣政治
+- 產業循環
+
+長期挑戰：
+- 競爭態勢
+- 技術門檻
+- 人才需求
+```
+
+6. 成長動能預測框架：
+```
+短期預期：
+- 營收成長預測
+- 獲利表現預估
+- 新增成長動能
+
+長期展望：
+- 產能擴充計畫
+- 市場需求趨勢
+- 獲利結構優化
+```
+
+7. 產業供需分析框架：
+```
+上游關係：
+- 主要供應商
+- 產能配置策略
+- 策略合作關係
+
+下游客戶：
+- 客戶類型分析
+- 訂單結構
+- 新興領域布局
+```
+
+## Lessons Learned
+- 報告架構需要標準化，便於跨期比較和追蹤變化
+- 數據呈現要有層次，從總體到細節逐步展開
+- 各項指標要有明確的定義和計算方式
+- 風險和機會要並列分析，提供完整視角
+- 預測和展望要有具體數據支持，避免空泛表述
+- 產業鏈分析要上下游完整，突出關鍵環節
+- 技術和產品發展要結合市場需求變化
+- 競爭分析要包含國內外主要對手
+- 財務指標要結合產業特性來解讀
+- 報告更新要有固定頻率，保持資訊時效性

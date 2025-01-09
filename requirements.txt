@@ -1,0 +1,31 @@
+# Web scraping and automation
+playwright>=1.41.0
+pyee>=8.2.2
+greenlet>=2.0.2
+html5lib>=1.1
+beautifulsoup4>=4.12.2
+
+# Search engine
+duckduckgo-search>=4.1.1
+
+# LLM integration
+openai>=1.12.0
+anthropic>=0.42.0
+python-dotenv>=1.0.0
+
+# Testing
+unittest2>=1.1.0
+
+# Data analysis and visualization
+requests>=2.31.0
+pandas>=2.1.4
+yfinance>=0.2.33
+matplotlib>=3.8.2
+seaborn>=0.13.0
+mplfinance>=0.12.10b0
+numpy>=1.26.2
+
+# Utilities
+lxml>=5.3.0
+primp>=0.10.0
+click>=8.1.7 
