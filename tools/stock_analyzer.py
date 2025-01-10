@@ -444,5 +444,13 @@ RSI: {latest['RSI']:.2f}
         return "\n".join(advice)
 
 if __name__ == "__main__":
-    analyzer = StockAnalyzer("1762")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Analyze Taiwan stock data')
+    parser.add_argument('stock_id', type=str, help='Stock ID to analyze (e.g., 2330)')
+    parser.add_argument('--period', type=str, default='1y', help='Analysis period (e.g., 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)')
+    
+    args = parser.parse_args()
+    
+    analyzer = StockAnalyzer(args.stock_id)
     asyncio.run(analyzer.analyze_stock()) 
