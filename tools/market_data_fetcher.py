@@ -9,8 +9,8 @@ import pandas as pd
 import yfinance as yf
 import logging
 
-from financial_data import formatters
-from financial_data import utils
+from tools.financial_data import formatters
+from tools.financial_data import utils
 
 # Configure logging
 logging.basicConfig(
@@ -36,14 +36,6 @@ def setup_argparse():
 def fetch_market_data(symbol: str, interval: str = '1d', days: int = 365) -> pd.DataFrame:
     """
     Fetch market data for a symbol.
-    
-    Args:
-        symbol: Stock symbol
-        interval: Time interval ('1d', '1wk', '1mo')
-        days: Number of days of historical data
-        
-    Returns:
-        DataFrame with market data
     """
     try:
         end_time = datetime.now()
@@ -51,6 +43,10 @@ def fetch_market_data(symbol: str, interval: str = '1d', days: int = 365) -> pd.
         
         logger.info(f"Fetching {interval} data for {symbol} from {start_time.date()} to {end_time.date()}")
         
+        if not utils.is_valid_symbol(symbol):
+            logger.error(f"Invalid symbol: {symbol}")
+            return None
+            
         ticker = yf.Ticker(symbol)
         data = ticker.history(
             interval=interval,
@@ -62,7 +58,10 @@ def fetch_market_data(symbol: str, interval: str = '1d', days: int = 365) -> pd.
             logger.error(f"No data available for {symbol}")
             return None
             
-        # Use standardization function from formatters
+        if not utils.is_valid_market_data(data):
+            logger.error(f"Invalid data format for {symbol}")
+            return None
+            
         return formatters.standardize_market_data(data)
         
     except Exception as e:

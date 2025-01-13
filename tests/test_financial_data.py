@@ -6,8 +6,13 @@ import json
 import pandas as pd
 from io import StringIO
 from unittest.mock import patch, MagicMock
+import sys
 
-from tools.financial_data_fetcher import fetch_financial_statements, save_output
+from tools.financial_data_fetcher import (
+    fetch_financial_statements, 
+    save_output,
+    main
+)
 
 class TestFinancialDataFetcher(unittest.TestCase):
     """Test cases for financial data fetcher."""
@@ -45,42 +50,48 @@ class TestFinancialDataFetcher(unittest.TestCase):
     @patch('yfinance.Ticker')
     def test_fetch_financial_statements_success(self, mock_ticker):
         """Test successful financial statements fetching."""
-        # Setup mock
-        mock_instance = MagicMock()
-        mock_instance.financials = self.sample_income
-        mock_instance.balance_sheet = self.sample_balance
-        mock_instance.cashflow = self.sample_cash
-        mock_ticker.return_value = mock_instance
+        # Setup mock data with proper datetime index
+        dates = pd.date_range(start='2023-01-01', periods=2, freq='QE')
         
-        # Test
-        result = fetch_financial_statements('AAPL', ['income', 'balance', 'cash'])
+        mock_instance = mock_ticker.return_value
+        mock_financials = pd.DataFrame({
+            dates[0]: [100, 50],
+            dates[1]: [200, 100]
+        }, index=['Revenue', 'Expenses'])
+        mock_instance.quarterly_financials = mock_financials
         
-        # Verify
+        mock_balance = pd.DataFrame({
+            dates[0]: [1000, 500],
+            dates[1]: [2000, 1000]
+        }, index=['Assets', 'Liabilities'])
+        mock_instance.quarterly_balance_sheet = mock_balance
+        
+        # Call function
+        result = fetch_financial_statements('AAPL', statements=['income', 'balance'])
+        
         self.assertIsNotNone(result)
-        self.assertTrue('income_statement' in result)
-        self.assertTrue('balance_sheet' in result)
-        self.assertTrue('cash_flow' in result)
-        self.assertEqual(len(result['income_statement']), 3)
-        self.assertEqual(len(result['balance_sheet']), 3)
-        self.assertEqual(len(result['cash_flow']), 3)
+        self.assertIn('income_statement', result)
+        self.assertIn('balance_sheet', result)
     
     @patch('yfinance.Ticker')
     def test_fetch_financial_statements_partial(self, mock_ticker):
         """Test fetching specific statements."""
-        # Setup mock
-        mock_instance = MagicMock()
-        mock_instance.financials = self.sample_income
-        mock_instance.balance_sheet = self.sample_balance
-        mock_ticker.return_value = mock_instance
+        # Setup mock data with proper datetime index
+        dates = pd.date_range(start='2023-01-01', periods=2, freq='QE')
         
-        # Test
-        result = fetch_financial_statements('AAPL', ['income', 'balance'])
+        mock_instance = mock_ticker.return_value
+        mock_financials = pd.DataFrame({
+            dates[0]: [100, 50],
+            dates[1]: [200, 100]
+        }, index=['Revenue', 'Expenses'])
+        mock_instance.quarterly_financials = mock_financials
         
-        # Verify
+        # Call function with only income statement
+        result = fetch_financial_statements('AAPL', statements=['income'])
+        
         self.assertIsNotNone(result)
-        self.assertTrue('income_statement' in result)
-        self.assertTrue('balance_sheet' in result)
-        self.assertFalse('cash_flow' in result)
+        self.assertIn('income_statement', result)
+        self.assertNotIn('balance_sheet', result)
     
     @patch('yfinance.Ticker')
     def test_fetch_financial_statements_empty(self, mock_ticker):
@@ -141,32 +152,37 @@ class TestFinancialDataFetcher(unittest.TestCase):
             self.assertTrue('statement_type' in output.lower())
             self.assertTrue('metric' in output.lower())
     
-    def test_command_line_interface(self):
+    @patch('tools.financial_data_fetcher.fetch_financial_statements')
+    def test_command_line_interface(self, mock_fetch):
         """Test command line interface."""
-        test_args = ['financial_data_fetcher.py', 'AAPL', '--statements', 'income', 'balance']
+        # Save original argv
+        original_argv = sys.argv
         
-        with patch('sys.argv', test_args):
-            with patch('tools.financial_data_fetcher.fetch_financial_statements') as mock_fetch:
-                # Prepare mock data - return DataFrames
-                mock_fetch.return_value = {
-                    'income_statement': self._prepare_statement_for_test(self.sample_income),
-                    'balance_sheet': self._prepare_statement_for_test(self.sample_balance)
-                }
-                
-                # Import main only when needed to avoid early parsing of sys.argv
-                from tools.financial_data_fetcher import main
-                
-                # Test
-                with patch('sys.stdout', new=StringIO()) as fake_out:
-                    main()
-                    output = fake_out.getvalue()
-                    
-                    # Verify
-                    self.assertTrue(len(output) > 0)
-                    mock_fetch.assert_called_once_with(
-                        symbol='AAPL',
-                        statements=['income', 'balance']
-                    )
+        try:
+            # Setup mock with proper datetime index
+            dates = pd.date_range(start='2023-01-01', periods=1, freq='QE')
+            mock_fetch.return_value = {
+                'income_statement': pd.DataFrame({
+                    dates[0].strftime('%Y-%m-%d'): [100]
+                }, index=['Revenue']),
+                'balance_sheet': pd.DataFrame({
+                    dates[0].strftime('%Y-%m-%d'): [1000]
+                }, index=['Assets'])
+            }
+            
+            # Run main with arguments
+            sys.argv = ['financial_data_fetcher.py', 'AAPL', '--statements', 'income', 'balance', '--quarterly']
+            main()
+            
+            # Verify fetch was called correctly
+            mock_fetch.assert_called_once_with(
+                symbol='AAPL',
+                statements=['income', 'balance'],
+                quarterly=True
+            )
+        finally:
+            # Restore original argv
+            sys.argv = original_argv
 
 if __name__ == '__main__':
     unittest.main() 

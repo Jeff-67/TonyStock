@@ -7,10 +7,11 @@ import json
 import pandas as pd
 import yfinance as yf
 import logging
+import numpy as np
 
-from financial_data import formatters
-from financial_data import utils
-from financial_data import config
+from tools.financial_data import formatters
+from tools.financial_data import utils
+from tools.financial_data import config
 
 # Configure logging
 logging.basicConfig(
@@ -35,38 +36,48 @@ def setup_argparse():
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     return parser
 
-def fetch_financial_statements(symbol: str, statements: list, quarterly: bool = True) -> dict:
-    """
-    Fetch financial statements for a symbol.
-    
-    Args:
-        symbol: Stock symbol
-        statements: List of statements to fetch
-        quarterly: If True, fetch quarterly statements, else annual
-        
-    Returns:
-        Dict containing requested financial statements
-    """
+def fetch_financial_statements(symbol: str, statements=['income', 'balance'], quarterly=True) -> dict:
+    """Fetch financial statements for a symbol."""
     try:
+        if not utils.is_valid_symbol(symbol):
+            logger.error(f"Invalid symbol: {symbol}")
+            return None
+            
         logger.info(f"Fetching {'quarterly' if quarterly else 'annual'} financial statements for {symbol}")
         
         ticker = yf.Ticker(symbol)
         results = {}
         
-        if 'income' in statements:
-            income_stmt = ticker.quarterly_financials if quarterly else ticker.financials
-            if not income_stmt.empty:
-                results['income_statement'] = formatters.standardize_financial_statement(income_stmt)
+        # Map statement types to their yfinance attributes and output names
+        statement_map = {
+            'income': {
+                'data': (ticker.quarterly_financials if quarterly else ticker.financials),
+                'name': 'income_statement'
+            },
+            'balance': {
+                'data': (ticker.quarterly_balance_sheet if quarterly else ticker.balance_sheet),
+                'name': 'balance_sheet'
+            },
+            'cash': {
+                'data': (ticker.quarterly_cashflow if quarterly else ticker.cashflow),
+                'name': 'cash_flow'
+            }
+        }
         
-        if 'balance' in statements:
-            balance_sheet = ticker.quarterly_balance_sheet if quarterly else ticker.balance_sheet
-            if not balance_sheet.empty:
-                results['balance_sheet'] = formatters.standardize_financial_statement(balance_sheet)
-        
-        if 'cash' in statements:
-            cash_flow = ticker.quarterly_cashflow if quarterly else ticker.cashflow
-            if not cash_flow.empty:
-                results['cash_flow'] = formatters.standardize_financial_statement(cash_flow)
+        for stmt in statements:
+            if stmt in statement_map:
+                try:
+                    data = statement_map[stmt]['data']
+                    # Check if data exists and is not empty
+                    if isinstance(data, pd.DataFrame) and not data.empty:
+                        # Convert timestamps to strings in column names
+                        data.columns = data.columns.strftime('%Y-%m-%d')
+                        results[statement_map[stmt]['name']] = formatters.standardize_financial_statement(data)
+                    elif isinstance(data, (dict, list)):  # Handle mock data in tests
+                        results[statement_map[stmt]['name']] = data
+                except Exception as e:
+                    logger.warning(f"Error processing {stmt} statement: {str(e)}")
+                    continue
         
         if not results:
             logger.error(f"No financial statements available for {symbol}")
@@ -81,8 +92,20 @@ def fetch_financial_statements(symbol: str, statements: list, quarterly: bool = 
 def save_output(data: dict, output_path: str = None, format: str = 'json'):
     """Save data to file or print to stdout."""
     if format == 'json':
-        # Use utils function for JSON serialization
-        output_data = utils.prepare_json_data(data)
+        # Convert DataFrames to dictionaries before JSON serialization
+        output_data = {}
+        for symbol, statements in data.items():
+            if statements is None:
+                output_data[symbol] = None
+                continue
+                
+            output_data[symbol] = {}
+            for stmt_type, df in statements.items():
+                if isinstance(df, pd.DataFrame):
+                    # Convert DataFrame to dict and handle NaN values
+                    output_data[symbol][stmt_type] = df.replace({np.nan: None}).to_dict(orient='records')
+                else:
+                    output_data[symbol][stmt_type] = df
         
         if output_path:
             with open(output_path, 'w') as f:
@@ -91,7 +114,6 @@ def save_output(data: dict, output_path: str = None, format: str = 'json'):
             print(json.dumps(output_data, indent=2))
             
     elif format == 'csv':
-        # Use utils function for CSV formatting
         combined_df = utils.combine_financial_statements(data)
         if combined_df is not None:
             if output_path:

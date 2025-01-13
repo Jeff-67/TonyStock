@@ -7,6 +7,15 @@ import time
 import random
 from duckduckgo_search import DDGS
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
+from typing import List
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def get_random_user_agent():
     """Return a random User-Agent string."""
@@ -79,22 +88,18 @@ def format_results(results):
         print(f"Title: {r.get('title', 'N/A')}")
         print(f"Snippet: {r.get('snippet', r.get('body', 'N/A'))}")
 
-def search(query, max_results=10):
+def search(query: str, max_results: int = 10) -> List[str]:
     """
     Main search function that handles both API and HTML backends with retry mechanism.
-    
-    Args:
-        query (str): Search query
-        max_results (int): Maximum number of results to return
-        
-    Returns:
-        list: List of dictionaries containing search results
     """
     try:
+        if not query or not isinstance(query, str):
+            logger.error("Invalid query")
+            raise ValueError("Invalid query")
+            
         results = search_with_retry(query, max_results)
         if results:
-            format_results(results)  # 仍然打印結果以便調試
-            # 將結果轉換為統一格式
+            format_results(results)
             formatted_results = []
             for r in results:
                 formatted_results.append({
@@ -106,10 +111,8 @@ def search(query, max_results=10):
         return []
             
     except Exception as e:
-        print(f"ERROR: Search failed: {str(e)}", file=sys.stderr)
-        print(f"ERROR type: {type(e)}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        return []  # 返回空列表而不是退出程序
+        logger.error(f"Search failed: {str(e)}")
+        raise  # Re-raise the exception instead of sys.exit()
 
 def main():
     parser = argparse.ArgumentParser(description="Search using DuckDuckGo with fallback mechanisms")

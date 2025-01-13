@@ -19,7 +19,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 
 2. Data Collection & Analysis Tools
    a. search_engine.py
-      - Command: conda activate stock && python tools/search_engine.py "search query" [--max-results N]
+      - Command: conda activate stock && python -m tools.search_engine "search query" [--max-results N]
       - Quote multi-word queries
       - Default max results: 10
       - Uses DuckDuckGo with API/HTML fallback
@@ -27,7 +27,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       - Returns URLs that should be passed to web_scraper.py for full content
 
    b. web_scraper.py
-      - Command: conda activate stock && python tools/web_scraper.py [URLs...] [--max-concurrent N] [--debug]
+      - Command: conda activate stock && python -m tools.web_scraper [URLs...] [--max-concurrent N] [--debug]
       - Used after search_engine.py to get full content from URLs
       - URLs must be complete (with http:// or https://)
       - Quote URLs with special characters
@@ -36,7 +36,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       - Debug flag available
 
    c. read_pdf.py
-      - Command: conda activate stock && python tools/read_pdf.py [pdf_path] [--model model_name]
+      - Command: conda activate stock && python -m tools.read_pdf [pdf_path] [--model model_name]
       - Default model: gpt-4o
       - Outputs markdown in same directory
 
@@ -48,7 +48,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
         * Local: Qwen/Qwen2.5-32B-Instruct-AWQ
 
    e. market_data_fetcher.py
-      - Command: conda activate stock && python tools/market_data_fetcher.py [symbols...] [options]
+      - Command: conda activate stock && python -m tools.market_data_fetcher [symbols...] [options]
       - Features:
         * Fetches historical price and volume data
         * Supports multiple symbols
@@ -62,11 +62,11 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
         * --debug: Enable debug logging
       - Example:
         ```bash
-        python tools/market_data_fetcher.py AAPL MSFT --interval 1d --days 30 --format csv
+        python -m tools.market_data_fetcher AAPL MSFT --interval 1d --days 30 --format csv
         ```
 
    f. financial_data_fetcher.py
-      - Command: conda activate stock && python tools/financial_data_fetcher.py [symbols...] [options]
+      - Command: conda activate stock && python -m tools.financial_data_fetcher [symbols...] [options]
       - Features:
         * Fetches financial statements
         * Supports multiple symbols
@@ -79,7 +79,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
         * --debug: Enable debug logging
       - Example:
         ```bash
-        python tools/financial_data_fetcher.py AAPL --statements income balance --format json
+        python -m tools.financial_data_fetcher AAPL --statements income balance --format json
         ```
 
 # Typical News Collection Workflow
@@ -221,6 +221,99 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Include media name and article title
      * Enable readers to verify information
 
+# Required Analysis Steps
+
+1. 資料收集
+   - 使用 search_engine.py 搜尋最新新聞
+   - 使用 web_scraper.py 獲取完整內容
+   - 使用 market_data_fetcher.py 取得市場數據
+   - 使用 financial_data_fetcher.py 取得財務數據
+   - 交叉驗證多個來源
+
+2. 數據分析
+   - 整理新聞重點
+   - 分析財務數據趨勢
+   - 比較同業表現
+   - 檢視技術面變化
+   - 評估風險因素
+
+3. 結論產出
+   - 依據分析框架撰寫
+   - 提供具體數據支持
+   - 清楚列出優劣勢
+   - 給出明確建議
+   - 設定監控指標
+
+# Stock Analysis Framework
+
+1. 產業分析
+   - 產業週期與現況
+   - 上下游供應鏈關係
+   - 競爭格局分析
+   - 技術發展趨勢
+   - 法規政策影響
+
+2. 公司基本面
+   a) 營收表現
+      - 最新營收數據
+      - 年度/季度成長率
+      - 各業務部門佔比
+      - 地區營收分布
+      - 客戶集中度
+
+   b) 財務狀況
+      - 獲利能力指標
+      - 資產負債結構
+      - 現金流量分析
+      - 營運效率指標
+      - 股利政策
+
+3. 技術面分析
+   - 價格趨勢
+   - 成交量變化
+   - 關鍵支撐壓力位
+   - 與大盤相關性
+   - 法人動向
+
+4. 策略評估
+   優勢：
+   - 市場地位
+   - 技術優勢
+   - 財務實力
+   - 管理能力
+
+   風險：
+   - 營運風險
+   - 財務風險
+   - 市場風險
+   - 政策風險
+
+5. 投資建議
+   短期（1-3個月）：
+   - 進場時機
+   - 目標價位
+   - 停損位置
+   - 觀察重點
+
+   中期（3-12個月）：
+   - 策略布局
+   - 分批進場點位
+   - 獲利目標
+   - 風險控管
+
+   長期（1年以上）：
+   - 策略定位
+   - 持有理由
+   - 預期報酬
+   - 退場機制
+
+6. 關鍵監控指標
+   - 營運指標
+   - 財務指標
+   - 產業指標
+   - 技術指標
+   - 風險指標
+
 # Lessons Learned
 
 1. Tool Usage
@@ -229,6 +322,11 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
    - Use correct character encoding
    - Follow proper file paths
    - Document API keys securely
+   - Python Package Structure (Added 2024/01):
+     * Always run scripts as modules from project root: `python -m tools.script_name`
+     * Ensure `__init__.py` exists in all package directories
+     * Don't run Python scripts directly from their containing directory
+     * Example: Use `python -m tools.market_data_fetcher` instead of `python tools/market_data_fetcher.py`
 
 2. Data Validation
    - Verify company identifiers
@@ -345,19 +443,63 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Consider competitive landscape
      * Track policy and regulation impacts
 
+8. Stock Analysis Best Practices (Updated 2025/01)
+   - Comprehensive Framework Application
+     * Follow structured analysis framework strictly
+     * Start with industry analysis before company specifics
+     * Connect market trends with company strategy
+     * Analyze sustainability initiatives in detail
+   
+   - Data Integration
+     * Combine financial metrics with strategic initiatives
+     * Cross-reference market data with company announcements
+     * Track transformation progress with concrete metrics
+     * Monitor market share changes across regions
+
+   - Sustainability Focus
+     * Track specific environmental initiatives and their impact
+     * Quantify emissions reduction achievements
+     * Monitor compliance with international standards
+     * Analyze green product development and adoption
+
+   - Strategic Transformation Analysis
+     * Document revenue mix changes
+     * Track market share in different regions
+     * Monitor progress in new business areas
+     * Analyze impact on financial metrics
+
+9. Research Methodology (Added 2025/01)
+   - Sequential Information Gathering
+     * Start with recent market data
+     * Follow up with news and announcements
+     * Deep dive into strategic initiatives
+     * Cross-validate information from multiple sources
+   
+   - Tool Usage Optimization
+     * Use market_data_fetcher for quantitative analysis
+     * Leverage search_engine for recent developments
+     * Apply web_scraper for detailed news content
+     * Combine tools for comprehensive analysis
+
 # Scratchpad
 
-Current Task: Stock Analysis Methodology Update
+Current Task: Framework Application Flexibility
 Progress: 
-[X] Added new section on Stock Analysis Best Practices
-[X] Updated information hierarchy guidelines
-[X] Added time sensitivity requirements
-[X] Enhanced specificity guidelines
-[X] Updated source citation requirements
+[X] Learned to adapt framework based on company specifics
+[X] Successfully combined multiple tools for comprehensive analysis
+[X] Balanced quantitative and qualitative information
+[X] Focused on most relevant aspects rather than covering everything
+
+Key Takeaways:
+- Framework serves as guide, not strict ruleset
+- Prioritize company-specific important factors
+- Tools should support analysis, not drive it
+- Balance depth vs breadth based on significance
 
 Next Steps:
-- [ ] Monitor effectiveness of new guidelines
-- [ ] Gather feedback on analysis quality
-- [ ] Refine based on user responses
+- [ ] Continue refining tool usage efficiency
+- [ ] Develop better error handling for web scraping
+- [ ] Improve integration of financial and strategic analysis
+- [ ] Maintain focus on key transformative events
 
 Note: These guidelines should be applied to all future stock analysis tasks.

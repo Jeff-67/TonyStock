@@ -7,51 +7,46 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 from . import config
+import json
 
-def prepare_json_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Prepare data for JSON serialization.
-    
-    Args:
-        data: Dictionary containing DataFrames or nested dictionaries with DataFrames
-        
-    Returns:
-        JSON-serializable dictionary
-    """
-    if isinstance(data, dict):
-        result = {}
-        for key, value in data.items():
-            if isinstance(value, pd.DataFrame):
-                result[key] = value.to_dict('records')
-            elif isinstance(value, dict):
-                result[key] = prepare_json_data(value)
-            elif value is None:
-                result[key] = None
-            else:
-                result[key] = value
-        return result
-    return data
+class PandasJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder for pandas objects."""
+    def default(self, obj):
+        if isinstance(obj, pd.DataFrame):
+            return obj.replace({np.nan: None}).to_dict(orient='records')
+        elif isinstance(obj, pd.Series):
+            return obj.replace({np.nan: None}).to_dict()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
 
-def combine_market_data(data: Dict[str, pd.DataFrame]) -> Optional[pd.DataFrame]:
-    """
-    Combine market data from multiple symbols into a single DataFrame.
+def prepare_json_data(data: dict) -> dict:
+    """Prepare data for JSON serialization."""
+    if not data:
+        return {}
     
-    Args:
-        data: Dictionary mapping symbols to DataFrames
+    # Use custom encoder for JSON serialization
+    return json.loads(json.dumps(data, cls=PandasJSONEncoder))
+
+def combine_market_data(data: dict) -> pd.DataFrame:
+    """Combine market data from multiple symbols into a single DataFrame."""
+    if not data:
+        return None
         
-    Returns:
-        Combined DataFrame with symbol column
-    """
-    combined_data = []
+    dfs = []
     for symbol, df in data.items():
-        if df is not None:
-            df = df.copy()
-            df['symbol'] = symbol
-            combined_data.append(df)
+        if isinstance(df, pd.DataFrame):
+            df['Symbol'] = symbol
+            dfs.append(df)
     
-    if combined_data:
-        return pd.concat(combined_data, ignore_index=True)
-    return None
+    if not dfs:
+        return None
+        
+    return pd.concat(dfs, axis=0, ignore_index=True)
 
 def combine_financial_statements(data: Dict[str, Dict[str, pd.DataFrame]]) -> Optional[pd.DataFrame]:
     """
@@ -200,3 +195,17 @@ def is_market_open(market: str) -> bool:
     now = datetime.now(pytz.timezone(hours['timezone']))
     
     return hours['open'] <= now <= hours['close'] 
+
+def is_valid_symbol(symbol: str) -> bool:
+    """Validate stock symbol format."""
+    if not symbol or not isinstance(symbol, str):
+        return False
+    # Basic validation - alphanumeric and dot
+    return all(c.isalnum() or c == '.' for c in symbol)
+
+def is_valid_market_data(data: pd.DataFrame) -> bool:
+    """Validate market data format."""
+    if data is None or data.empty:
+        return False
+    required_columns = {'Open', 'High', 'Low', 'Close', 'Volume'}
+    return all(col in data.columns for col in required_columns) 

@@ -84,17 +84,13 @@ class TestSearchEngine(unittest.TestCase):
 
     @patch('tools.search_engine.DDGS')
     def test_search_error(self, mock_ddgs):
-        # Mock search error
-        mock_ddgs_instance = MagicMock()
-        mock_ddgs_instance.__enter__.return_value.text.side_effect = Exception("Test error")
-        mock_ddgs.return_value = mock_ddgs_instance
-
-        # Run search and check for error
-        with self.assertRaises(SystemExit) as cm:
+        """Test error handling in search function."""
+        with self.assertRaises(Exception) as cm:  # Change from SystemExit to Exception
+            mock_instance = mock_ddgs.return_value.__enter__.return_value
+            mock_instance.text.side_effect = Exception("Test error")
             search("test query")
         
-        self.assertEqual(cm.exception.code, 1)
-        self.assertIn("ERROR: Search failed: Test error", self.stderr.getvalue())
+        self.assertEqual(str(cm.exception), "Test error")
 
     def test_result_field_fallbacks(self):
         # Test that the fallback fields work correctly
