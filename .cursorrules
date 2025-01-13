@@ -1,306 +1,363 @@
 # Instructions
 
-During you interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+During interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
 
-You should also use the `.cursorrules` file as a scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
-[X] Task 1
-[ ] Task 2
-Also update the progress of the task in the Scratchpad when you finish a subtask.
+You should also use the `.cursorrules` file as a scratchpad to organize your thoughts. When receiving a new task:
+1. Review the scratchpad content
+2. Clear old different task if necessary
+3. Explain the new task
+4. Plan the steps needed to complete the task
+5. Use todo markers to track progress: [X] Done, [ ] Pending
+6. Update progress when subtasks are completed
 
-# Tools Usage
+# Tools Configuration
 
 1. Environment Setup
-   - Always activate conda environment 'stock' before running tools
+   - Activate conda environment 'stock' before running tools
    - Use run_terminal_cmd for executing Python scripts
    - Set appropriate timeout values for web scraping
 
-2. Data Collection
-   - Use web_scraper.py for detailed web content
-     * Command format: python tools/web_scraper.py [URLs...] [--max-concurrent N] [--debug]
-     * Example: python tools/web_scraper.py "https://example1.com" "https://example2.com" --max-concurrent 5
-     * URLs must be valid and complete (including http:// or https://)
-     * URLs with special characters (like ? & =) must be wrapped in quotes
-     * Default max concurrent connections is 5
-     * Use --debug flag for detailed logging
-     * Tool will automatically handle timeouts (30s) and retries
-     * Outputs both raw content and formatted text with hyperlinks
+2. Data Collection & Analysis Tools
+   a. search_engine.py
+      - Command: conda activate stock && python tools/search_engine.py "search query" [--max-results N]
+      - Quote multi-word queries
+      - Default max results: 10
+      - Uses DuckDuckGo with API/HTML fallback
+      - Debug logging included
+      - Returns URLs that should be passed to web_scraper.py for full content
 
-   - Use search_engine.py for news and market updates
-     * Command format: python tools/search_engine.py "search query" [--max-results N]
-     * Example: python tools/search_engine.py "京鼎 半導體設備 市場規模"
-     * Put search query in quotes if it contains spaces
-     * Default max results is 10
-     * DO NOT use --query or --days parameters
-     * Uses DuckDuckGo search with both API and HTML fallback
-     * Includes debug logging for troubleshooting
-     * Returns URL, title, and snippet for each result
+   b. web_scraper.py
+      - Command: conda activate stock && python tools/web_scraper.py [URLs...] [--max-concurrent N] [--debug]
+      - Used after search_engine.py to get full content from URLs
+      - URLs must be complete (with http:// or https://)
+      - Quote URLs with special characters
+      - Default max concurrent: 5
+      - Timeout: 30s with auto-retry
+      - Debug flag available
 
-   - Cross-validate data from multiple sources
-     * Always verify information from multiple sources
-     * Compare news articles with official announcements
-     * Check consistency of financial data
-     * Validate market size and growth projections
+   c. read_pdf.py
+      - Command: conda activate stock && python tools/read_pdf.py [pdf_path] [--model model_name]
+      - Default model: gpt-4o
+      - Outputs markdown in same directory
 
-3. Analysis Tools
-   - Use enhanced_stock_analyzer.py for technical analysis
-   - Use report_generator.py for comprehensive reports
+   d. llm_api.py
+      - Supports OpenAI, Anthropic, and local models
+      - Default models:
+        * OpenAI: gpt-4o
+        * Anthropic: claude-3-sonnet-20240229
+        * Local: Qwen/Qwen2.5-32B-Instruct-AWQ
 
-# Lessons
+   e. market_data_fetcher.py
+      - Command: conda activate stock && python tools/market_data_fetcher.py [symbols...] [options]
+      - Features:
+        * Fetches historical price and volume data
+        * Supports multiple symbols
+        * Flexible time intervals (1d, 1wk, 1mo)
+        * Customizable date range
+      - Options:
+        * --interval: Data interval (1d, 1wk, 1mo)
+        * --days: Number of days of historical data
+        * --output/-o: Output file path
+        * --format: Output format (json, csv)
+        * --debug: Enable debug logging
+      - Example:
+        ```bash
+        python tools/market_data_fetcher.py AAPL MSFT --interval 1d --days 30 --format csv
+        ```
 
-## Tool Usage
-- Always use run_terminal_cmd to execute Python scripts
-- Activate conda environment before running tools
-- Set appropriate timeout values for web scraping
-- Handle different character encodings (UTF-8) properly
-- Use correct relative paths for files and images
+   f. financial_data_fetcher.py
+      - Command: conda activate stock && python tools/financial_data_fetcher.py [symbols...] [options]
+      - Features:
+        * Fetches financial statements
+        * Supports multiple symbols
+        * Income statement, balance sheet, cash flow
+        * Standardized data formatting
+      - Options:
+        * --statements: Statements to fetch (income, balance, cash)
+        * --output/-o: Output file path
+        * --format: Output format (json, csv)
+        * --debug: Enable debug logging
+      - Example:
+        ```bash
+        python tools/financial_data_fetcher.py AAPL --statements income balance --format json
+        ```
 
-## Stock Analysis
-- Cross-validate data from multiple sources
-- Track both monthly and yearly growth rates
-- Monitor key financial ratios and trends
-- Consider industry-specific metrics
-- Watch for one-time events affecting numbers
+# Typical News Collection Workflow
+1. Use search_engine.py to find relevant news articles
+   - Craft search queries based on News Collection Strategy
+   - Use quotes for exact phrases
+   - Consider time period relevance
 
-## Analysis Frameworks
-1. Financial Performance
-   - Monthly revenue (MoM, YoY)
-   - Quarterly metrics (EPS, margins)
-   - Annual growth trends
+2. Use web_scraper.py to get full content
+   - Pass URLs from search results directly
+   - Use --max-concurrent for efficiency
+   - Enable --debug for troubleshooting
+
+3. Analyze content using frameworks
+   - Apply relevant analysis frameworks
+   - Cross-validate information
+   - Document sources and findings
+
+# Analysis Frameworks
+
+1. Financial Analysis
+   - Revenue trends (MoM, YoY)
+   - Profitability metrics
    - Cash flow indicators
+   - Growth rates
+   - Efficiency ratios
 
 2. Industry Analysis
-   - Market position & share
-   - Competitive advantages
-   - Supply chain dynamics
+   - Market size & growth
+   - Competitive landscape
+   - Value chain position
+   - Entry barriers
    - Technology trends
 
-3. Growth Drivers
-   - New products/technologies
-   - Capacity expansion
-   - Market opportunities
-   - Customer dynamics
+3. Company Analysis
+   - Business model
+   - Product portfolio
+   - Customer base
+   - R&D capabilities
+   - Management team
 
 4. Risk Assessment
-   - Short-term operational risks
-   - Long-term strategic risks
-   - Industry cycle position
-   - External factors
+   - Operational risks
+   - Financial risks
+   - Market risks
+   - Regulatory risks
+   - Strategic risks
 
-5. Investment Checklist
-   - Key performance indicators
-   - Entry/exit timing
-   - Risk tolerance levels
-   - Monitoring metrics
+# News Collection Strategy
 
-## Industry Analysis Guidelines
-1. 產業結構分析
-   - 市場規模與成長性
-   - 產業價值鏈定位
-   - 競爭格局變化
-   - 進入障礙評估
+1. Supply Chain Analysis
+   - Upstream suppliers and their dynamics
+   - Downstream customers and demand trends
+   - Key partnerships and strategic alliances
+   - Supply chain disruptions and mitigation
+   - Pricing power in the value chain
 
-2. 競爭力分析
-   - 技術優勢
-   - 成本結構
-   - 客戶關係
-   - 創新能力
+2. Industry Ecosystem
+   - Competitive positioning changes
+   - New entrants and their impact
+   - Technology shifts and adoption
+   - Regulatory changes and compliance
+   - Industry consolidation trends
 
-3. 成長動能評估
-   - 新產品發展
-   - 市場擴張
-   - 策略合作
-   - 營運效率
+3. Market Dynamics
+   - End-market demand changes
+   - Geographic market expansion
+   - Product mix evolution
+   - Pricing trends and pressures
+   - Market share movements
 
-4. 風險監控
-   - 產業循環風險
-   - 技術變遷風險
-   - 競爭加劇風險
-   - 法規政策風險
+4. Strategic Initiatives
+   - R&D developments and breakthroughs
+   - M&A activities and integration
+   - Capacity expansion plans
+   - New product launches
+   - Strategic partnerships
 
-## Data Collection Guidelines
-1. 財務數據
-   - 官方公告為主
-   - 券商研報為輔
-   - 產業數據佐證
-   - 即時新聞更新
+5. External Factors
+   - Government policies and regulations
+   - Economic indicators and impact
+   - Technology disruption
+   - Geopolitical factors
+   - Environmental considerations
 
-2. 產業資訊
-   - 上下游供需變化
-   - 競爭對手動態
-   - 技術發展趨勢
-   - 政策法規影響
+# Best Practices
 
-## Report Writing
-- Start with key findings and summary
-- Include data sources and timestamps
-- Use clear section hierarchy
-- Highlight risks and opportunities
-- Keep analysis objective and data-driven
+1. Data Collection
+   - Cross-validate multiple sources
+   - Prioritize official announcements
+   - Verify data timeliness
+   - Document sources clearly
 
-## Investment Analysis Best Practices
+2. Analysis Process
+   - Start with key findings
+   - Use clear metrics
+   - Support claims with data
+   - Consider multiple scenarios
+   - Update regularly
 
-1. 報告架構設計
-   - 核心投資亮點：最重要的2-3個投資理由
-   - 競爭優勢分析：市場定位和策略合作
-   - 成長動能分析：短期催化劑和中長期發展
-   - 風險評估：營運風險和產業風險
-   - 投資建議：分短中長期提供具體建議
-   - 關鍵監控指標：營運面、產業面、政策面
-   - 估值分析：相對估值和歷史估值比較
+3. Report Writing
+   - Clear executive summary
+   - Structured sections
+   - Data visualization
+   - Risk disclosure
+   - Actionable insights
 
-2. 數據引用原則
-   - 市場數據：引用權威研究機構 (e.g., IndustryARC, Mordor Intelligence)
-   - 公司數據：以公司公告和財報為主
-   - 產業趨勢：引用大廠法說會資訊
-   - 技術發展：引用專業研究報告
-   - 每個重要數據都標註來源
+4. Investment Recommendations
+   - Short-term (6-12 months)
+   - Medium-term (1-2 years)
+   - Long-term (2+ years)
+   - Clear entry/exit points
+   - Risk mitigation strategies
 
-3. Insight提供方式
-   - 在每個重要段落後提供深度觀點
-   - 連結不同面向的資訊（如：技術趨勢與營收成長）
-   - 提供前瞻性的判斷
-   - 分析背後的邏輯和因果關係
+5. Stock Analysis Best Practices
+   - Information Hierarchy
+     * Start with basic news for overall direction
+     * Deep dive into technical/project details
+     * Include market perspectives (e.g., foreign institutions)
+   
+   - Time Sensitivity
+     * Always check news publication dates
+     * Differentiate historical data from latest updates
+     * Avoid outdated predictions/outlooks
+   
+   - Specificity
+     * Use concrete numbers instead of vague descriptions
+     * Include technical specifications when relevant
+     * Provide exact project timelines and milestones
+   
+   - Multi-source Verification
+     * Company statements (earnings calls)
+     * Analyst reports
+     * Industry news
+     * Cross-reference multiple sources
+   
+   - Source Citation
+     * Cite every major point
+     * Include media name and article title
+     * Enable readers to verify information
 
-4. 風險分析框架
-   - 營運風險：客戶集中度、產能利用率
-   - 產業風險：景氣循環、競爭態勢
-   - 技術風險：技術轉換、研發進展
-   - 政策風險：產業政策、地緣政治
-   - 並提供對應的緩解方案
+# Lessons Learned
 
-5. 投資建議架構
-   - 短期（6-12個月）：基於確定性高的因素
-   - 中期（1-2年）：基於可見的成長動能
-   - 長期（2年以上）：基於競爭優勢和產業趨勢
-   - 提供具體的買賣價位區間
+1. Tool Usage
+   - Always activate conda environment 'stock' before running tools (CRITICAL)
+   - Handle timeouts and retries properly
+   - Use correct character encoding
+   - Follow proper file paths
+   - Document API keys securely
 
-6. 監控指標設計
-   - 量化指標：財務比率、營運數據
-   - 質化指標：產品進展、策略執行
-   - 產業指標：終端需求、供應鏈變化
-   - 設定警戒值和檢視頻率
+2. Data Validation
+   - Verify company identifiers
+   - Cross-check market data
+   - Validate historical trends
+   - Monitor data freshness
+   - Track source reliability
 
-7. 報告更新機制
-   - 定期更新：每季財報後
-   - 不定期更新：重大事件發生
-   - 持續追蹤：關鍵指標變化
-   - 及時調整：投資建議修正
+3. Analysis Improvements
+   - Focus on quantifiable metrics
+   - Consider industry context
+   - Track leading indicators
+   - Monitor competitive dynamics
+   - Update assumptions regularly
 
-8. 跨領域分析整合
-   - 產業鏈分析：上下游互動關係
-   - 技術發展：對產品和市場的影響
-   - 政策影響：產業扶植或限制措施
-   - 總體環境：經濟週期和產業週期
+4. Report Quality
+   - Clear data visualization
+   - Consistent terminology
+   - Proper source citation
+   - Regular updates
+   - Actionable recommendations
 
-## Lessons from 京鼎分析
-1. 基本資料確認
-   - 確保股票代號正確（京鼎是3413不是1762）
-   - 仔細核對公司名稱和基本資料
-   - 避免與其他公司混淆
+5. Stock Analysis Best Practices
+   - Information Hierarchy
+     * Start with basic news for overall direction
+     * Deep dive into technical/project details
+     * Include market perspectives (e.g., foreign institutions)
+   
+   - Time Sensitivity
+     * Always check news publication dates
+     * Differentiate historical data from latest updates
+     * Avoid outdated predictions/outlooks
+   
+   - Specificity
+     * Use concrete numbers instead of vague descriptions
+     * Include technical specifications when relevant
+     * Provide exact project timelines and milestones
+   
+   - Multi-source Verification
+     * Company statements (earnings calls)
+     * Analyst reports
+     * Industry news
+     * Cross-reference multiple sources
+   
+   - Source Citation
+     * Cite every major point
+     * Include media name and article title
+     * Enable readers to verify information
 
-2. 數據驗證
-   - 交叉驗證不同來源的市場規模預測
-   - 確認公司公告數據的時效性
-   - 檢視歷史預測的準確度
+6. New Lessons from Recent Analysis (2024/01)
+   - Data Organization
+     * Present financial data in clear, structured format (e.g., using code blocks for numbers)
+     * Group related metrics together (revenue, profit, growth rates)
+     * Show year-over-year or quarter-over-quarter comparisons
+   
+   - Reference Management
+     * Always include source URLs for key data points
+     * Organize references by topic/category
+     * Include publication dates for time-sensitive information
+   
+   - Analysis Structure
+     * Start with high-level overview
+     * Break down into specific components
+     * Support each point with concrete data
+     * Conclude with actionable insights
+   
+   - Risk Assessment
+     * Consider both immediate and long-term impacts
+     * Track policy changes and their effects
+     * Monitor leading indicators (e.g., customer traffic, order rates)
+     * Compare with industry trends
 
-3. 風險評估
-   - 單一客戶依賴度過高需特別關注
-   - 產能擴充計劃的執行風險
-   - 地緣政治對供應鏈的影響
+7. Financial Data Fetching (2024/03)
+   - Data Reliability
+     * Always check for empty dataframes before processing
+     * Verify data consistency across different time periods
+     * Handle missing values appropriately
+     * Cross-validate critical financial metrics
+   
+   - Performance Optimization
+     * Use appropriate time intervals for market data
+     * Cache frequently accessed data
+     * Implement rate limiting for API calls
+     * Handle concurrent requests efficiently
+   
+   - Error Management
+     * Log all API errors with context
+     * Implement graceful fallbacks
+     * Monitor rate limits
+     * Track data quality issues
 
-4. 成長動能分析
-   - 結合終端市場需求和公司布局
-   - 評估新產品對營收的貢獻時程
-   - 考慮產能爬坡的節奏
+7. Stock Analysis Best Practices (Updated 2025/01)
+   - Reference Management
+     * ALWAYS cite sources for every major analysis point
+     * Include publication date with each reference
+     * Format: [Source Name, Date, "Article Title"]
+     * Organize references by topic/category
+   
+   - Analysis Structure
+     * Start with company fundamentals
+     * Expand to industry chain analysis
+     * Connect with macro environment
+     * Support each point with concrete data
+   
+   - Information Depth
+     * Don't stop at first layer of news
+     * Search for related industry trends
+     * Look for customer/supplier dynamics
+     * Cross-reference multiple perspectives
 
-5. 報告呈現
-   - 將複雜的產業鏈關係圖像化
-   - 用數據支持每個重要論點
-   - 提供具體可操作的投資建議
+   - Context Building
+     * Link company performance with industry cycles
+     * Connect customer plans with company outlook
+     * Consider competitive landscape
+     * Track policy and regulation impacts
 
-## Scratchpad
+# Scratchpad
 
-Task: 分析 Anduril Industries 投資價值
+Current Task: Stock Analysis Methodology Update
+Progress: 
+[X] Added new section on Stock Analysis Best Practices
+[X] Updated information hierarchy guidelines
+[X] Added time sensitivity requirements
+[X] Enhanced specificity guidelines
+[X] Updated source citation requirements
 
-分析步驟：
-[ ] 1. 公司概況
-    - 公司背景與發展歷程
-    - 創始團隊背景
-    - 主要產品線
-    - 商業模式分析
+Next Steps:
+- [ ] Monitor effectiveness of new guidelines
+- [ ] Gather feedback on analysis quality
+- [ ] Refine based on user responses
 
-[ ] 2. 市場定位與競爭優勢
-    - 國防科技市場分析
-    - 核心技術優勢
-    - 競爭對手比較
-    - 市場份額與地位
-
-[ ] 3. 成長動能
-    - 政府合約情況
-    - 新產品研發進展
-    - 國際市場拓展
-    - 未來訂單能見度
-
-[ ] 4. 風險評估
-    - 政府預算依賴風險
-    - 地緣政治風險
-    - 技術研發風險
-    - 競爭加劇風險
-
-[ ] 5. 投資建議
-    - 估值分析
-    - 投資時點建議
-    - 風險控制建議
-    - 關鍵監控指標
-
-Task完成：已生成完整投資分析報告，包含數據支持和來源引用。
-
-## Lessons from Anduril vs Boeing Analysis
-
-1. 數據引用規範
-   - 每個重要數據都需要明確的來源引用
-   - 引用時需包含具體日期和出處
-   - 優先使用官方公告和財報數據
-   - 交叉驗證重要數據的準確性
-
-2. 結構化對比分析
-   - 使用相同維度進行對比
-   - 每個對比點都需要數據支持
-   - 清晰標示優劣勢
-   - 避免主觀或無數據支持的判斷
-
-3. 時效性管理
-   - 標注所有數據的時間點
-   - 區分歷史數據和預測數據
-   - 關注數據的時間跨度
-   - 定期更新重要指標
-
-4. 多維度分析框架
-   - 財務數據：具體到季度和項目
-   - 技術能力：列舉已實現和在研項目
-   - 市場地位：具體市占率和排名
-   - 發展趨勢：有數據支持的預測
-
-5. 專業術語使用
-   - 準確使用行業專有名詞
-   - 解釋複雜技術概念
-   - 保持術語使用一致性
-   - 必要時提供補充說明
-
-6. 競爭分析最佳實踐
-   - 對比需要對等和公平
-   - 避免過度推測或主觀判斷
-   - 關注可量化的指標
-   - 考慮產業特殊性
-
-7. 報告呈現改進
-   - 數據可視化的重要性
-   - 層次分明的結構
-   - 重點突出的排版
-   - 邏輯清晰的論述
-
-8. 風險分析深化
-   - 區分短期和長期風險
-   - 提供風險緩解建議
-   - 評估風險影響程度
-   - 持續監控風險變化
+Note: These guidelines should be applied to all future stock analysis tasks.
