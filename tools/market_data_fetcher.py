@@ -36,6 +36,14 @@ def setup_argparse():
 def fetch_market_data(symbol: str, interval: str = '1d', days: int = 365) -> pd.DataFrame:
     """
     Fetch market data for a symbol.
+    
+    Args:
+        symbol: Stock symbol
+        interval: Data interval (1d, 1wk, 1mo)
+        days: Number of days of historical data
+        
+    Returns:
+        DataFrame with market data or None if error
     """
     try:
         end_time = datetime.now()
@@ -43,6 +51,10 @@ def fetch_market_data(symbol: str, interval: str = '1d', days: int = 365) -> pd.
         
         logger.info(f"Fetching {interval} data for {symbol} from {start_time.date()} to {end_time.date()}")
         
+        # Format Taiwan stock symbols
+        if symbol.isdigit() or any(symbol.startswith(prefix) for prefix in ['2', '3', '4', '6', '8', '9']):
+            symbol = utils.format_taiwan_symbol(symbol)
+            
         if not utils.is_valid_symbol(symbol):
             logger.error(f"Invalid symbol: {symbol}")
             return None

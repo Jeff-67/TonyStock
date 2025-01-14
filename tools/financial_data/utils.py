@@ -196,12 +196,42 @@ def is_market_open(market: str) -> bool:
     
     return hours['open'] <= now <= hours['close'] 
 
+def format_taiwan_symbol(symbol: str) -> str:
+    """
+    Format symbol for Taiwan market.
+    
+    Args:
+        symbol: Original stock symbol
+        
+    Returns:
+        Properly formatted symbol for Taiwan market
+    """
+    # Remove any existing suffixes
+    base_symbol = symbol.replace('.TW', '').replace('.TWO', '')
+    
+    # Check if OTC or TSE based on stock number
+    if base_symbol.startswith('3') or base_symbol.startswith('6'):
+        return f"{base_symbol}.TWO"  # OTC market
+    return f"{base_symbol}.TW"      # Main market
+
 def is_valid_symbol(symbol: str) -> bool:
-    """Validate stock symbol format."""
+    """
+    Validate stock symbol format.
+    
+    Args:
+        symbol: Stock symbol to validate
+        
+    Returns:
+        bool: True if valid, False otherwise
+    """
     if not symbol or not isinstance(symbol, str):
         return False
-    # Basic validation - alphanumeric and dot
-    return all(c.isalnum() or c == '.' for c in symbol)
+        
+    # Remove market suffixes for validation
+    base_symbol = symbol.replace('.TW', '').replace('.TWO', '')
+    
+    # Basic validation - must be alphanumeric
+    return base_symbol.isalnum()
 
 def is_valid_market_data(data: pd.DataFrame) -> bool:
     """Validate market data format."""

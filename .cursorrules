@@ -418,7 +418,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Monitor rate limits
      * Track data quality issues
 
-7. Stock Analysis Best Practices (Updated 2025/01)
+8. Stock Analysis Best Practices (Updated 2025/01)
    - Reference Management
      * ALWAYS cite sources for every major analysis point
      * Include publication date with each reference
@@ -443,7 +443,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Consider competitive landscape
      * Track policy and regulation impacts
 
-8. Stock Analysis Best Practices (Updated 2025/01)
+9. Stock Analysis Best Practices (Updated 2025/01)
    - Comprehensive Framework Application
      * Follow structured analysis framework strictly
      * Start with industry analysis before company specifics
@@ -468,18 +468,37 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Monitor progress in new business areas
      * Analyze impact on financial metrics
 
-9. Research Methodology (Added 2025/01)
-   - Sequential Information Gathering
-     * Start with recent market data
-     * Follow up with news and announcements
-     * Deep dive into strategic initiatives
-     * Cross-validate information from multiple sources
-   
-   - Tool Usage Optimization
-     * Use market_data_fetcher for quantitative analysis
-     * Leverage search_engine for recent developments
-     * Apply web_scraper for detailed news content
-     * Combine tools for comprehensive analysis
+10. Research Methodology (Added 2025/01)
+    - Sequential Information Gathering
+      * Start with recent market data
+      * Follow up with news and announcements
+      * Deep dive into strategic initiatives
+      * Cross-validate information from multiple sources
+    
+    - Tool Usage Optimization
+      * Use market_data_fetcher for quantitative analysis
+      * Leverage search_engine for recent developments
+      * Apply web_scraper for detailed news content
+      * Combine tools for comprehensive analysis
+
+11. Supply Chain Analysis Best Practices (Added 2025/01)
+    - Supply Chain Verification
+      * Always verify exact timing of supply chain participation
+      * Cross-check multiple sources for supply chain relationships
+      * Differentiate between rumored and confirmed supplier status
+      * Track the evolution of supplier relationships over time
+    
+    - Timeline Accuracy
+      * Document when a company enters a supply chain
+      * Note any changes in supplier tier status
+      * Track product generations and participation
+      * Verify historical supply relationships
+    
+    - Information Quality
+      * Prioritize official announcements and certifications
+      * Be cautious with market rumors and speculation
+      * Distinguish between different product generations
+      * Document the source and timing of supply chain information
 
 # Scratchpad
 
