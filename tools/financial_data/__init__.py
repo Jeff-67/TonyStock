@@ -1,3 +1,1 @@
-"""
-Financial data processing utilities and formatters.
-""" 
+"""Financial data processing utilities and formatters."""

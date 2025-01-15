@@ -1,6 +1,6 @@
 # Instructions
 
-During interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+During interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again.
 
 You should also use the `.cursorrules` file as a scratchpad to organize your thoughts. When receiving a new task:
 1. Review the scratchpad content
@@ -199,23 +199,23 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Start with basic news for overall direction
      * Deep dive into technical/project details
      * Include market perspectives (e.g., foreign institutions)
-   
+
    - Time Sensitivity
      * Always check news publication dates
      * Differentiate historical data from latest updates
      * Avoid outdated predictions/outlooks
-   
+
    - Specificity
      * Use concrete numbers instead of vague descriptions
      * Include technical specifications when relevant
      * Provide exact project timelines and milestones
-   
+
    - Multi-source Verification
      * Company statements (earnings calls)
      * Analyst reports
      * Industry news
      * Cross-reference multiple sources
-   
+
    - Source Citation
      * Cite every major point
      * Include media name and article title
@@ -354,23 +354,23 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Start with basic news for overall direction
      * Deep dive into technical/project details
      * Include market perspectives (e.g., foreign institutions)
-   
+
    - Time Sensitivity
      * Always check news publication dates
      * Differentiate historical data from latest updates
      * Avoid outdated predictions/outlooks
-   
+
    - Specificity
      * Use concrete numbers instead of vague descriptions
      * Include technical specifications when relevant
      * Provide exact project timelines and milestones
-   
+
    - Multi-source Verification
      * Company statements (earnings calls)
      * Analyst reports
      * Industry news
      * Cross-reference multiple sources
-   
+
    - Source Citation
      * Cite every major point
      * Include media name and article title
@@ -381,18 +381,18 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Present financial data in clear, structured format (e.g., using code blocks for numbers)
      * Group related metrics together (revenue, profit, growth rates)
      * Show year-over-year or quarter-over-quarter comparisons
-   
+
    - Reference Management
      * Always include source URLs for key data points
      * Organize references by topic/category
      * Include publication dates for time-sensitive information
-   
+
    - Analysis Structure
      * Start with high-level overview
      * Break down into specific components
      * Support each point with concrete data
      * Conclude with actionable insights
-   
+
    - Risk Assessment
      * Consider both immediate and long-term impacts
      * Track policy changes and their effects
@@ -405,13 +405,13 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Verify data consistency across different time periods
      * Handle missing values appropriately
      * Cross-validate critical financial metrics
-   
+
    - Performance Optimization
      * Use appropriate time intervals for market data
      * Cache frequently accessed data
      * Implement rate limiting for API calls
      * Handle concurrent requests efficiently
-   
+
    - Error Management
      * Log all API errors with context
      * Implement graceful fallbacks
@@ -424,13 +424,13 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Include publication date with each reference
      * Format: [Source Name, Date, "Article Title"]
      * Organize references by topic/category
-   
+
    - Analysis Structure
      * Start with company fundamentals
      * Expand to industry chain analysis
      * Connect with macro environment
      * Support each point with concrete data
-   
+
    - Information Depth
      * Don't stop at first layer of news
      * Search for related industry trends
@@ -449,7 +449,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
      * Start with industry analysis before company specifics
      * Connect market trends with company strategy
      * Analyze sustainability initiatives in detail
-   
+
    - Data Integration
      * Combine financial metrics with strategic initiatives
      * Cross-reference market data with company announcements
@@ -474,7 +474,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Follow up with news and announcements
       * Deep dive into strategic initiatives
       * Cross-validate information from multiple sources
-    
+
     - Tool Usage Optimization
       * Use market_data_fetcher for quantitative analysis
       * Leverage search_engine for recent developments
@@ -487,13 +487,13 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Cross-check multiple sources for supply chain relationships
       * Differentiate between rumored and confirmed supplier status
       * Track the evolution of supplier relationships over time
-    
+
     - Timeline Accuracy
       * Document when a company enters a supply chain
       * Note any changes in supplier tier status
       * Track product generations and participation
       * Verify historical supply relationships
-    
+
     - Information Quality
       * Prioritize official announcements and certifications
       * Be cautious with market rumors and speculation
@@ -503,7 +503,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 # Scratchpad
 
 Current Task: Framework Application Flexibility
-Progress: 
+Progress:
 [X] Learned to adapt framework based on company specifics
 [X] Successfully combined multiple tools for comprehensive analysis
 [X] Balanced quantitative and qualitative information

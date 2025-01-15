@@ -38,6 +38,7 @@ openai==1.59.4
 openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
+pandas-stubs==2.2.3.241126
 pathvalidate==3.2.3
 pdfminer.six==20240706
 peewee==3.17.8
@@ -56,6 +57,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-pptx==1.0.2
 pytz==2024.2
+types-pytz==2024.2.0.20241221
 requests==2.32.3
 seaborn==0.13.2
 six==1.17.0
@@ -73,5 +75,4 @@ webencodings==0.5.1
 XlsxWriter==3.2.0
 yfinance==0.2.51
 youtube-transcript-api==0.6.3
-opik
 opik

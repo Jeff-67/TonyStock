@@ -6,10 +6,12 @@ from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+
 class Model(str, enum.Enum):
     """Possible models."""
+
     claude_small = "claude-3-opus-20240229"
-    claude_large = "claude-3-5-sonnet-20240620"
+    claude_large = "claude-3-5-sonnet-latest"
     openai_small = "gpt-4o"
     openai_large = "o1"
 
@@ -40,15 +42,15 @@ def get_opik_url_override(environment: str) -> None:
 
 class Settings(BaseSettings):
     """Application settings configuration."""
+
     log_level: LogLevel = LogLevel.INFO
     environment: str = "local"
-    model: Model = Model.claude_small
+    model: Model = Model.claude_large
     max_tokens: int = 1000
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         get_opik_url_override(self.environment)
-
 
 
 settings = Settings()

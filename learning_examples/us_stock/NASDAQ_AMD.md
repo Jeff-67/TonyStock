@@ -380,4 +380,3 @@ AMD _ Stop The Wishful Thinking And Face The Reality (NASDAQ _ AMD) _ Seeking Al
 https://seekingalpha.com/article/4748777-amd-stop-the-wishful-thinking-and-face-the-reality
 
 10/10
-

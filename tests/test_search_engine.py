@@ -1,11 +1,33 @@
-import unittest
-from unittest.mock import patch, MagicMock
+"""Test module for the search engine functionality.
+
+This module contains test cases for the search engine implementation,
+including successful searches, error handling, and result formatting.
+"""
+
 import sys
+import unittest
 from io import StringIO
+from unittest.mock import MagicMock, patch
+
 from tools.search_engine import search
 
+
 class TestSearchEngine(unittest.TestCase):
+    """Test suite for search engine functionality.
+
+    This class tests various aspects of the search engine, including:
+    - Successful search operations
+    - Empty result handling
+    - Error scenarios
+    - Result field fallback behavior
+    """
+
     def setUp(self):
+        """Set up test fixtures before each test method.
+
+        Captures stdout and stderr for testing debug output and search results.
+        The original stdout and stderr are restored in tearDown.
+        """
         # Capture stdout and stderr for testing
         self.stdout = StringIO()
         self.stderr = StringIO()
@@ -15,26 +37,38 @@ class TestSearchEngine(unittest.TestCase):
         sys.stderr = self.stderr
 
     def tearDown(self):
+        """Clean up test fixtures after each test method.
+
+        Restores the original stdout and stderr streams.
+        """
         # Restore stdout and stderr
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
-    @patch('tools.search_engine.DDGS')
+    @patch("tools.search_engine.DDGS")
     def test_successful_search(self, mock_ddgs):
+        """Test successful search operation with multiple results.
+
+        Verifies that:
+        - Search results are properly formatted and displayed
+        - Debug information is correctly logged
+        - API is called with correct parameters
+        - Both primary and fallback fields are handled
+        """
         # Mock search results
         mock_results = [
             {
-                'link': 'http://example.com',
-                'title': 'Example Title',
-                'snippet': 'Example Snippet'
+                "link": "http://example.com",
+                "title": "Example Title",
+                "snippet": "Example Snippet",
             },
             {
-                'href': 'http://example2.com',
-                'title': 'Example Title 2',
-                'body': 'Example Body 2'
-            }
+                "href": "http://example2.com",
+                "title": "Example Title 2",
+                "body": "Example Body 2",
+            },
         ]
-        
+
         # Setup mock
         mock_ddgs_instance = MagicMock()
         mock_ddgs_instance.__enter__.return_value.text.return_value = mock_results
@@ -61,13 +95,18 @@ class TestSearchEngine(unittest.TestCase):
 
         # Verify mock was called correctly
         mock_ddgs_instance.__enter__.return_value.text.assert_called_once_with(
-            "test query",
-            max_results=2,
-            backend='api'
+            "test query", max_results=2, backend="api"
         )
 
-    @patch('tools.search_engine.DDGS')
+    @patch("tools.search_engine.DDGS")
     def test_no_results(self, mock_ddgs):
+        """Test search behavior when no results are found.
+
+        Verifies that:
+        - Empty results are handled gracefully
+        - Appropriate debug message is logged
+        - No output is produced for empty results
+        """
         # Mock empty results
         mock_ddgs_instance = MagicMock()
         mock_ddgs_instance.__enter__.return_value.text.return_value = []
@@ -82,43 +121,64 @@ class TestSearchEngine(unittest.TestCase):
         # Check that no results were printed
         self.assertEqual("", self.stdout.getvalue().strip())
 
-    @patch('tools.search_engine.DDGS')
+    @patch("tools.search_engine.DDGS")
     def test_search_error(self, mock_ddgs):
-        """Test error handling in search function."""
-        with self.assertRaises(Exception) as cm:  # Change from SystemExit to Exception
+        """Test error handling in search function.
+
+        Verifies that:
+        - Exceptions are properly caught and re-raised
+        - Error messages are correctly propagated
+        """
+        with self.assertRaises(Exception) as cm:
             mock_instance = mock_ddgs.return_value.__enter__.return_value
             mock_instance.text.side_effect = Exception("Test error")
             search("test query")
-        
+
         self.assertEqual(str(cm.exception), "Test error")
 
     def test_result_field_fallbacks(self):
+        """Test result field fallback mechanism.
+
+        Verifies that:
+        - Primary fields are used when available
+        - Fallback fields are used when primary fields are missing
+        - Default values are used when both primary and fallback fields are missing
+        """
         # Test that the fallback fields work correctly
         result = {
-            'link': 'http://example.com',
-            'title': 'Example Title',
-            'snippet': 'Example Snippet'
+            "link": "http://example.com",
+            "title": "Example Title",
+            "snippet": "Example Snippet",
         }
-        
+
         # Test primary fields
-        self.assertEqual(result.get('link', result.get('href', 'N/A')), 'http://example.com')
-        self.assertEqual(result.get('title', 'N/A'), 'Example Title')
-        self.assertEqual(result.get('snippet', result.get('body', 'N/A')), 'Example Snippet')
-        
+        self.assertEqual(
+            result.get("link", result.get("href", "N/A")), "http://example.com"
+        )
+        self.assertEqual(result.get("title", "N/A"), "Example Title")
+        self.assertEqual(
+            result.get("snippet", result.get("body", "N/A")), "Example Snippet"
+        )
+
         # Test fallback fields
         result = {
-            'href': 'http://example.com',
-            'title': 'Example Title',
-            'body': 'Example Body'
+            "href": "http://example.com",
+            "title": "Example Title",
+            "body": "Example Body",
         }
-        self.assertEqual(result.get('link', result.get('href', 'N/A')), 'http://example.com')
-        self.assertEqual(result.get('snippet', result.get('body', 'N/A')), 'Example Body')
-        
+        self.assertEqual(
+            result.get("link", result.get("href", "N/A")), "http://example.com"
+        )
+        self.assertEqual(
+            result.get("snippet", result.get("body", "N/A")), "Example Body"
+        )
+
         # Test missing fields
         result = {}
-        self.assertEqual(result.get('link', result.get('href', 'N/A')), 'N/A')
-        self.assertEqual(result.get('title', 'N/A'), 'N/A')
-        self.assertEqual(result.get('snippet', result.get('body', 'N/A')), 'N/A')
+        self.assertEqual(result.get("link", result.get("href", "N/A")), "N/A")
+        self.assertEqual(result.get("title", "N/A"), "N/A")
+        self.assertEqual(result.get("snippet", result.get("body", "N/A")), "N/A")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
