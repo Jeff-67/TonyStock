@@ -248,11 +248,11 @@ def format_taiwan_symbol(symbol: str) -> str:
             (appends .TW for TSE or .TWO for OTC).
     """
     # Remove any existing suffixes
-    symbol = symbol.split('.')[0]
-    
+    symbol = symbol.split(".")[0]
+
     # OTC market (Taipei Exchange) stocks typically start with 4, 5, 6, 8, 9
-    otc_prefixes = ['4', '5', '6', '8', '9']
-    
+    otc_prefixes = ["4", "5", "6", "8", "9"]
+
     # Add proper suffix based on the stock number
     if any(symbol.startswith(prefix) for prefix in otc_prefixes):
         return f"{symbol}.TWO"

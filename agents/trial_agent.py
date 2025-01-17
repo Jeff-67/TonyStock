@@ -95,14 +95,17 @@ def call_model(
 
     Args:
         messages: List of message objects to send
-    
+
     Returns:
         ModelResponse containing the processed response
     """
     MESSAGE_HISTORY.extend(user_messages)
 
     response = client.messages.create(
-        system=system_prompt(model_name=MODEL_NAME) + "\n<instructions>" + finance_agent_prompt() + "</instructions>",
+        system=system_prompt(model_name=MODEL_NAME)
+        + "\n<instructions>"
+        + finance_agent_prompt()
+        + "</instructions>",
         model=MODEL_NAME,
         max_tokens=settings.max_tokens,
         tool_choice={"type": "auto"},
@@ -126,7 +129,9 @@ def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
     """
     try:
         if tool_name == "search_engine":
-            return search_duckduckgo(tool_input["query"], max_results=MAX_SEARCH_RESULTS)
+            return search_duckduckgo(
+                tool_input["query"], max_results=MAX_SEARCH_RESULTS
+            )
         elif tool_name == "web_scraper":
             return scrape_urls(tool_input["urls"])
         else:
@@ -157,15 +162,21 @@ def chat_with_claude(user_message: str) -> str:
 
         # Continue conversation with verified result
         MESSAGE_HISTORY.append({"role": "assistant", "content": response.content})
-        
-        response = call_model([{
-            "role": "user", 
-            "content": [{
-                "type": "tool_result",
-                "tool_use_id": response.tool_use.id,
-                "content": str(tool_result),
-            }]
-        }])
+
+        response = call_model(
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": response.tool_use.id,
+                            "content": str(tool_result),
+                        }
+                    ],
+                }
+            ]
+        )
 
     return response.text_content or "No response generated"
 
