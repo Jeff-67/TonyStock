@@ -4,14 +4,20 @@ This module provides functionality to search the web using DuckDuckGo's search e
 with support for both API and HTML backends, retry mechanisms, and result formatting.
 """
 
-# !/usr/bin/env python3
+#!/usr/bin/env python3
 
 import argparse
 import logging
+import os
 import random
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+import requests
+import subprocess
+import json
+from bs4 import BeautifulSoup
+import re
 
 from duckduckgo_search import DDGS
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
@@ -22,164 +28,127 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants
+DEFAULT_TIMEOUT = 30
+PROXY_TEST_TIMEOUT = 5
+MAX_RETRIES = 3
+BATCH_SIZE = 10
 
-def get_random_user_agent():
-    """Return a random User-Agent string."""
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    ]
-    return random.choice(user_agents)
+# List of proxies
+PROXY_LIST = [
+    "156.228.109.7:3128",
+    "156.228.104.132:3128",
+    "154.213.193.17:3128",
+    "154.94.15.112:3128",
+    "156.253.167.233:3128",
+    "154.214.1.75:3128"
+]
 
+def get_working_proxy() -> Optional[str]:
+    """Get a working proxy from the list."""
+    proxies = PROXY_LIST.copy()
+    random.shuffle(proxies)
+    
+    for proxy in proxies:
+        if validate_proxy(proxy):
+            return proxy
+    return None
 
-def search_with_retry(query, max_results=10, max_retries=3, initial_delay=2):
-    """Perform search with retry mechanism.
-
-    This function handles the actual search operation with a built-in retry mechanism
-    to handle temporary failures and rate limiting.
-
-    Args:
-        query (str): Search query string to execute
-        max_results (int, optional): Maximum number of results to return. Defaults to 10.
-        max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
-        initial_delay (int, optional): Initial delay between retries in seconds. Defaults to 2.
-
-    Returns:
-        list: List of search results, each containing URL, title, and snippet.
-
-    Raises:
-        Exception: If all retry attempts fail.
-    """
-    for attempt in range(max_retries):
-        try:
-            headers = {"User-Agent": get_random_user_agent()}
-
-            print(
-                f"DEBUG: Attempt {attempt + 1}/{max_retries} - Searching for query: {query}",
-                file=sys.stderr,
-            )
-
-            with DDGS(headers=headers) as ddgs:
-                # Try API backend first, fallback to HTML if needed
-                try:
-                    results = list(
-                        ddgs.text(query, max_results=max_results, backend="api")
-                    )
-                except DuckDuckGoSearchException as api_error:
-                    print(
-                        f"DEBUG: API backend failed, trying HTML backend: {str(api_error)}",
-                        file=sys.stderr,
-                    )
-                    # Add delay before trying HTML backend
-                    time.sleep(1)
-                    results = list(
-                        ddgs.text(query, max_results=max_results, backend="html")
-                    )
-
-                if not results:
-                    print("DEBUG: No results found", file=sys.stderr)
-                    return []
-
-                print(f"DEBUG: Found {len(results)} results", file=sys.stderr)
-                return results
-
-        except Exception as e:
-            print(f"ERROR: Attempt {attempt + 1} failed: {str(e)}", file=sys.stderr)
-            if attempt < max_retries - 1:
-                delay = initial_delay * (attempt + 1) + random.random() * 2
-                print(
-                    f"DEBUG: Waiting {delay:.2f} seconds before retry...",
-                    file=sys.stderr,
-                )
-                time.sleep(delay)
-            else:
-                print("ERROR: All retry attempts failed", file=sys.stderr)
-                raise
-
-
-def format_results(results):
-    """Format and print search results in a human-readable format.
-
-    Args:
-        results (list): List of search results to format and print.
-    """
-    for i, r in enumerate(results, 1):
-        print(f"\n=== Result {i} ===")
-        print(f"URL: {r.get('link', r.get('href', 'N/A'))}")
-        print(f"Title: {r.get('title', 'N/A')}")
-        print(f"Snippet: {r.get('snippet', r.get('body', 'N/A'))}")
-
-
-def search(query: str, max_results: int = 10) -> List[Dict[str, Any]]:
-    """Execute a search query and return formatted results.
-
-    This is the main entry point for performing searches. It handles input validation,
-    executes the search with retry mechanism, and formats the results.
-
-    Args:
-        query (str): Search query string to execute.
-        max_results (int, optional): Maximum number of results to return. Defaults to 10.
-
-    Returns:
-        List[str]: List of formatted search results.
-
-    Raises:
-        ValueError: If the query is invalid.
-        Exception: If the search operation fails.
-    """
+def validate_proxy(proxy: str) -> bool:
+    """Test if a proxy is working."""
     try:
-        if not query or not isinstance(query, str):
-            logger.error("Invalid query")
-            raise ValueError("Invalid query")
+        cmd = [
+            'curl', '-x', proxy,
+            '--connect-timeout', str(PROXY_TEST_TIMEOUT),
+            'https://api.ipify.org?format=json'
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=PROXY_TEST_TIMEOUT)
+        if result.returncode == 0:
+            response = json.loads(result.stdout)
+            logger.info(f"Proxy {proxy} is working (IP: {response.get('ip')})")
+            return True
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
+        logger.debug(f"Proxy {proxy} validation failed: {str(e)}")
+    return False
 
-        results = search_with_retry(query, max_results)
-        if results:
-            format_results(results)
-            formatted_results = []
-            for r in results:
-                formatted_results.append(
-                    {
-                        "url": r.get("link", r.get("href", "N/A")),
-                        "title": r.get("title", "N/A"),
-                        "snippet": r.get("snippet", r.get("body", "N/A")),
+def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]:
+    """
+    Search DuckDuckGo using curl and proxies.
+    Returns a list of dictionaries containing title, url, and snippet.
+    """
+    results = []
+    proxy = get_working_proxy()
+    
+    if not proxy:
+        logger.warning("No working proxy found, attempting search without proxy")
+    
+    try:
+        cmd = [
+            'curl', '-L',
+            '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            '-H', 'Accept-Language: en-US,en;q=0.5'
+        ]
+        
+        if proxy:
+            cmd.extend(['-x', proxy])
+            
+        cmd.append(f'https://duckduckgo.com/lite?q={query.replace(" ", "+")}')
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_TIMEOUT)
+        
+        if result.returncode == 0:
+            soup = BeautifulSoup(result.stdout, 'html.parser')
+            rows = soup.find_all('tr')
+            
+            current_result = {}
+            for row in rows:
+                link = row.find('a', class_='result-link')
+                snippet = row.find('td', class_='result-snippet')
+                
+                if link:
+                    if current_result and len(results) < max_results:
+                        results.append(current_result)
+                    current_result = {
+                        'title': link.get_text(strip=True),
+                        'url': link.get('href', ''),
+                        'snippet': ''
                     }
-                )
-            return formatted_results
-        return []
-
+                elif snippet and current_result:
+                    current_result['snippet'] = snippet.get_text(strip=True)
+            
+            if current_result and len(results) < max_results:
+                results.append(current_result)
+                
+        else:
+            logger.error(f"Search failed with exit code {result.returncode}")
+            
     except Exception as e:
-        logger.error(f"Search failed: {str(e)}")
-        raise  # Re-raise the exception instead of sys.exit()
-
+        logger.error(f"Search error: {str(e)}")
+        
+    return results[:max_results]
 
 def main():
-    """Command-line interface for DuckDuckGo search.
-
-    Provides a command-line interface for performing web searches using DuckDuckGo.
-    Supports configurable maximum results and handles errors gracefully.
-
-    Command-line Arguments:
-        query: Search query string
-        --max-results: Maximum number of results to return (default: 10)
-
-    The results are printed to stdout in a formatted manner.
-    """
-    parser = argparse.ArgumentParser(
-        description="Search using DuckDuckGo with fallback mechanisms"
-    )
-    parser.add_argument("query", help="Search query")
-    parser.add_argument(
-        "--max-results",
-        type=int,
-        default=10,
-        help="Maximum number of results (default: 10)",
-    )
-
+    """Command line interface for the search engine."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Search engine tool')
+    parser.add_argument('query', help='Search query')
+    parser.add_argument('--max-results', type=int, default=10, help='Maximum number of results')
     args = parser.parse_args()
-    search(args.query, args.max_results)
+    
+    results = search_duckduckgo(args.query, args.max_results)
+    
+    if results:
+        print(f"\nFound {len(results)} results for '{args.query}':\n")
+        for i, result in enumerate(results, 1):
+            print(f"{i}. {result['title']}")
+            print(f"   {result['url']}")
+            if result['snippet']:
+                print(f"   {result['snippet']}\n")
+            else:
+                print()
+    else:
+        print("No results found.")
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

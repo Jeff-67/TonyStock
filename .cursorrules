@@ -500,25 +500,158 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Distinguish between different product generations
       * Document the source and timing of supply chain information
 
+12. Web Scraping Best Practices (Added 2025/01)
+    - Timeout Settings
+      * Use shorter timeout (30s instead of 60s)
+      * Add retry mechanism with shorter delays
+      * Monitor and log timeout issues
+      * Implement graceful fallbacks
+
+    - URL Handling
+      * Verify URL encoding before scraping
+      * Test with simpler URLs first
+      * Handle different news site formats
+      * Validate URL accessibility
+
+    - Content Extraction
+      * Focus on essential content
+      * Remove unnecessary JavaScript execution
+      * Optimize page load strategy
+      * Improve error handling and logging
+
+13. News Analysis Framework (Added 2025/01)
+    - Systematic Approach
+      * Gather news from multiple sources
+      * Cross-validate key information
+      * Categorize by importance level
+      * Focus on material impacts
+
+    - Priority Classification
+      * High: Direct financial/operational impact
+      * Medium: Strategic/long-term significance
+      * Low: General updates/market commentary
+      * Track changes in classification over time
+
+    - Data Presentation
+      * Lead with key metrics/numbers
+      * Provide clear source attribution
+      * Highlight year-over-year changes
+      * Include relevant context
+
 # Scratchpad
 
-Current Task: Framework Application Flexibility
+Current Task: Daily Stock News Analysis & Impact Assessment
 Progress:
-[X] Learned to adapt framework based on company specifics
-[X] Successfully combined multiple tools for comprehensive analysis
-[X] Balanced quantitative and qualitative information
-[X] Focused on most relevant aspects rather than covering everything
+[X] Updated task focus to daily stock-specific news analysis
+[X] Defined importance assessment criteria based on analysis framework
+[ ] Optimize news collection workflow
+[ ] Refine impact assessment process
 
-Key Takeaways:
-- Framework serves as guide, not strict ruleset
-- Prioritize company-specific important factors
-- Tools should support analysis, not drive it
-- Balance depth vs breadth based on significance
+Key Steps:
+1. News Collection
+   - Search for all news related to the target stock on the current day
+   - Include both company-specific and industry-related news
+   - Gather from multiple sources for cross-validation
+
+2. Importance Assessment Criteria:
+   a) Revenue Impact
+      - Direct impact on revenue/profit
+      - Changes in market share
+      - Customer/order changes
+
+   b) Industry Position
+      - Supply chain dynamics
+      - Competitive landscape changes
+      - Technology/product roadmap
+
+   c) Strategic Value
+      - Long-term growth potential
+      - Business model evolution
+      - Market expansion opportunities
+
+   d) Risk Factors
+      - Operational challenges
+      - Market uncertainties
+      - Regulatory concerns
+
+3. Framework-based Analysis:
+   - Map each news item to relevant framework components
+   - Assess immediate vs long-term impact
+   - Consider cumulative effects with previous developments
+
+4. Priority Levels:
+   High: Direct material impact on operations/financials
+   Medium: Indirect or longer-term strategic impact
+   Low: General information or minor updates
 
 Next Steps:
-- [ ] Continue refining tool usage efficiency
-- [ ] Develop better error handling for web scraping
-- [ ] Improve integration of financial and strategic analysis
-- [ ] Maintain focus on key transformative events
+- [ ] Develop news categorization system
+- [ ] Create impact assessment templates
+- [ ] Establish priority scoring mechanism
+- [ ] Design daily report format
 
-Note: These guidelines should be applied to all future stock analysis tasks.
+Note: Focus on actionable insights and material impacts when assessing news importance.
+
+# Stock Analysis Workflow (Added 2025/01)
+1. Initial News Collection
+   - Search for all news related to the target stock
+   - Focus on last 3-6 months of news
+   - Include both company-specific and industry news
+   - Collect from multiple reliable sources
+
+2. Multi-layer Analysis Framework
+   第一層：直接資訊
+   - 財務數據變化
+   - 營運表現
+   - 公司公告
+   - 股價走勢
+
+   第二層：產業鏈分析
+   - 上游供應商狀況
+   - 下游客戶動態
+   - 競爭對手動向
+   - 產業政策變化
+
+   第三層：總體環境
+   - 總體經濟影響
+   - 科技發展趨勢
+   - 地緣政治因素
+   - 長期產業變遷
+
+3. Cross-reference Analysis
+   - 驗證不同消息來源
+   - 比對歷史數據
+   - 確認產業鏈關聯性
+   - 評估消息可信度
+
+4. Impact Assessment
+   - 短期（1-3個月）影響
+   - 中期（3-12個月）影響
+   - 長期（1年以上）影響
+   - 風險因素評估
+
+5. Documentation Format
+   - 時間順序紀錄
+   - 重要性分類
+   - 關聯性分析
+   - 影響力評估
+
+# Current Task Scratchpad
+Task: 深入分析大立光相關新聞與產業動態
+Progress:
+[X] 完成基本新聞搜集與時間排序
+[ ] 進行第二層分析：
+    - 檢視蘋果、三星等客戶的新產品計畫
+    - 分析人形機器人市場潛力
+    - 評估超薄手機技術發展
+[ ] 進行第三層分析：
+    - AI視覺應用趨勢
+    - 手機產業創新方向
+    - 全球科技供應鏈變化
+[ ] 更新投資建議
+
+Next Steps:
+1. 搜尋主要客戶（蘋果、三星）的產品規劃新聞
+2. 研究人形機器人市場發展報導
+3. 分析光學技術在AI時代的應用前景
+4. 評估產業供應鏈變化對公司的影響

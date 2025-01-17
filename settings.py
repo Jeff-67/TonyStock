@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     log_level: LogLevel = LogLevel.INFO
     environment: str = "local"
     model: Model = Model.claude_large
-    max_tokens: int = 1000
+    max_tokens: int = 8000
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

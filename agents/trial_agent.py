@@ -18,13 +18,14 @@ from prompts.system_prompts import (
     tool_prompt_construct_anthropic,
 )
 from settings import Settings
-from tools.search_engine import search
-from tools.web_scraper import main_scraper
+from tools.search_engine import search_duckduckgo
+from tools.web_scraper import scrape_urls
 
 client = anthropic.Client()
 settings = Settings()
-MODEL_NAME = settings.model.claude_small
+MODEL_NAME = settings.model.claude_large
 MAX_SEARCH_RESULTS = 5
+MESSAGE_HISTORY = []
 
 
 @dataclass
@@ -42,21 +43,6 @@ class ToolExecutionResult:
     tool_name: str
     result: Optional[Any] = None
     message: str = ""
-
-
-@dataclass
-class VerificationResult:
-    """Result of verifying tool execution output.
-
-    Attributes:
-        success: Whether the verification was successful
-        message: Message describing the verification result
-        formatted_result: Optional formatted version of the tool output
-    """
-
-    success: bool
-    message: str
-    formatted_result: Optional[str] = None
 
 
 @dataclass
@@ -103,32 +89,25 @@ def process_model_response(response: anthropic.types.Message) -> ModelResponse:
 
 @track()
 def call_model(
-    messages: List[Dict[str, Any]], system_msg: bool = False
+    user_messages: List[Dict[str, Any]],
 ) -> ModelResponse:
     """Make an API call to the model.
 
     Args:
         messages: List of message objects to send
-        system_msg: Whether to include system prompt
-
+    
     Returns:
         ModelResponse containing the processed response
     """
-    if system_msg:
-        messages[0]["content"] = (
-            system_prompt(model_name=MODEL_NAME)
-            + "</Instructions>"
-            + finance_agent_prompt()
-            + "</Instructions>"
-            + "\nCurrent User Message: "
-            + messages[0]["content"]
-        )
+    MESSAGE_HISTORY.extend(user_messages)
 
     response = client.messages.create(
+        system=system_prompt(model_name=MODEL_NAME) + "\n<instructions>" + finance_agent_prompt() + "</instructions>",
         model=MODEL_NAME,
         max_tokens=settings.max_tokens,
+        tool_choice={"type": "auto"},
         tools=tool_prompt_construct_anthropic()["tools"],
-        messages=messages,
+        messages=MESSAGE_HISTORY,
     )
 
     return process_model_response(response)
@@ -147,63 +126,13 @@ def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
     """
     try:
         if tool_name == "search_engine":
-            return search(tool_input["query"], max_results=MAX_SEARCH_RESULTS)
+            return search_duckduckgo(tool_input["query"], max_results=MAX_SEARCH_RESULTS)
         elif tool_name == "web_scraper":
-            return main_scraper(tool_input["urls"])
+            return scrape_urls(tool_input["urls"])
         else:
             return f"Unknown tool: {tool_name}"
     except Exception as e:
         return f"Tool execution failed: {str(e)}"
-
-
-@track()
-def verify_tool_result(tool_name: str, result: Any) -> VerificationResult:
-    """Verify and format tool results.
-
-    Args:
-        tool_name: Name of the tool whose results are being verified
-        result: Raw result from the tool execution
-
-    Returns:
-        VerificationResult containing success status and formatted output
-    """
-    if isinstance(result, str) and (
-        "failed" in result.lower() or "unknown" in result.lower()
-    ):
-        return VerificationResult(success=False, message=result)
-
-    if tool_name == "search_engine":
-        if not isinstance(result, list):
-            return VerificationResult(
-                success=False, message="Search engine should return a list of results"
-            )
-
-        if not result:
-            return VerificationResult(
-                success=False, message="Search returned no results"
-            )
-
-        # Format search results
-        formatted_results = []
-        for item in result:
-            title = item.get("title", "No Title")
-            snippet = item.get("snippet", "No Content")
-            url = item.get("url", "No URL")
-
-            formatted_result = (
-                f"Source: {title}\n" f"URL: {url}\n" f"Summary: {snippet}"
-            )
-            formatted_results.append(formatted_result)
-
-        return VerificationResult(
-            success=True,
-            message=f"Found {len(result)} results",
-            formatted_result="\n\n---\n\n".join(formatted_results),
-        )
-
-    return VerificationResult(
-        success=True, message="Tool executed successfully", formatted_result=str(result)
-    )
 
 
 @track(project_name="tony_stock")
@@ -217,7 +146,7 @@ def chat_with_claude(user_message: str) -> str:
         Generated response from Claude, or error message if processing fails
     """
     # Initial call with system prompt
-    response = call_model([{"role": "user", "content": user_message}], system_msg=True)
+    response = call_model([{"role": "user", "content": user_message}])
 
     while response.stop_reason == "tool_use" and response.tool_use:
         tool_name = response.tool_use.name
@@ -226,33 +155,20 @@ def chat_with_claude(user_message: str) -> str:
         # Execute tool
         tool_result = process_tool_call(tool_name, tool_input)
 
-        # Verify and format result
-        verification = verify_tool_result(tool_name, tool_result)
-
-        if not verification.success:
-            print(f"Tool execution failed: {verification.message}")
-            break
-
         # Continue conversation with verified result
-        messages = [
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": response.content},
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": response.tool_use.id,
-                        "content": verification.formatted_result,
-                    }
-                ],
-            },
-        ]
-
-        response = call_model(messages)
+        MESSAGE_HISTORY.append({"role": "assistant", "content": response.content})
+        
+        response = call_model([{
+            "role": "user", 
+            "content": [{
+                "type": "tool_result",
+                "tool_use_id": response.tool_use.id,
+                "content": str(tool_result),
+            }]
+        }])
 
     return response.text_content or "No response generated"
 
 
 if __name__ == "__main__":
-    chat_with_claude("broadcom., marvel, 3661他們的晶片佈局？")
+    chat_with_claude("智原佈局如何")

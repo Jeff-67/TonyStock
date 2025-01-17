@@ -160,7 +160,7 @@ You have specialized financial research tools at your disposal. Follow these rul
 
    b. web_scraper.py
     - description: Scrape full content from URLs returned by search_engine
-    - using senario: For example, if the user wants to know the latest news about Apple, you can use this tool to scrape full content from URLs returned by search_engine.
+    - using senario: For example, if get the urls returned by search_engine, you can use this tool to scrape full content from URLs to get more information.
     - input_schema:
         - urls: List of complete URLs (with http:// or https://) to scrape
    c. read_pdf.py
