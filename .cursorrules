@@ -246,73 +246,105 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 
 # Stock Analysis Framework
 
-1. 產業分析
-   - 產業週期與現況
-   - 上下游供應鏈關係
-   - 競爭格局分析
-   - 技術發展趨勢
-   - 法規政策影響
+## General Workflow
+1. Initial Setup
+   - Create stock-specific instruction file in `prompts/{stock_id}_instruction.md`
+   - Define search keywords and analysis framework
+   - Set up news monitoring parameters
 
-2. 公司基本面
-   a) 營收表現
-      - 最新營收數據
-      - 年度/季度成長率
-      - 各業務部門佔比
-      - 地區營收分布
-      - 客戶集中度
+2. Information Collection
+   - Search latest news using defined keywords
+   - Prioritize news sources based on reliability
+   - Cross-validate information from multiple sources
+   - Track time sensitivity of information
 
-   b) 財務狀況
-      - 獲利能力指標
-      - 資產負債結構
-      - 現金流量分析
-      - 營運效率指標
-      - 股利政策
+3. Analysis Process
+   - Follow time-based organization
+   - Apply layered analysis framework
+   - Cross-reference with industry trends
+   - Update stock-specific instruction file if needed
 
-3. 技術面分析
-   - 價格趨勢
-   - 成交量變化
-   - 關鍵支撐壓力位
-   - 與大盤相關性
-   - 法人動向
+4. Report Generation
+   - Clear timestamp for each piece of information
+   - Proper source citation
+   - Layered impact analysis
+   - Risk assessment
 
-4. 策略評估
-   優勢：
-   - 市場地位
-   - 技術優勢
-   - 財務實力
-   - 管理能力
+## News Collection Strategy
+1. Source Priority
+   - Company announcements
+   - Major financial media
+   - Industry reports
+   - Market analysis
 
-   風險：
-   - 營運風險
-   - 財務風險
-   - 市場風險
-   - 政策風險
+2. Time Sensitivity
+   - Immediate (24h)
+   - Recent (7 days)
+   - Mid-term (1 month)
+   - Long-term (1+ month)
 
-5. 投資建議
-   短期（1-3個月）：
-   - 進場時機
-   - 目標價位
-   - 停損位置
-   - 觀察重點
+3. Cross-validation
+   - Multiple sources
+   - Different perspectives
+   - Time consistency
+   - Fact checking
 
-   中期（3-12個月）：
-   - 策略布局
-   - 分批進場點位
-   - 獲利目標
-   - 風險控管
+## Analysis Framework
+1. Direct Information
+   - Financial data
+   - Operational updates
+   - Company announcements
+   - Market response
 
-   長期（1年以上）：
-   - 策略定位
-   - 持有理由
-   - 預期報酬
-   - 退場機制
+2. Industry Chain
+   - Upstream suppliers
+   - Downstream customers
+   - Competitive landscape
+   - Market positioning
 
-6. 關鍵監控指標
-   - 營運指標
-   - 財務指標
-   - 產業指標
-   - 技術指標
-   - 風險指標
+3. Macro Environment
+   - Industry trends
+   - Technology development
+   - Geopolitical factors
+   - Economic indicators
+
+4. Risk Assessment
+   - Operational risks
+   - Financial risks
+   - Market risks
+   - Strategic risks
+
+## Documentation Rules
+1. Stock-specific Instructions
+   - Create in prompts/{stock_id}_instruction.md
+   - Include specific search keywords
+   - Define unique analysis points
+   - Update as needed
+
+2. Information Organization
+   - Clear timestamps
+   - Source attribution
+   - Impact assessment
+   - Risk highlights
+
+3. Update Frequency
+   - Real-time for critical news
+   - Daily for market updates
+   - Weekly for trend analysis
+   - Monthly for strategy review
+
+## Lessons Learned
+1. News Analysis
+   - Always check news timestamps
+   - Cross-validate important information
+   - Consider source reliability
+   - Track information updates
+
+2. Framework Updates
+   - Keep stock-specific instructions current
+   - Refine search keywords based on results
+   - Adjust analysis framework as needed
+   - Document successful patterns
 
 # Lessons Learned
 
@@ -537,6 +569,76 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Provide clear source attribution
       * Highlight year-over-year changes
       * Include relevant context
+
+14. 新聞分析最佳實踐（Added 2025/01）
+    - 數據驅動原則
+      * 每個結論都需要具體數據支持
+      * 設定可量化的觀察指標
+      * 建立預測與驗證機制
+      * 定期回顧預測準確度
+
+    - 分析層次
+      * 第一層：直接相關數據與事實
+      * 第二層：產業鏈影響與關聯
+      * 第三層：總體環境與長期趨勢
+      * 各層次間需有明確的邏輯關聯
+
+    - 戰略洞察
+      * 基於數據提出合理推論
+      * 建立清晰的因果關係
+      * 提供可執行的觀察指標
+      * 設定具體的目標值
+
+    - 報告架構
+      * 核心數據陳述
+      * 戰略意涵分析
+      * 量化預測與目標
+      * 風險監控指標
+      * 明確引用來源
+
+11. 新聞分析最佳實踐 (Updated 2025/01)
+    - 時效性驗證
+      * 嚴格區分新聞發布時間
+      * 特別注意財報數據的時間點
+      * 追蹤事件發展的完整時間線
+      * 避免混用不同時期的數據
+
+    - 多維度交叉驗證
+      * 結合公司公告與媒體報導
+      * 對照產業研究機構數據
+      * 比較不同分析師觀點
+      * 驗證數據一致性
+
+    - 重大事件追蹤
+      * 建立事件完整脈絡
+      * 關注後續發展影響
+      * 評估對公司治理的影響
+      * 監控市場反應
+
+    - 市場預測整合
+      * 區分短期與長期預測
+      * 注意預測的前提假設
+      * 追蹤預測準確度
+      * 定期更新預測數據
+
+12. 產業分析框架 (Added 2025/01)
+    - 終端市場分類
+      * 企業級市場：AI伺服器、資料中心
+      * 消費性市場：PC、手機、遊戲機
+      * 新興市場：AI PC、車用電子
+      * 分別追蹤各市場動態
+
+    - 技術發展追蹤
+      * 製程技術進展
+      * 效能指標演進
+      * 新應用技術發展
+      * 與競品技術比較
+
+    - 供需結構變化
+      * 分析供給端產能變化
+      * 追蹤需求端庫存水位
+      * 觀察價格變動趨勢
+      * 評估供需平衡時點
 
 # Scratchpad
 
