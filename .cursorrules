@@ -10,6 +10,13 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 5. Use todo markers to track progress: [X] Done, [ ] Pending
 6. Update progress when subtasks are completed
 
+# Task-specific Instructions
+1. News Analysis Tasks
+   - Always reference system_prompts.md for the complete analysis framework
+   - Follow the systematic search strategy outlined in the framework
+   - Use the structured analysis approach for consistency
+   - Ensure all analysis components are covered
+
 # Tools Configuration
 
 1. Environment Setup
@@ -82,257 +89,6 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
         python -m tools.financial_data_fetcher AAPL --statements income balance --format json
         ```
 
-# Typical News Collection Workflow
-1. Use search_engine.py to find relevant news articles
-   - Craft search queries based on News Collection Strategy
-   - Use quotes for exact phrases
-   - Consider time period relevance
-
-2. Use web_scraper.py to get full content
-   - Pass URLs from search results directly
-   - Use --max-concurrent for efficiency
-   - Enable --debug for troubleshooting
-
-3. Analyze content using frameworks
-   - Apply relevant analysis frameworks
-   - Cross-validate information
-   - Document sources and findings
-
-# Analysis Frameworks
-
-1. Financial Analysis
-   - Revenue trends (MoM, YoY)
-   - Profitability metrics
-   - Cash flow indicators
-   - Growth rates
-   - Efficiency ratios
-
-2. Industry Analysis
-   - Market size & growth
-   - Competitive landscape
-   - Value chain position
-   - Entry barriers
-   - Technology trends
-
-3. Company Analysis
-   - Business model
-   - Product portfolio
-   - Customer base
-   - R&D capabilities
-   - Management team
-
-4. Risk Assessment
-   - Operational risks
-   - Financial risks
-   - Market risks
-   - Regulatory risks
-   - Strategic risks
-
-# News Collection Strategy
-
-1. Supply Chain Analysis
-   - Upstream suppliers and their dynamics
-   - Downstream customers and demand trends
-   - Key partnerships and strategic alliances
-   - Supply chain disruptions and mitigation
-   - Pricing power in the value chain
-
-2. Industry Ecosystem
-   - Competitive positioning changes
-   - New entrants and their impact
-   - Technology shifts and adoption
-   - Regulatory changes and compliance
-   - Industry consolidation trends
-
-3. Market Dynamics
-   - End-market demand changes
-   - Geographic market expansion
-   - Product mix evolution
-   - Pricing trends and pressures
-   - Market share movements
-
-4. Strategic Initiatives
-   - R&D developments and breakthroughs
-   - M&A activities and integration
-   - Capacity expansion plans
-   - New product launches
-   - Strategic partnerships
-
-5. External Factors
-   - Government policies and regulations
-   - Economic indicators and impact
-   - Technology disruption
-   - Geopolitical factors
-   - Environmental considerations
-
-# Best Practices
-
-1. Data Collection
-   - Cross-validate multiple sources
-   - Prioritize official announcements
-   - Verify data timeliness
-   - Document sources clearly
-
-2. Analysis Process
-   - Start with key findings
-   - Use clear metrics
-   - Support claims with data
-   - Consider multiple scenarios
-   - Update regularly
-
-3. Report Writing
-   - Clear executive summary
-   - Structured sections
-   - Data visualization
-   - Risk disclosure
-   - Actionable insights
-
-4. Investment Recommendations
-   - Short-term (6-12 months)
-   - Medium-term (1-2 years)
-   - Long-term (2+ years)
-   - Clear entry/exit points
-   - Risk mitigation strategies
-
-5. Stock Analysis Best Practices
-   - Information Hierarchy
-     * Start with basic news for overall direction
-     * Deep dive into technical/project details
-     * Include market perspectives (e.g., foreign institutions)
-
-   - Time Sensitivity
-     * Always check news publication dates
-     * Differentiate historical data from latest updates
-     * Avoid outdated predictions/outlooks
-
-   - Specificity
-     * Use concrete numbers instead of vague descriptions
-     * Include technical specifications when relevant
-     * Provide exact project timelines and milestones
-
-   - Multi-source Verification
-     * Company statements (earnings calls)
-     * Analyst reports
-     * Industry news
-     * Cross-reference multiple sources
-
-   - Source Citation
-     * Cite every major point
-     * Include media name and article title
-     * Enable readers to verify information
-
-# Required Analysis Steps
-
-1. 資料收集
-   - 使用 search_engine.py 搜尋最新新聞
-   - 使用 web_scraper.py 獲取完整內容
-   - 使用 market_data_fetcher.py 取得市場數據
-   - 使用 financial_data_fetcher.py 取得財務數據
-   - 交叉驗證多個來源
-
-2. 數據分析
-   - 整理新聞重點
-   - 分析財務數據趨勢
-   - 比較同業表現
-   - 檢視技術面變化
-   - 評估風險因素
-
-3. 結論產出
-   - 依據分析框架撰寫
-   - 提供具體數據支持
-   - 清楚列出優劣勢
-   - 給出明確建議
-   - 設定監控指標
-
-# Stock Analysis Framework
-
-## General Workflow
-1. Initial Setup
-   - Create stock-specific instruction file in `prompts/{stock_id}_instruction.md`
-   - Define search keywords and analysis framework
-   - Set up news monitoring parameters
-
-2. Information Collection
-   - Search latest news using defined keywords
-   - Prioritize news sources based on reliability
-   - Cross-validate information from multiple sources
-   - Track time sensitivity of information
-
-3. Analysis Process
-   - Follow time-based organization
-   - Apply layered analysis framework
-   - Cross-reference with industry trends
-   - Update stock-specific instruction file if needed
-
-4. Report Generation
-   - Clear timestamp for each piece of information
-   - Proper source citation
-   - Layered impact analysis
-   - Risk assessment
-
-## News Collection Strategy
-1. Source Priority
-   - Company announcements
-   - Major financial media
-   - Industry reports
-   - Market analysis
-
-2. Time Sensitivity
-   - Immediate (24h)
-   - Recent (7 days)
-   - Mid-term (1 month)
-   - Long-term (1+ month)
-
-3. Cross-validation
-   - Multiple sources
-   - Different perspectives
-   - Time consistency
-   - Fact checking
-
-## Analysis Framework
-1. Direct Information
-   - Financial data
-   - Operational updates
-   - Company announcements
-   - Market response
-
-2. Industry Chain
-   - Upstream suppliers
-   - Downstream customers
-   - Competitive landscape
-   - Market positioning
-
-3. Macro Environment
-   - Industry trends
-   - Technology development
-   - Geopolitical factors
-   - Economic indicators
-
-4. Risk Assessment
-   - Operational risks
-   - Financial risks
-   - Market risks
-   - Strategic risks
-
-## Documentation Rules
-1. Stock-specific Instructions
-   - Create in prompts/{stock_id}_instruction.md
-   - Include specific search keywords
-   - Define unique analysis points
-   - Update as needed
-
-2. Information Organization
-   - Clear timestamps
-   - Source attribution
-   - Impact assessment
-   - Risk highlights
-
-3. Update Frequency
-   - Real-time for critical news
-   - Daily for market updates
-   - Weekly for trend analysis
-   - Monthly for strategy review
-
 ## Lessons Learned
 1. News Analysis
    - Always check news timestamps
@@ -347,7 +103,6 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
    - Document successful patterns
 
 # Lessons Learned
-
 1. Tool Usage
    - Always activate conda environment 'stock' before running tools (CRITICAL)
    - Handle timeouts and retries properly
@@ -687,120 +442,29 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * 中期發展方向
       * 長期投資價值
 
+17. 新聞分析實戰經驗 (Added 2025/01/22)
+    - 結構優化
+      * 前半部分需更詳盡具體：新聞分類、產業鏈分析
+      * 後半部分要精簡聚焦：風險、觀察重點
+      * 確保前後文邏輯連貫性
+      * 避免內容重複冗長
+
+    - 內容精準度
+      * 每個重點都需要具體數據支持
+      * 風險因素要有明確影響程度
+      * 觀察重點需訂定可量化指標
+      * 時間維度要明確區分
+
+    - 實用性提升
+      * 避免籠統的描述性文字
+      * 不提供投資建議，改為觀察重點
+      * 各項指標需可追蹤、可驗證
+      * 時效性資訊需標註日期
+
+    - 分析深度
+      * 新聞分類要區分重要性等級
+      * 產業鏈分析需上下游完整
+      * 風險評估要具體量化
+      * 觀察重點按時間維度分類
+
 # Scratchpad
-
-Current Task: Daily Stock News Analysis & Impact Assessment
-Progress:
-[X] Updated task focus to daily stock-specific news analysis
-[X] Defined importance assessment criteria based on analysis framework
-[ ] Optimize news collection workflow
-[ ] Refine impact assessment process
-
-Key Steps:
-1. News Collection
-   - Search for all news related to the target stock on the current day
-   - Include both company-specific and industry-related news
-   - Gather from multiple sources for cross-validation
-
-2. Importance Assessment Criteria:
-   a) Revenue Impact
-      - Direct impact on revenue/profit
-      - Changes in market share
-      - Customer/order changes
-
-   b) Industry Position
-      - Supply chain dynamics
-      - Competitive landscape changes
-      - Technology/product roadmap
-
-   c) Strategic Value
-      - Long-term growth potential
-      - Business model evolution
-      - Market expansion opportunities
-
-   d) Risk Factors
-      - Operational challenges
-      - Market uncertainties
-      - Regulatory concerns
-
-3. Framework-based Analysis:
-   - Map each news item to relevant framework components
-   - Assess immediate vs long-term impact
-   - Consider cumulative effects with previous developments
-
-4. Priority Levels:
-   High: Direct material impact on operations/financials
-   Medium: Indirect or longer-term strategic impact
-   Low: General information or minor updates
-
-Next Steps:
-- [ ] Develop news categorization system
-- [ ] Create impact assessment templates
-- [ ] Establish priority scoring mechanism
-- [ ] Design daily report format
-
-Note: Focus on actionable insights and material impacts when assessing news importance.
-
-# Stock Analysis Workflow (Added 2025/01)
-1. Initial News Collection
-   - Search for all news related to the target stock
-   - Focus on last 3-6 months of news
-   - Include both company-specific and industry news
-   - Collect from multiple reliable sources
-
-2. Multi-layer Analysis Framework
-   第一層：直接資訊
-   - 財務數據變化
-   - 營運表現
-   - 公司公告
-   - 股價走勢
-
-   第二層：產業鏈分析
-   - 上游供應商狀況
-   - 下游客戶動態
-   - 競爭對手動向
-   - 產業政策變化
-
-   第三層：總體環境
-   - 總體經濟影響
-   - 科技發展趨勢
-   - 地緣政治因素
-   - 長期產業變遷
-
-3. Cross-reference Analysis
-   - 驗證不同消息來源
-   - 比對歷史數據
-   - 確認產業鏈關聯性
-   - 評估消息可信度
-
-4. Impact Assessment
-   - 短期（1-3個月）影響
-   - 中期（3-12個月）影響
-   - 長期（1年以上）影響
-   - 風險因素評估
-
-5. Documentation Format
-   - 時間順序紀錄
-   - 重要性分類
-   - 關聯性分析
-   - 影響力評估
-
-# Current Task Scratchpad
-Task: 深入分析大立光相關新聞與產業動態
-Progress:
-[X] 完成基本新聞搜集與時間排序
-[ ] 進行第二層分析：
-    - 檢視蘋果、三星等客戶的新產品計畫
-    - 分析人形機器人市場潛力
-    - 評估超薄手機技術發展
-[ ] 進行第三層分析：
-    - AI視覺應用趨勢
-    - 手機產業創新方向
-    - 全球科技供應鏈變化
-[ ] 更新投資建議
-
-Next Steps:
-1. 搜尋主要客戶（蘋果、三星）的產品規劃新聞
-2. 研究人形機器人市場發展報導
-3. 分析光學技術在AI時代的應用前景
-4. 評估產業供應鏈變化對公司的影響

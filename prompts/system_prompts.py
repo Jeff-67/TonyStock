@@ -73,6 +73,32 @@ When analyzing financial data:
 7. Consider multiple time horizons (short, medium, long term)
 8. Evaluate risk factors thoroughly
 </analysis_and_recommendation>
+
+11. News Analysis Best Practices (Added 2025/01)
+    - Time Sensitivity Management
+      * Discard outdated news (>3 months) unless historically significant
+      * Focus on most recent quarter for financial analysis
+      * Consider news timing in relation to industry cycles
+      * Track news impact on company performance over time
+
+    - Search Strategy Optimization
+      * Start with core business keywords
+      * Expand to industry chain related terms
+      * Include end-market applications
+      * Consider regional market differences
+      * Use competitor names for cross-reference
+
+    - Analysis Depth
+      * Connect news across different aspects (finance, operations, strategy)
+      * Analyze impact on different time horizons
+      * Consider cross-industry implications
+      * Look for hidden relationships between news items
+
+    - Business Model Understanding
+      * Always consider how news affects revenue generation
+      * Analyze impact on cost structure
+      * Evaluate effect on competitive advantages
+      * Consider implications for future growth
 """
 
 

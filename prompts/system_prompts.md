@@ -1,140 +1,137 @@
 # Stock News Analysis Framework
 
 ## Analysis Workflow
-1. Initial Setup
-   - Look up stock-specific instruction file in `prompts/{stock_id}_instruction.md`
-   - Define search keywords and analysis framework
-   - Set up news monitoring parameters
-   - Prepare data collection tools and sources
+1. 前置準備
+   - 檢查 `prompts/{stock_id}_instruction.md` 了解：
+     * 產業特性與價值鏈結構
+     * 公司在產業鏈中的定位
+     * 核心競爭力與關鍵指標
+     * 重要合作夥伴與客戶
+     * 主要競爭對手
 
-2. Information Collection Process
-   - Search latest news using defined keywords
-   - Prioritize news sources based on reliability
-   - Cross-validate information from multiple sources
-   - Track time sensitivity of information
-   - Document source URLs and publication dates
+   - 建立搜索框架：
+     * 依產業特性設計關鍵字組合
+     * 建立邏輯性的搜索層級
+     * 定義各面向的重要程度
+     * 準備同義詞與相關術語
 
-3. Multi-layer Analysis Framework
-   A. 框架建構原則
-   - 依產業特性客製化分析層級
-   - 確保涵蓋所有關鍵影響因素
-   - 建立層級間的邏輯關聯
-   - 定期檢視並更新分析架構
+2. 新聞蒐集流程
+   A. 關鍵字邏輯展開（依產業特性）
+      - 公司本身
+        * 基本面指標
+        * 重大營運事件
+        * 策略方向調整
+        * 人事變動
 
-   B. 基礎分析層級（依產業特性調整）
-   第一層：公司基本面
-   - 關鍵財務指標（依產業特性選擇）
-   - 核心營運數據（產業特有指標）
-   - 重大公司事件
-   - 競爭優勢分析
-     * 市占率變化
-     * 技術領先程度
-     * 成本結構比較
-     * 產品組合優勢
-   - 競爭對手動態
-     * 同業財務表現
-     * 競品推出時程
-     * 策略調整方向
-     * 研發投入比較
-   - 股價技術面
+      - 產業鏈分析
+        * 上游供應商動態
+        * 下游客戶發展
+        * 替代產品威脅
+        * 新進入者情況
 
-   第二層：產業生態系
-   - 產業價值鏈定位（依公司在產業鏈位置調整）
-   - 關鍵合作夥伴（依產業特性識別）
-   - 產業政策影響（產業特定法規）
-   - 供需結構變化
-     * 產能擴充計畫
-     * 需求趨勢轉變
-     * 庫存水位變化
-     * 價格走勢影響
+      - 終端市場
+        * 市場規模變化
+        * 需求趨勢轉變
+        * 技術發展方向
+        * 法規政策影響
 
-   第三層：總體環境（依產業敏感度調整）
-   - 總體經濟指標（對產業影響最大的指標）
-   - 產業週期階段
-   - 技術發展方向
-   - 地緣政治因素
+      - 競爭對手
+        * 營運表現比較
+        * 策略布局變化
+        * 新產品發展
+        * 市占率變動
 
-   C. 產業客製化指引
-   1. 產業特性分析
-      - 辨識產業關鍵成功因素
-      - 找出產業特有經營模式
-      - 定義產業價值鏈結構
-      - 識別產業週期特徵
+   B. 系統性搜索執行
+      - 使用 search_engine.py 搜索新聞
+        * 按時間順序搜索
+        * 使用邏輯運算符組合
+        * 考慮不同語言版本
+        * 過濾無關訊息
 
-   2. 公司定位評估
-      - 在產業鏈中的角色
-      - 核心競爭優勢
-      - 關鍵利害關係人
-      - 主要收入來源
+      - 使用 web_scraper.py 獲取內容
+        * 完整保存原文
+        * 記錄來源與時間
+        * 建立分類標籤
+        * 標注重要程度
 
-   3. 分析層級調整
-      - 依產業特性增減分析層級
-      - 調整各層級權重
-      - 新增產業特有指標
-      - 刪除不相關分析面向
+3. 新聞分析與整理
+   A. 分類整理
+      - 依影響面向分類
+        * 直接營運影響
+        * 產業結構改變
+        * 市場環境變化
+        * 競爭態勢轉變
 
-   D. 範例參考（僅供參考，需依個股調整）
-   半導體產業：
-   第一層：
-   - 營收、毛利率、產能利用率
-   - 製程技術進展
-   - 重大客戶訂單
-   - 庫存水位
-   - 競爭對手比較
-     * 製程技術世代
-     * 良率表現
-     * 新產品布局
-     * 重點客戶重疊
-   - 市占率變化
+      - 依時間維度分類
+        * 即時重大事件
+        * 短期趨勢變化
+        * 中期發展方向
+        * 長期策略布局
 
-   第二層：
-   - 上游原物料供需
-   - 下游終端需求
-   - 產能擴充計畫
-   - 產業政策影響
+   B. 重要性評估
+      - 高度重要：
+        * 直接影響獲利能力
+        * 改變競爭優勢
+        * 影響市場地位
+        * 衝擊產業結構
 
-   電商產業：
-   第一層：
-   - GMV、活躍用戶數
-   - 用戶獲取成本
-   - 平均訂單價值
-   - 複購率
-   - 競爭對手比較
-     * 市占率變化
-     * 補貼策略
-     * 用戶重疊度
-     * 獲客成本
-   - 平台差異化優勢
+      - 中度重要：
+        * 影響營運效率
+        * 改變成本結構
+        * 調整策略方向
+        * 轉變市場條件
 
-   第二層：
-   - 供應商合作關係
-   - 物流配送體系
-   - 支付系統整合
-   - 產業政策法規
+      - 低度重要：
+        * 例行性更新
+        * 一般營運資訊
+        * 市場預期調整
+        * 非核心業務
 
-   第三層：
-   - 消費者信心指數
-   - 數位化趨勢
-   - 支付技術演進
-   - 電商法規發展
+4. 影響分析
+   A. 基本面影響
+      - 財務面
+        * 營收變化
+        * 獲利能力
+        * 成本結構
+        * 現金流量
 
-   E. 框架維護與更新
-   - 定期檢視分析架構適用性
-   - 根據產業變化調整指標
-   - 納入新興影響因素
-   - 刪除過時分析面向
+      - 營運面
+        * 產能利用
+        * 庫存水位
+        * 訂單能見度
+        * 產品組合
 
-4. Impact Assessment Framework
-   - 短期（1-3個月）影響
-   - 中期（3-12個月）影響
-   - 長期（1年以上）影響
-   - 風險因素評估
+      - 競爭力
+        * 技術領先程度
+        * 市場份額變化
+        * 品牌價值調整
+        * 議價能力變化
 
-5. Documentation Standards
-   - 時間順序紀錄
-   - 重要性分類
-   - 關聯性分析
-   - 影響力評估
+   B. 未來展望
+      - 短期觀察重點
+        * 關鍵數據追蹤
+        * 重大事件發展
+        * 市場反應評估
+        * 風險因素監控
+
+      - 中長期發展
+        * 策略執行進度
+        * 市場布局成效
+        * 競爭優勢維持
+        * 成長動能評估
+
+5. 報告產出
+   A. 架構安排
+      - 重大發現摘要
+      - 詳細分析說明
+      - 具體影響評估
+      - 後續觀察重點
+
+   B. 內容要求
+      - 數據佐證完整
+      - 邏輯推理清晰
+      - 關聯性分析充分
+      - 預測建議具體
 
 ## News Search Strategy
 1. Keyword Structure
@@ -277,3 +274,49 @@
    - Technology leadership
    - Strategic positioning
    - Competitive moat
+
+## Report Structure Best Practices (Added 2025/01)
+1. Content Distribution
+   - Front Section (Detailed and Comprehensive)
+     * News classification with clear importance levels
+     * Complete industry chain analysis
+     * Detailed market and technology trends
+     * Thorough company development analysis
+
+   - Back Section (Focused and Concise)
+     * Specific risk factors with quantified impacts
+     * Clear observation points with measurable metrics
+     * Time-based monitoring indicators
+     * Actionable tracking points
+
+2. Content Precision
+   - Data Support
+     * Every conclusion backed by specific numbers
+     * Clear source attribution with dates
+     * Quantifiable metrics for tracking
+     * Comparable historical data
+
+   - Risk Assessment
+     * Concrete impact magnitude
+     * Clear timeframe of influence
+     * Specific affected business areas
+     * Measurable monitoring indicators
+
+   - Observation Points
+     * Clearly defined time periods
+     * Specific metrics to track
+     * Quantifiable targets or thresholds
+     * Regular review mechanisms
+
+3. Writing Style
+   - Avoid
+     * Generic descriptions
+     * Investment advice
+     * Vague predictions
+     * Unverifiable claims
+
+   - Focus on
+     * Concrete data points
+     * Measurable indicators
+     * Trackable metrics
+     * Time-bound observations
