@@ -4,23 +4,14 @@ This module provides functionality to search the web using DuckDuckGo's search e
 with support for both API and HTML backends, retry mechanisms, and result formatting.
 """
 
-#!/usr/bin/env python3
-
-import argparse
 import json
 import logging
-import os
 import random
-import re
-import subprocess
-import sys
-import time
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
+from urllib.parse import quote_plus
 
 import requests
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
-from duckduckgo_search.exceptions import DuckDuckGoSearchException
 
 # Configure logging
 logging.basicConfig(
@@ -59,63 +50,58 @@ def get_working_proxy() -> Optional[str]:
 def validate_proxy(proxy: str) -> bool:
     """Test if a proxy is working."""
     try:
-        cmd = [
-            "curl",
-            "-x",
-            proxy,
-            "--connect-timeout",
-            str(PROXY_TEST_TIMEOUT),
-            "https://api.ipify.org?format=json",
-        ]
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=PROXY_TEST_TIMEOUT
+        proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
+        response = requests.get(
+            "https://api.ipify.org",
+            params={"format": "json"},
+            proxies=proxies,
+            timeout=PROXY_TEST_TIMEOUT,
         )
-        if result.returncode == 0:
-            response = json.loads(result.stdout)
-            logger.info(f"Proxy {proxy} is working (IP: {response.get('ip')})")
+        if response.ok:
+            data = response.json()
+            logger.info(f"Proxy {proxy} is working (IP: {data.get('ip')})")
             return True
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
+    except (requests.RequestException, json.JSONDecodeError) as e:
         logger.debug(f"Proxy {proxy} validation failed: {str(e)}")
     return False
 
 
 def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]:
-    """
-    Search DuckDuckGo using curl and proxies.
+    """Search DuckDuckGo using requests library.
+
     Returns a list of dictionaries containing title, url, and snippet.
     """
-    results = []
+    results: List[Dict[str, str]] = []
     proxy = get_working_proxy()
 
     if not proxy:
         logger.warning("No working proxy found, attempting search without proxy")
 
     try:
-        cmd = [
-            "curl",
-            "-L",
-            "-A",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "-H",
-            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "-H",
-            "Accept-Language: en-US,en;q=0.5",
-        ]
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
 
+        proxies = None
         if proxy:
-            cmd.extend(["-x", proxy])
+            proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
 
-        cmd.append(f'https://duckduckgo.com/lite?q={query.replace(" ", "+")}')
-
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=DEFAULT_TIMEOUT
+        safe_query = quote_plus(query)
+        response = requests.get(
+            "https://duckduckgo.com/lite",
+            params={"q": safe_query},
+            headers=headers,
+            proxies=proxies,
+            timeout=DEFAULT_TIMEOUT,
         )
 
-        if result.returncode == 0:
-            soup = BeautifulSoup(result.stdout, "html.parser")
+        if response.ok:
+            soup = BeautifulSoup(response.text, "html.parser")
             rows = soup.find_all("tr")
 
-            current_result = {}
+            current_result: Dict[str, str] = {}
             for row in rows:
                 link = row.find("a", class_="result-link")
                 snippet = row.find("td", class_="result-snippet")
@@ -133,9 +119,8 @@ def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]
 
             if current_result and len(results) < max_results:
                 results.append(current_result)
-
         else:
-            logger.error(f"Search failed with exit code {result.returncode}")
+            logger.error(f"Search failed with status code {response.status_code}")
 
     except Exception as e:
         logger.error(f"Search error: {str(e)}")
@@ -145,9 +130,9 @@ def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]
 
 def main():
     """Command line interface for the search engine."""
-    import argparse
+    from argparse import ArgumentParser
 
-    parser = argparse.ArgumentParser(description="Search engine tool")
+    parser = ArgumentParser(description="Search engine tool")
     parser.add_argument("query", help="Search query")
     parser.add_argument(
         "--max-results", type=int, default=10, help="Maximum number of results"

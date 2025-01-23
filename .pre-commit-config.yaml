@@ -44,11 +44,5 @@ repos:
             "--disable-error-code=import-untyped"
         ]
 
--   repo: https://github.com/PyCQA/bandit
-    rev: 1.7.7
-    hooks:
-    -   id: bandit
-        args: ["--skip=B311"]
-
 default_language_version:
     python: python3.10

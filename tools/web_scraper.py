@@ -7,18 +7,31 @@ Can be used as a command-line tool or imported as a module.
 
 import argparse
 import asyncio
-import json
 import logging
-import os
 import random
-import sys
-import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 import aiohttp
-from bs4 import BeautifulSoup
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 from playwright.async_api import async_playwright
+
+
+def validate_url(url: str) -> bool:
+    """Validate if a string is a properly formatted URL.
+
+    Args:
+        url: The URL string to validate.
+
+    Returns:
+        bool: True if the URL is valid, False otherwise.
+    """
+    try:
+        result = urlparse(url)
+        return all([result.scheme in ("http", "https"), result.netloc])
+    except Exception:
+        return False
+
 
 # Configure logging
 logging.basicConfig(
@@ -150,8 +163,8 @@ async def scrape_with_playwright(
 
 
 async def scrape_url(url: str, max_retries: int = 3) -> Optional[Dict[str, str]]:
-    """
-    Scrape content from a URL with retries and proxy support.
+    """Scrape content from a URL with retries and proxy support.
+
     Returns a dictionary containing title, date, and content if successful.
     """
     for attempt in range(max_retries):
@@ -197,8 +210,8 @@ async def scrape_url(url: str, max_retries: int = 3) -> Optional[Dict[str, str]]
 
 
 async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[Dict[str, str]]:
-    """
-    Scrape multiple URLs concurrently.
+    """Scrape multiple URLs concurrently.
+
     Returns a list of dictionaries containing title, date, and content for each successful scrape.
     """
     semaphore = asyncio.Semaphore(max_concurrent)
@@ -218,7 +231,10 @@ async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[Dict[str
 
 
 def main():
-    """Main entry point for the web scraper."""
+    """Execute the web scraper from command line.
+
+    Main entry point for the web scraper.
+    """
     parser = argparse.ArgumentParser(description="Scrape content from URLs")
     parser.add_argument("urls", nargs="+", help="URLs to scrape")
     parser.add_argument(

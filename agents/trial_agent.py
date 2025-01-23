@@ -6,6 +6,7 @@ tool execution results. It provides a structured way to handle conversations
 with tool usage capabilities.
 """
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -24,8 +25,15 @@ from tools.web_scraper import scrape_urls
 client = anthropic.Client()
 settings = Settings()
 MODEL_NAME = settings.model.claude_large
+STOCK_NAME = "群聯"
 MAX_SEARCH_RESULTS = 5
 MESSAGE_HISTORY = []
+
+
+def stock_name_to_id(stock_name: str) -> str | None:
+    """Convert stock name to its corresponding ID."""
+    mapping = {"群聯": "8299", "京鼎": "3413", "文曄": "3036", "裕山": "7715"}
+    return mapping.get(stock_name)
 
 
 @dataclass
@@ -102,10 +110,10 @@ def call_model(
     MESSAGE_HISTORY.extend(user_messages)
 
     response = client.messages.create(
-        system=system_prompt(model_name=MODEL_NAME)
-        + "\n<instructions>"
-        + finance_agent_prompt()
-        + "</instructions>",
+        system=system_prompt(stock_name=STOCK_NAME)
+        + f"\n<{STOCK_NAME} instruction>"
+        + finance_agent_prompt(stock_id=stock_name_to_id(STOCK_NAME) or STOCK_NAME)
+        + f"</{STOCK_NAME} instruction>",
         model=MODEL_NAME,
         max_tokens=settings.max_tokens,
         tool_choice={"type": "auto"},
@@ -117,7 +125,7 @@ def call_model(
 
 
 @track()
-def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
+async def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
     """Process a tool call and return the result.
 
     Args:
@@ -133,7 +141,7 @@ def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
                 tool_input["query"], max_results=MAX_SEARCH_RESULTS
             )
         elif tool_name == "web_scraper":
-            return scrape_urls(tool_input["urls"])
+            return await scrape_urls(tool_input["urls"])
         else:
             return f"Unknown tool: {tool_name}"
     except Exception as e:
@@ -141,7 +149,7 @@ def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
 
 
 @track(project_name="tony_stock")
-def chat_with_claude(user_message: str) -> str:
+async def chat_with_claude(user_message: str) -> str:
     """Handle the chat flow with tool usage.
 
     Args:
@@ -158,7 +166,7 @@ def chat_with_claude(user_message: str) -> str:
         tool_input = response.tool_use.input
 
         # Execute tool
-        tool_result = process_tool_call(tool_name, tool_input)
+        tool_result = await process_tool_call(tool_name, tool_input)
 
         # Continue conversation with verified result
         MESSAGE_HISTORY.append({"role": "assistant", "content": response.content})
@@ -182,4 +190,4 @@ def chat_with_claude(user_message: str) -> str:
 
 
 if __name__ == "__main__":
-    chat_with_claude("智原佈局如何")
+    asyncio.run(chat_with_claude("分析群聯今天新聞"))
