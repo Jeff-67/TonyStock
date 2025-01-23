@@ -7,6 +7,8 @@ with tool usage capabilities.
 """
 
 import asyncio
+import json
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +23,12 @@ from prompts.system_prompts import (
 from settings import Settings
 from tools.search_engine import search_duckduckgo
 from tools.web_scraper import scrape_urls
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 client = anthropic.Client()
 settings = Settings()
@@ -165,11 +173,22 @@ async def chat_with_claude(user_message: str) -> str:
         tool_name = response.tool_use.name
         tool_input = response.tool_use.input
 
+        logger.info(f"Executing tool {tool_name} with input: {tool_input}")
+
         # Execute tool
         tool_result = await process_tool_call(tool_name, tool_input)
 
+        logger.info(f"Tool result: {tool_result}")
+
         # Continue conversation with verified result
         MESSAGE_HISTORY.append({"role": "assistant", "content": response.content})
+
+        # Format tool result as JSON string if it's a list or dict
+        formatted_result = (
+            json.dumps(tool_result, ensure_ascii=False, indent=2)
+            if isinstance(tool_result, (list, dict))
+            else str(tool_result)
+        )
 
         response = call_model(
             [
@@ -179,7 +198,7 @@ async def chat_with_claude(user_message: str) -> str:
                         {
                             "type": "tool_result",
                             "tool_use_id": response.tool_use.id,
-                            "content": str(tool_result),
+                            "content": formatted_result,
                         }
                     ],
                 }

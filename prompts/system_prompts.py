@@ -175,6 +175,27 @@ def system_prompt(stock_name: str) -> str:
    - Exclude irrelevant terms (e.g., -recruitment)
    - Consider synonyms and related terms
 
+3. Search Engine Best Practices (Added 2025/01)
+   - Language Handling
+     * Use both English and Chinese company names
+     * For Chinese companies, try:
+       - English name (e.g., "Phison" for "群聯")
+       - Stock symbol (e.g., "8299")
+       - Simplified Chinese name if available
+     * Keep Chinese queries simple without complex operators
+
+   - Query Structure
+     * Basic format: "[Company Name] [Stock Symbol] [Category]"
+     * Avoid complex date syntax (e.g., date:today)
+     * Use explicit dates in YYYY/MM/DD format if needed
+     * Keep queries concise for better encoding handling
+
+   - Results Validation
+     * Cross-check results from different query formats
+     * Verify news dates manually rather than using date operators
+     * Use multiple language versions for comprehensive coverage
+     * Consider regional news sources for local market insights
+
 ## Analysis Standards
 1. Importance Classification
    - High Priority
@@ -353,17 +374,36 @@ def tool_prompt_construct_anthropic() -> dict:
         "tools": [
             {
                 "name": "search_engine",
-                "description": "Search for relevant news and information online using DuckDuckGo with API/HTML fallback",
+                "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
+
+Query Construction Guidelines:
+1. Basic Format (Most Effective):
+   - Use: "[Company Name] [Stock Code] [Key Products/Technology] [Year]"
+   - Example: "群聯 8299 PCIe SSD 2024"
+   - Keep it simple, avoid complex operators
+
+2. Core Business Search:
+   - Focus on main products and technologies
+   - Example: "群聯 控制晶片 AI 2024"
+   - Example: "Phison NAND Flash 2024"
+
+3. Industry Chain Search:
+   - Add one topic at a time
+   - Example: "群聯 8299 營收"
+   - Example: "群聯 8299 新產品"
+
+4. Search Tips:
+   - Use both company name and stock code
+   - Add year for recent news
+   - Keep queries concise (4-5 terms max)
+   - Mix Chinese and English terms
+   - Avoid special operators (date:, site:, etc.)""",
                 "input_schema": {
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "The search query (use quotes for multi-word queries)",
-                        },
-                        "max_results": {
-                            "type": "integer",
-                            "description": "Maximum number of results to return (default: 10)",
+                            "description": "The search query following the query construction guidelines above",
                         },
                     },
                     "required": ["query"],
@@ -382,24 +422,6 @@ def tool_prompt_construct_anthropic() -> dict:
                         },
                     },
                     "required": ["urls"],
-                },
-            },
-            {
-                "name": "read_pdf",
-                "description": "Extract and analyze text content from PDF documents",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "pdf_path": {
-                            "type": "string",
-                            "description": "Path to the PDF file",
-                        },
-                        "model": {
-                            "type": "string",
-                            "description": "Model name for analysis (default: gpt-4o)",
-                        },
-                    },
-                    "required": ["pdf_path"],
                 },
             },
         ]

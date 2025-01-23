@@ -12,7 +12,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 
 # Task-specific Instructions
 1. News Analysis Tasks
-   - Always reference system_prompts.md for the complete analysis framework
+   - Always reference `system_prompts.md` for the complete analysis framework
    - Follow the systematic search strategy outlined in the framework
    - Use the structured analysis approach for consistency
    - Ensure all analysis components are covered
