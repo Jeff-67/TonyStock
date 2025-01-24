@@ -97,15 +97,24 @@ class ModelResponse:
 
 
 @track()
-def process_model_response(response: anthropic.types.Message) -> ModelResponse:
-    """Process the raw model response into a structured format.
+def process_by_client(
+    system: str,
+    model: str,
+    max_tokens: int,
+    tool_choice: Dict[str, Any],
+    tools: List[Dict[str, Any]],
+    messages: List[Dict[str, Any]],
+) -> ModelResponse:
+    """Process the model response."""
+    response = client.messages.create(
+        system=system,
+        model=model,
+        max_tokens=max_tokens,
+        tool_choice=tool_choice,
+        tools=tools,
+        messages=messages,
+    )
 
-    Args:
-        response: Raw response from the model
-
-    Returns:
-        ModelResponse containing structured response data
-    """
     text_content = next(
         (block.text for block in response.content if hasattr(block, "text")), None
     )
@@ -135,19 +144,25 @@ def call_model(
     """
     MESSAGE_HISTORY.extend(user_messages)
     stock_name = retrieve_stock_name(user_messages)
-    response = client.messages.create(
-        system=system_prompt(stock_name=stock_name)
+    system_text = (
+        system_prompt(stock_name=stock_name)
         + f"\n<{stock_name} instruction>"
         + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
-        + f"</{stock_name} instruction>",
+        + f"</{stock_name} instruction>"
+    )
+    tool_choice = {"type": "auto"}
+    tool_prompt_text = tool_prompt_construct_anthropic()["tools"]
+
+    response = process_by_client(
+        system=system_text,
         model=MODEL_NAME,
         max_tokens=settings.max_tokens,
-        tool_choice={"type": "auto"},
-        tools=tool_prompt_construct_anthropic()["tools"],
+        tool_choice=tool_choice,
+        tools=tool_prompt_text,
         messages=MESSAGE_HISTORY,
     )
 
-    return process_model_response(response)
+    return response
 
 
 @track()
