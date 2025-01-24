@@ -195,6 +195,75 @@
      * Supply chain risks
      * Market volatility
 
+3. Comprehensive Analysis Framework (Added 2025/01)
+   - Positive Factors
+     * Technology advantages with concrete metrics
+     * Market expansion with specific progress
+     * Strategic positioning success cases
+     * Financial performance improvements
+
+   - Negative Factors
+     * Technology limitations and constraints
+     * Product positioning challenges
+     * Competition threats and market pressures
+     * Operational inefficiencies
+
+   - Risk Categories
+     * Technology Risks
+       - Performance limitations
+       - Platform dependencies
+       - Stability concerns
+       - Development uncertainties
+
+     * Market Risks
+       - Adoption uncertainties
+       - Demand fluctuations
+       - Competition dynamics
+       - Pricing pressures
+
+     * Operational Risks
+       - Resource constraints
+       - Implementation challenges
+       - Service delivery issues
+       - Quality control concerns
+
+     * Financial Risks
+       - Margin pressures
+       - Investment requirements
+       - Cost structure changes
+       - Revenue model uncertainties
+
+     * Supply Chain Risks
+       - Component dependencies
+       - Capacity constraints
+       - Cost volatility
+       - Supplier relationships
+
+     * Business Model Risks
+       - Monetization challenges
+       - Customer retention
+       - Service scalability
+       - Market positioning
+
+4. Monitoring Framework
+   - Short-term Indicators (1-3 months)
+     * Customer acquisition metrics
+     * Implementation progress
+     * Initial performance data
+     * Early market feedback
+
+   - Mid-term Indicators (3-6 months)
+     * Market development pace
+     * Competitive responses
+     * Technology advancement
+     * Business model validation
+
+   - Long-term Indicators (6+ months)
+     * Strategic goal achievement
+     * Market position evolution
+     * Technology roadmap execution
+     * Business sustainability metrics
+
 ## Required Analysis Components
 1. Data Collection
    - Use search_engine.py for news search

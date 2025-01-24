@@ -379,13 +379,13 @@ def tool_prompt_construct_anthropic() -> dict:
 Query Construction Guidelines:
 1. Basic Format (Most Effective):
    - Use: "[Company Name] [Stock Code] [Key Products/Technology] [Year]"
-   - Example: "群聯 8299 PCIe SSD 2024"
+   - Example: "群聯 8299 PCIe SSD 2025"
    - Keep it simple, avoid complex operators
 
 2. Core Business Search:
    - Focus on main products and technologies
-   - Example: "群聯 控制晶片 AI 2024"
-   - Example: "Phison NAND Flash 2024"
+   - Example: "群聯 控制晶片 AI 2025"
+   - Example: "Phison NAND Flash 2025"
 
 3. Industry Chain Search:
    - Add one topic at a time

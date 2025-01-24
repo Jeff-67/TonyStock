@@ -76,3 +76,5 @@ XlsxWriter==3.2.0
 yfinance==0.2.51
 youtube-transcript-api==0.6.3
 opik
+fastapi==0.110.0
+uvicorn==0.29.0

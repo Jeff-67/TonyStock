@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 client = anthropic.Client()
 settings = Settings()
 MODEL_NAME = settings.model.claude_large
-STOCK_NAME = "群聯"
+STOCK_NAME = "京鼎"
 MAX_SEARCH_RESULTS = 5
 MESSAGE_HISTORY = []
 
@@ -209,4 +209,4 @@ async def chat_with_claude(user_message: str) -> str:
 
 
 if __name__ == "__main__":
-    asyncio.run(chat_with_claude("分析群聯今天新聞"))
+    asyncio.run(chat_with_claude("分析京鼎今天新聞"))
