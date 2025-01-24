@@ -33,15 +33,33 @@ logger = logging.getLogger(__name__)
 client = anthropic.Client()
 settings = Settings()
 MODEL_NAME = settings.model.claude_large
-STOCK_NAME = "京鼎"
 MAX_SEARCH_RESULTS = 5
 MESSAGE_HISTORY = []
 
 
-def stock_name_to_id(stock_name: str) -> str | None:
+def get_all_stock_mapping():
+    """Get mapping of stock names to their IDs.
+
+    Returns:
+        dict: Mapping of stock names (str) to stock IDs (str)
+    """
+    return {"群聯": "8299", "京鼎": "3413", "文曄": "3036", "裕山": "7715"}
+
+
+def stock_name_to_id(stock_name: str | None = None) -> str | None:
     """Convert stock name to its corresponding ID."""
-    mapping = {"群聯": "8299", "京鼎": "3413", "文曄": "3036", "裕山": "7715"}
+    mapping = get_all_stock_mapping()
     return mapping.get(stock_name)
+
+
+def retrieve_stock_name(user_messages: List[Dict[str, Any]]) -> str | None:
+    """Retrieve the stock name from the user's messages."""
+    last_message = user_messages[-1]["content"]
+    for stock_name in get_all_stock_mapping().keys():
+        if stock_name in last_message:
+            return stock_name
+
+    return None
 
 
 @dataclass
@@ -116,12 +134,12 @@ def call_model(
         ModelResponse containing the processed response
     """
     MESSAGE_HISTORY.extend(user_messages)
-
+    stock_name = retrieve_stock_name(user_messages)
     response = client.messages.create(
-        system=system_prompt(stock_name=STOCK_NAME)
-        + f"\n<{STOCK_NAME} instruction>"
-        + finance_agent_prompt(stock_id=stock_name_to_id(STOCK_NAME) or STOCK_NAME)
-        + f"</{STOCK_NAME} instruction>",
+        system=system_prompt(stock_name=stock_name)
+        + f"\n<{stock_name} instruction>"
+        + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
+        + f"</{stock_name} instruction>",
         model=MODEL_NAME,
         max_tokens=settings.max_tokens,
         tool_choice={"type": "auto"},

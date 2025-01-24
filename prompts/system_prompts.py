@@ -6,7 +6,7 @@ specialized finance agent prompts.
 """
 
 
-def system_prompt(stock_name: str) -> str:
+def system_prompt(stock_name: str | None = None) -> str:
     """Generate the base system prompt for the AI financial research assistant.
 
     Args:
@@ -15,6 +15,8 @@ def system_prompt(stock_name: str) -> str:
     Returns:
         str: Formatted system prompt with model name and complete instructions.
     """
+    if not stock_name:
+        stock_name = "台灣股市"
     return f"""
 # {stock_name} News Analysis Framework
 以下是{stock_name}的分析框架，你的任務是根據此框架進行分析。
@@ -428,7 +430,7 @@ Query Construction Guidelines:
     }
 
 
-def finance_agent_prompt(stock_id: str) -> str:
+def finance_agent_prompt(stock_id: str | None = None) -> str:
     """Generate finance agent prompt for stock analysis.
 
     Creates a specialized prompt for analyzing financial information and news
@@ -441,7 +443,8 @@ def finance_agent_prompt(stock_id: str) -> str:
     Returns:
         Formatted prompt string for the finance agent
     """
-    # TODO: 根據 stock_id 讀取相對應的 instruction
+    if not stock_id:
+        return ""
     with open(f"prompts/{stock_id}_instruction.md", "r", encoding="utf-8") as file:
         instruction = file.read()
     return instruction
