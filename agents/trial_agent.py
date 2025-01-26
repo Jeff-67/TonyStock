@@ -22,6 +22,7 @@ from prompts.system_prompts import (
 )
 from settings import Settings
 from tools.search_engine import search_duckduckgo
+from tools.time_tool import get_current_time
 from tools.web_scraper import scrape_urls
 
 # Configure logging
@@ -181,8 +182,10 @@ async def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
             return search_duckduckgo(
                 tool_input["query"], max_results=MAX_SEARCH_RESULTS
             )
-        elif tool_name == "web_scraper":
+        if tool_name == "web_scraper":
             return await scrape_urls(tool_input["urls"])
+        if tool_name == "time_tool":
+            return get_current_time(tool_input.get("timezone", "Asia/Taipei"))
         else:
             return f"Unknown tool: {tool_name}"
     except Exception as e:

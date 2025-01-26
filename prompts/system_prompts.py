@@ -426,6 +426,27 @@ Query Construction Guidelines:
                     "required": ["urls"],
                 },
             },
+            {
+                "name": "time_tool",
+                "description": """Get current time information in Asia/Taipei timezone (UTC+8).
+Common timezone options:
+- Asia/Taipei (UTC+8, default)
+- Asia/Shanghai (UTC+8)
+- Asia/Tokyo (UTC+9)
+- Asia/Seoul (UTC+9)
+- UTC
+- America/New_York (UTC-5/UTC-4)
+- Europe/London (UTC/UTC+1)""",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "timezone": {
+                            "type": "string",
+                            "description": "Optional: Timezone name (e.g., 'Asia/Taipei', 'UTC'). Defaults to 'Asia/Taipei'",
+                        },
+                    },
+                },
+            },
         ]
     }
 
