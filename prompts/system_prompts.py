@@ -35,7 +35,7 @@ def system_prompt(stock_name: str | None = None) -> str:
      * 定義各面向的重要程度
      * 準備同義詞與相關術語
 
-<第二步：新聞蒐集流程，使用`search_engine.py` 進行搜索並使用`web_scraper.py` 進行內容擷取>
+<第二步：新聞蒐集流程，使用`research`工具進行搜索與內容擷取>
    A. 關鍵字邏輯展開（依產業特性）
       - 公司本身
         * 基本面指標
@@ -62,13 +62,11 @@ def system_prompt(stock_name: str | None = None) -> str:
         * 市占率變動
 
    B. 系統性搜索執行
-      - 使用 search_engine.py 搜索新聞
+      - 使用 research 工具搜索新聞與獲取內容
         * 按時間順序搜索
         * 使用邏輯運算符組合
         * 考慮不同語言版本
         * 過濾無關訊息
-
-      - 使用 web_scraper.py 獲取內容
         * 完整保存原文
         * 記錄來源與時間
         * 建立分類標籤
@@ -239,8 +237,7 @@ def system_prompt(stock_name: str | None = None) -> str:
 
 ## Required Analysis Components
 1. Data Collection
-   - Use search_engine.py for news search
-   - Use web_scraper.py for content retrieval
+   - Use research tool for news search and content retrieval
    - Use market_data_fetcher.py for market data
    - Use financial_data_fetcher.py for financial data
    - Cross-validate multiple sources
@@ -369,14 +366,13 @@ def tool_prompt_construct_anthropic() -> dict:
     """Construct tool configuration for Anthropic models.
 
     Returns:
-        dict: Tool configuration dictionary containing search engine,
-            web scraper, and PDF reader tool specifications.
+        dict: Tool configuration dictionary containing research and time tool specifications.
     """
     return {
         "tools": [
             {
-                "name": "search_engine",
-                "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
+                "name": "research",
+                "description": """Search for relevant news and information online and automatically retrieve the content.
 
 Query Construction Guidelines:
 1. Basic Format (Most Effective):
@@ -409,21 +405,6 @@ Query Construction Guidelines:
                         },
                     },
                     "required": ["query"],
-                },
-            },
-            {
-                "name": "web_scraper",
-                "description": "Scrape full content from URLs returned by search_engine",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "urls": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of complete URLs (with http:// or https://) to scrape",
-                        },
-                    },
-                    "required": ["urls"],
                 },
             },
             {

@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import aiohttp
+from opik import track
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 from playwright.async_api import async_playwright
 
@@ -162,6 +163,7 @@ async def scrape_with_playwright(
         return None
 
 
+@track()
 async def scrape_url(url: str, max_retries: int = 3) -> Optional[Dict[str, str]]:
     """Scrape content from a URL with retries and proxy support.
 
@@ -209,6 +211,7 @@ async def scrape_url(url: str, max_retries: int = 3) -> Optional[Dict[str, str]]
     return None
 
 
+@track()
 async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[Dict[str, str]]:
     """Scrape multiple URLs concurrently.
 

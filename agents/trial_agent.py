@@ -15,15 +15,14 @@ from typing import Any, Dict, List, Optional
 import anthropic
 from opik import track
 
+from agents.research_agents.onlin_research_agents import research_keyword
 from prompts.system_prompts import (
     finance_agent_prompt,
     system_prompt,
     tool_prompt_construct_anthropic,
 )
 from settings import Settings
-from tools.search_engine import search_duckduckgo
 from tools.time_tool import get_current_time
-from tools.web_scraper import scrape_urls
 
 # Configure logging
 logging.basicConfig(
@@ -34,7 +33,6 @@ logger = logging.getLogger(__name__)
 client = anthropic.Client()
 settings = Settings()
 MODEL_NAME = settings.model.claude_large
-MAX_SEARCH_RESULTS = 5
 MESSAGE_HISTORY = []
 
 
@@ -178,12 +176,8 @@ async def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
         Result of the tool execution, or error message if execution fails
     """
     try:
-        if tool_name == "search_engine":
-            return search_duckduckgo(
-                tool_input["query"], max_results=MAX_SEARCH_RESULTS
-            )
-        if tool_name == "web_scraper":
-            return await scrape_urls(tool_input["urls"])
+        if tool_name == "research":
+            return await research_keyword(tool_input["query"])
         if tool_name == "time_tool":
             return get_current_time(tool_input.get("timezone", "Asia/Taipei"))
         else:
