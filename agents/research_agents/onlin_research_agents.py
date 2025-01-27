@@ -67,8 +67,16 @@ async def research_keyword(
             result = {
                 "url": search_result["url"],
                 "title": search_result["title"],
-                "content": scraped_content.get("content", ""),
-                "error": scraped_content.get("error"),
+                "content": (
+                    scraped_content
+                    if isinstance(scraped_content, str)
+                    else scraped_content.get("content", "")
+                ),
+                "error": (
+                    None
+                    if isinstance(scraped_content, str)
+                    else scraped_content.get("error")
+                ),
             }
             research_results.append(result)
 

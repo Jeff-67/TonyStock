@@ -1,270 +1,240 @@
-"""Web scraper module for extracting content from URLs.
+"""Web scraper module for fetching and extracting text content from webpages.
 
-This module provides functionality to scrape web content from URLs,
-with support for concurrent requests, proxy rotation, and JavaScript rendering.
-Can be used as a command-line tool or imported as a module.
+This module provides functionality to asynchronously scrape web pages using Playwright,
+parse their HTML content, and extract meaningful text while preserving hyperlinks in
+markdown format. It supports concurrent processing of multiple URLs and includes
+validation and error handling.
 """
+
+# mypy: ignore-errors
 
 import argparse
 import asyncio
 import logging
-import random
-from typing import Dict, List, Optional
+import sys
+import time
+from multiprocessing import Pool
+from typing import List, Optional
 from urllib.parse import urlparse
 
-import aiohttp
+import html5lib
 from opik import track
-from playwright.async_api import TimeoutError as PlaywrightTimeout
 from playwright.async_api import async_playwright
-
-
-def validate_url(url: str) -> bool:
-    """Validate if a string is a properly formatted URL.
-
-    Args:
-        url: The URL string to validate.
-
-    Returns:
-        bool: True if the URL is valid, False otherwise.
-    """
-    try:
-        result = urlparse(url)
-        return all([result.scheme in ("http", "https"), result.netloc])
-    except Exception:
-        return False
-
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    stream=sys.stderr,
 )
 logger = logging.getLogger(__name__)
 
-# Constants
-DEFAULT_TIMEOUT = 30
-MAX_CONCURRENT = 5
-RETRY_ATTEMPTS = 3
-RETRY_DELAY = 1
 
-# Proxy configuration
-PROXY_LIST = [
-    "http://156.228.109.7:3128",
-    "http://156.228.104.132:3128",
-    "http://154.213.193.17:3128",
-    "http://154.94.15.112:3128",
-    "http://156.253.167.233:3128",
-    "http://154.214.1.75:3128",
-]
-
-# User agents for rotation
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Edge/120.0.0.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-]
-
-
-async def validate_proxy(session: aiohttp.ClientSession, proxy: str) -> bool:
-    """Validate if a proxy is working."""
+@track()
+async def fetch_page(url: str, context) -> Optional[str]:
+    """Asynchronously fetch a webpage's content."""
+    page = await context.new_page()
     try:
-        async with session.get(
-            "http://www.google.com", proxy=proxy, timeout=5
-        ) as response:
-            return response.status == 200
+        logger.info(f"Fetching {url}")
+        await page.goto(url)
+        await page.wait_for_load_state("networkidle")
+        content = await page.content()
+        logger.info(f"Successfully fetched {url}")
+        return content
+    except Exception as e:
+        logger.error(f"Error fetching {url}: {str(e)}")
+        return None
+    finally:
+        await page.close()
+
+
+@track()
+def parse_html(html_content: Optional[str]) -> str:
+    """Parse HTML content and extract text with hyperlinks in markdown format."""
+    if not html_content:
+        return ""
+
+    try:
+        document = html5lib.parse(html_content)
+        result = []
+        seen_texts = set()  # To avoid duplicates
+
+        def should_skip_element(elem) -> bool:
+            """Check if the element should be skipped."""
+            # Skip script and style tags
+            if elem.tag in [
+                "{http://www.w3.org/1999/xhtml}script",
+                "{http://www.w3.org/1999/xhtml}style",
+            ]:
+                return True
+            # Skip empty elements or elements with only whitespace
+            if not any(text.strip() for text in elem.itertext()):
+                return True
+            return False
+
+        def process_element(elem, depth=0):
+            """Process an element and its children recursively."""
+            if should_skip_element(elem):
+                return
+
+            # Handle text content
+            if hasattr(elem, "text") and elem.text:
+                text = elem.text.strip()
+                if text and text not in seen_texts:
+                    # Check if this is an anchor tag
+                    if elem.tag == "{http://www.w3.org/1999/xhtml}a":
+                        href = None
+                        for attr, value in elem.items():
+                            if attr.endswith("href"):
+                                href = value
+                                break
+                        if href and not href.startswith(("#", "javascript:")):
+                            # Format as markdown link
+                            link_text = f"[{text}]({href})"
+                            result.append("  " * depth + link_text)
+                            seen_texts.add(text)
+                    else:
+                        result.append("  " * depth + text)
+                        seen_texts.add(text)
+
+            # Process children
+            for child in elem:
+                process_element(child, depth + 1)
+
+            # Handle tail text
+            if hasattr(elem, "tail") and elem.tail:
+                tail = elem.tail.strip()
+                if tail and tail not in seen_texts:
+                    result.append("  " * depth + tail)
+                    seen_texts.add(tail)
+
+        # Start processing from the body tag
+        body = document.find(".//{http://www.w3.org/1999/xhtml}body")
+        if body is not None:
+            process_element(body)
+        else:
+            # Fallback to processing the entire document
+            process_element(document)
+
+        # Filter out common unwanted patterns
+        filtered_result = []
+        for line in result:
+            # Skip lines that are likely to be noise
+            if any(
+                pattern in line.lower()
+                for pattern in [
+                    "var ",
+                    "function()",
+                    ".js",
+                    ".css",
+                    "google-analytics",
+                    "disqus",
+                    "{",
+                    "}",
+                ]
+            ):
+                continue
+            filtered_result.append(line)
+
+        return "\n".join(filtered_result)
+    except Exception as e:
+        logger.error(f"Error parsing HTML: {str(e)}")
+        return ""
+
+
+@track()
+async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[str]:
+    """Process multiple URLs concurrently."""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        try:
+            # Create browser contexts
+            n_contexts = min(len(urls), max_concurrent)
+            contexts = [await browser.new_context() for _ in range(n_contexts)]
+
+            # Create tasks for each URL
+            tasks = []
+            for i, url in enumerate(urls):
+                context = contexts[i % len(contexts)]
+                task = fetch_page(url, context)
+                tasks.append(task)
+
+            # Gather results
+            html_contents = await asyncio.gather(*tasks)
+
+            # Parse HTML contents in parallel
+            with Pool() as pool:
+                results = pool.map(parse_html, html_contents)
+
+            return results
+
+        finally:
+            # Cleanup
+            for context in contexts:
+                await context.close()
+            await browser.close()
+
+
+def validate_url(url: str) -> bool:
+    """Validate if the given string is a valid URL."""
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
     except Exception:
         return False
 
 
-async def get_working_proxy() -> Optional[str]:
-    """Get a working proxy from the proxy list."""
-    async with aiohttp.ClientSession() as session:
-        for proxy in PROXY_LIST:
-            if await validate_proxy(session, proxy):
-                return proxy
-    return None
-
-
-async def scrape_with_playwright(
-    url: str, proxy: Optional[str] = None
-) -> Optional[Dict[str, str]]:
-    """Scrape JavaScript-rendered content using Playwright."""
-    try:
-        async with async_playwright() as p:
-            browser_args = [
-                "--disable-web-security",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-            ]
-            if proxy:
-                browser_args.append(f"--proxy-server={proxy}")
-
-            browser = await p.chromium.launch(args=browser_args, headless=True)
-
-            context = await browser.new_context(
-                user_agent=random.choice(USER_AGENTS),
-                viewport={"width": 1920, "height": 1080},
-            )
-
-            try:
-                page = await context.new_page()
-                await page.goto(
-                    url, timeout=DEFAULT_TIMEOUT * 1000, wait_until="domcontentloaded"
-                )
-
-                # Extract content immediately without scrolling
-                content = await page.evaluate(
-                    """() => {
-                    function extractMainContent() {
-                        const selectors = [
-                            'article',
-                            'main',
-                            '.article-content',
-                            '.content',
-                            '#content'
-                        ];
-
-                        for (const selector of selectors) {
-                            const element = document.querySelector(selector);
-                            if (element && element.innerText.trim().length > 100) {
-                                return element.innerText.trim();
-                            }
-                        }
-
-                        return document.body.innerText.trim();
-                    }
-
-                    return {
-                        title: document.title,
-                        content: extractMainContent(),
-                        url: window.location.href
-                    };
-                }"""
-                )
-
-                return content
-
-            except PlaywrightTimeout:
-                logger.warning(f"Timeout while loading {url}")
-                return None
-            except Exception as e:
-                logger.error(f"Error scraping {url}: {str(e)}")
-                return None
-            finally:
-                await context.close()
-                await browser.close()
-
-    except Exception as e:
-        logger.error(f"Fatal error scraping {url}: {str(e)}")
-        return None
-
-
-@track()
-async def scrape_url(url: str, max_retries: int = 3) -> Optional[Dict[str, str]]:
-    """Scrape content from a URL with retries and proxy support.
-
-    Returns a dictionary containing title, date, and content if successful.
-    """
-    for attempt in range(max_retries):
-        try:
-            # Try without proxy first
-            content = await scrape_with_playwright(url)
-            if not content:
-                # If failed, try with proxy
-                proxy = await get_working_proxy()
-                if proxy:
-                    content = await scrape_with_playwright(url, proxy)
-
-            if content:
-                # Validate and clean content
-                if not isinstance(content, dict):
-                    logger.warning(f"Invalid content format from {url}")
-                    continue
-
-                # Clean and validate each field
-                cleaned_content = {
-                    "title": content.get("title", "").strip(),
-                    "date": content.get("date", ""),
-                    "content": content.get("content", "").strip(),
-                }
-
-                # Basic validation
-                if not cleaned_content["content"]:
-                    logger.warning(f"No content extracted from {url}")
-                    continue
-
-                cleaned_content["url"] = url
-                return cleaned_content
-
-            logger.warning(f"No content retrieved from {url} on attempt {attempt + 1}")
-
-        except Exception as e:
-            logger.error(f"Error scraping {url} on attempt {attempt + 1}: {str(e)}")
-            if attempt == max_retries - 1:
-                return None
-            await asyncio.sleep(1)  # Brief delay before retry
-
-    return None
-
-
-@track()
-async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[Dict[str, str]]:
-    """Scrape multiple URLs concurrently.
-
-    Returns a list of dictionaries containing title, date, and content for each successful scrape.
-    """
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    async def bounded_scrape(url: str) -> Optional[Dict[str, str]]:
-        async with semaphore:
-            return await scrape_url(url)
-
-    tasks = [bounded_scrape(url) for url in urls]
-    results = await asyncio.gather(*tasks)
-
-    # Filter out None results and log statistics
-    valid_results = [r for r in results if r is not None]
-    logger.info(f"Successfully scraped {len(valid_results)}/{len(urls)} URLs")
-
-    return valid_results
-
-
 def main():
-    """Execute the web scraper from command line.
+    """Execute the web scraper from command line arguments.
 
-    Main entry point for the web scraper.
+    Parses command line arguments, validates URLs, and orchestrates the web scraping
+    process. Supports concurrent processing of multiple URLs and outputs the extracted
+    content to stdout. Includes debug logging options and error handling.
     """
-    parser = argparse.ArgumentParser(description="Scrape content from URLs")
-    parser.add_argument("urls", nargs="+", help="URLs to scrape")
+    parser = argparse.ArgumentParser(
+        description="Fetch and extract text content from webpages."
+    )
+    parser.add_argument("urls", nargs="+", help="URLs to process")
     parser.add_argument(
         "--max-concurrent",
         type=int,
         default=5,
-        help="Maximum number of concurrent requests",
+        help="Maximum number of concurrent browser instances (default: 5)",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+
     args = parser.parse_args()
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
-    results = asyncio.run(scrape_urls(args.urls, args.max_concurrent))
+    # Validate URLs
+    valid_urls = []
+    for url in args.urls:
+        if validate_url(url):
+            valid_urls.append(url)
+        else:
+            logger.error(f"Invalid URL: {url}")
 
-    # Print results in a structured format
-    for result in results:
-        print(f"\nURL: {result['url']}")
-        print(f"Title: {result['title']}")
-        if result["date"]:
-            print(f"Date: {result['date']}")
-        print("\nContent:")
-        print("-" * 80)
-        print(result["content"])
-        print("-" * 80)
-        print()
+    if not valid_urls:
+        logger.error("No valid URLs provided")
+        sys.exit(1)
+
+    start_time = time.time()
+    try:
+        results = asyncio.run(scrape_urls(valid_urls, args.max_concurrent))
+
+        # Print results to stdout
+        for url, text in zip(valid_urls, results):
+            print(f"\n=== Content from {url} ===")
+            print(text)
+            print("=" * 80)
+
+        logger.info(f"Total processing time: {time.time() - start_time:.2f}s")
+
+    except Exception as e:
+        logger.error(f"Error during execution: {str(e)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
