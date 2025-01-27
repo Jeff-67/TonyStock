@@ -22,6 +22,12 @@ def system_prompt(stock_name: str | None = None) -> str:
 以下是{stock_name}的分析框架，你的任務是根據此框架進行分析。
 
 <第一步：建立搜索框架>
+   - 使用`search_framework`工具生成結構化搜索框架：
+     * 輸入公司名稱獲取JSON格式的搜索框架
+     * 每個查詢都包含搜索目的與預期洞見
+     * 查詢按重要性排序
+     * 涵蓋即時與長期因素
+
    - 根據`{stock_name}_instruction` 了解：
      * 產業特性與價值鏈結構
      * 公司在產業鏈中的定位
@@ -35,8 +41,14 @@ def system_prompt(stock_name: str | None = None) -> str:
      * 定義各面向的重要程度
      * 準備同義詞與相關術語
 
-<第二步：新聞蒐集流程，使用`research`工具進行搜索與內容擷取>
-   A. 關鍵字邏輯展開（依產業特性）
+<第二步：新聞蒐集流程>
+   A. 使用`search_framework`返回的查詢執行搜索
+      - 依照重要性順序處理每個查詢
+      - 使用`research`工具執行每個查詢
+      - 記錄每個查詢的目的與預期洞見
+      - 確保搜索結果符合預期目標
+
+   B. 關鍵字邏輯展開（依產業特性）
       - 公司本身
         * 基本面指標
         * 重大營運事件
@@ -61,8 +73,8 @@ def system_prompt(stock_name: str | None = None) -> str:
         * 新產品發展
         * 市占率變動
 
-   B. 系統性搜索執行
-      - 使用 research 工具搜索新聞與獲取內容
+   C. 系統性搜索執行
+      - 使用 research 工具搜索新聞
         * 按時間順序搜索
         * 使用邏輯運算符組合
         * 考慮不同語言版本
@@ -366,13 +378,14 @@ def tool_prompt_construct_anthropic() -> dict:
     """Construct tool configuration for Anthropic models.
 
     Returns:
-        dict: Tool configuration dictionary containing research and time tool specifications.
+        dict: Tool configuration dictionary containing search engine,
+            web scraper, and PDF reader tool specifications.
     """
     return {
         "tools": [
             {
                 "name": "research",
-                "description": """Search for relevant news and information online and automatically retrieve the content.
+                "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
 
 Query Construction Guidelines:
 1. Basic Format (Most Effective):
@@ -408,6 +421,21 @@ Query Construction Guidelines:
                 },
             },
             {
+                "name": "web_scraper",
+                "description": "Scrape full content from URLs returned by search_engine",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "urls": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of complete URLs (with http:// or https://) to scrape",
+                        },
+                    },
+                    "required": ["urls"],
+                },
+            },
+            {
                 "name": "time_tool",
                 "description": """Get current time information in Asia/Taipei timezone (UTC+8).
 Common timezone options:
@@ -426,6 +454,38 @@ Common timezone options:
                             "description": "Optional: Timezone name (e.g., 'Asia/Taipei', 'UTC'). Defaults to 'Asia/Taipei'",
                         },
                     },
+                },
+            },
+            {
+                "name": "search_framework",
+                "description": """Generate a comprehensive search framework for company analysis.
+
+Framework Generation Guidelines:
+1. Industry Understanding:
+   - Analyzes industry characteristics and value chain
+   - Identifies company's position and competitive advantages
+   - Maps key stakeholders (suppliers, customers, competitors)
+
+2. Search Categories:
+   - Company-specific: financials, operations, strategy
+   - Industry chain: upstream/downstream dynamics
+   - Market trends: demand, technology, regulations
+   - Competition: market share, product development
+
+3. Output Format:
+   - Returns JSON array of structured search queries
+   - Each query includes purpose and expected insights
+   - Queries are prioritized by importance
+   - Covers both immediate and long-term factors""",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Company name to generate search framework for (e.g., '群聯', '京鼎')",
+                        },
+                    },
+                    "required": ["query"],
                 },
             },
         ]

@@ -16,6 +16,7 @@ import anthropic
 from opik import track
 
 from agents.research_agents.onlin_research_agents import research_keyword
+from agents.research_agents.search_framework_agent import generate_search_framework
 from prompts.system_prompts import (
     finance_agent_prompt,
     system_prompt,
@@ -180,6 +181,8 @@ async def process_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> Any:
             return await research_keyword(tool_input["query"])
         if tool_name == "time_tool":
             return get_current_time(tool_input.get("timezone", "Asia/Taipei"))
+        if tool_name == "search_framework":
+            return generate_search_framework(tool_input["query"])
         else:
             return f"Unknown tool: {tool_name}"
     except Exception as e:
