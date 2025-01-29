@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import anthropic
-from opik import track
+from opik import opik_context, track
+from tokencost import calculate_cost_by_tokens
 
 from agents.research_agents.onlin_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
@@ -24,6 +25,7 @@ from prompts.system_prompts import (
 )
 from settings import Settings
 from tools.time_tool import get_current_time
+from utils.stock_utils import retrieve_stock_name, stock_name_to_id
 
 # Configure logging
 logging.basicConfig(
@@ -35,31 +37,6 @@ client = anthropic.Client()
 settings = Settings()
 MODEL_NAME = settings.model.claude_large
 MESSAGE_HISTORY = []
-
-
-def get_all_stock_mapping():
-    """Get mapping of stock names to their IDs.
-
-    Returns:
-        dict: Mapping of stock names (str) to stock IDs (str)
-    """
-    return {"群聯": "8299", "京鼎": "3413", "文曄": "3036", "裕山": "7715"}
-
-
-def stock_name_to_id(stock_name: str | None = None) -> str | None:
-    """Convert stock name to its corresponding ID."""
-    mapping = get_all_stock_mapping()
-    return mapping.get(stock_name)
-
-
-def retrieve_stock_name(user_messages: List[Dict[str, Any]]) -> str | None:
-    """Retrieve the stock name from the user's messages."""
-    last_message = user_messages[-1]["content"]
-    for stock_name in get_all_stock_mapping().keys():
-        if stock_name in last_message:
-            return stock_name
-
-    return None
 
 
 @dataclass
@@ -120,6 +97,15 @@ def process_by_client(
     )
     tool_use = next(
         (block for block in response.content if block.type == "tool_use"), None
+    )
+
+    opik_context.update_current_span(
+        total_cost=calculate_cost_by_tokens(
+            response.usage.input_tokens, model=response.model, token_type="input"
+        )
+        + calculate_cost_by_tokens(
+            response.usage.output_tokens, model=response.model, token_type="output"
+        )
     )
 
     return ModelResponse(
