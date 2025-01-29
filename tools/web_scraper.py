@@ -30,7 +30,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@track()
 async def fetch_page(url: str, context) -> Optional[str]:
     """Asynchronously fetch a webpage's content."""
     page = await context.new_page()
