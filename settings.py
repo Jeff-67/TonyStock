@@ -53,4 +53,26 @@ class Settings(BaseSettings):
         get_opik_url_override(self.environment)
 
 
+    redis_config: dict = {
+        'host': '127.0.0.1',
+        'port': 6379,
+        'db': 0,
+        'password': os.getenv('REDIS_PASSWORD'),
+        'max_connections': 10
+    }
+    mongo_config: dict = {
+            'uri': 'mongodb://localhost:27017/',
+            'db_name': os.getenv('MONGO_DATABASE'),
+            'collection_name': os.getenv('MONGO_COLLECTION'),
+            'username':os.getenv('MONGO_USERNAME'),
+            'password':os.getenv('MONGO_PASSWORD'),
+            'max_pool_size': 10
+        }
+    mysql_config: dict = {
+            'host': '127.0.0.1',
+            'port': 3307,
+            'username': 'root',
+            'password': os.getenv('MYSQL_ROOT_PASSWORD'),
+            'database': os.getenv('MYSQL_DATABASE'),
+        }
 settings = Settings()

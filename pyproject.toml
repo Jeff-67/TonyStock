@@ -1,0 +1,27 @@
+[project]
+name = "tonystock"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "jeff.yang"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic (>=0.45.0,<0.46.0)",
+    "opik (>=1.4.5,<2.0.0)",
+    "beautifulsoup4 (>=4.12.3,<5.0.0)",
+    "html5lib (>=1.1,<2.0)",
+    "playwright (>=1.49.1,<2.0.0)",
+    "pytz (>=2024.2,<2025.0)",
+    "markitdown (>=0.0.1a3,<0.0.2)",
+    "yfinance (>=0.2.52,<0.3.0)",
+    "redis (>=5.2.1,<6.0.0)",
+    "pymongo (>=4.10.1,<5.0.0)",
+    "mysql-connector-python (>=9.2.0,<10.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
