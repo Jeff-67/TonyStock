@@ -17,7 +17,7 @@ from opik import opik_context, track
 from opik.integrations.anthropic import track_anthropic
 from tokencost import calculate_cost_by_tokens
 
-from agents.research_agents.onlin_research_agents import research_keyword
+from agents.research_agents.online_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
 from prompts.system_prompts import (
     finance_agent_prompt,
@@ -290,5 +290,5 @@ class ClaudeAgent:
 
 if __name__ == "__main__":
     agent = ClaudeAgent()
-    response = asyncio.run(agent.chat("群聯"))
+    response = asyncio.run(agent.chat("京鼎"))
     print(response)

@@ -1,7 +1,6 @@
 """Module for crawling and cleaning web content from financial news sources."""
 
 import asyncio
-import json
 import re
 from typing import List
 
@@ -10,13 +9,22 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from opik import track
 from opik.integrations.openai import track_openai
-
-from tools.llm_api import query_llm
+from pydantic import BaseModel
 
 load_dotenv()
 
 openai_client = OpenAI()
 openai_client = track_openai(openai_client)
+
+
+class FilteredContent(BaseModel):
+    """Pydantic model for structured parsing of filtered content from LLM response.
+
+    Attributes:
+        filtered_content (str): The filtered and cleaned content extracted from the raw text.
+    """
+
+    filtered_content: str
 
 
 @track()
@@ -27,22 +35,19 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
     Here is the query: {query}
     Here is the scrapped content: {scrapped_content}
 
-    return the filtered content in JSON format where the key is "content" and the value is the filtered content.
+    return the filtered content.
     """
-    response = query_llm(
-        prompt=prompt,
-        client=openai_client,
-        model="chatgpt-4o-latest",
-        provider="openai",
-        json_mode=True,
-    )
-    # Parse the JSON response
     try:
-        parsed_response = json.loads(response)
-        return parsed_response["content"]
-    except json.JSONDecodeError:
-        print("Error parsing JSON response:", response)
-        return scrapped_content  # Return original content if parsing fails
+        # TODO: use need to use the query_llm from litellm later
+        response = openai_client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[{"role": "user", "content": prompt}],
+            response_format=FilteredContent,
+        )
+        return response.choices[0].message.parsed.filtered_content
+    except Exception as e:
+        print(f"Error parsing response: {str(e)}, response: {response}")
+        return scrapped_content
 
 
 def clean_markdown(text: str) -> str:
