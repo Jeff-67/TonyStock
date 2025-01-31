@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 from opik import track
 
 from tools.search_engine import search_duckduckgo
-from tools.web_scraper import scrape_urls
+from tools.web_scraper_by_ai import scrape_urls
 
 # Configure logging
 logging.basicConfig(
@@ -59,7 +59,7 @@ async def research_keyword(
         urls = [result["url"] for result in search_results]
 
         # Scrape all URLs
-        scraped_contents = await scrape_urls(urls)
+        scraped_contents = await scrape_urls(urls=urls, query=keyword)
 
         # Combine search results with scraped content
         research_results = []

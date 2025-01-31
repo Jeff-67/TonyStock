@@ -51,7 +51,7 @@ def create_llm_client(provider="openai"):
         raise ValueError(f"Unsupported provider: {provider}")
 
 
-def query_llm(prompt, client=None, model=None, provider="openai"):
+def query_llm(prompt, client=None, model=None, provider="openai", json_mode=False):
     """Send a query to the LLM and get the response.
 
     Args:
@@ -80,11 +80,19 @@ def query_llm(prompt, client=None, model=None, provider="openai"):
                 model = "Qwen/Qwen2.5-32B-Instruct-AWQ"
 
         if provider == "openai" or provider == "local":
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-            )
+            if json_mode:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    response_format={"type": "json_object"},
+                )
+            else:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                )
             return response.choices[0].message.content
         elif provider == "anthropic":
             response = client.messages.create(
