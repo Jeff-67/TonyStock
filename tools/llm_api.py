@@ -7,6 +7,9 @@ error handling. Supports both sync and async operations.
 
 import argparse
 import asyncio
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, TypedDict
 
 import litellm
 from dotenv import load_dotenv
@@ -25,113 +28,195 @@ litellm.callbacks = [opik_logger]
 load_dotenv()
 
 
+class Provider(str, Enum):
+    """Supported LLM providers."""
+
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+
+
+class Message(TypedDict):
+    """Type definition for a message."""
+
+    role: str
+    content: str
+
+
+@dataclass
+class LLMConfig:
+    """Configuration for LLM API calls."""
+
+    provider: Provider
+    model: str
+    api_base: Optional[str] = None
+    response_format: Optional[Dict] = None
+
+    def __post_init__(self):
+        """Validate and process the configuration after initialization."""
+        if not self.model:
+            self.model = "gpt-4o"
+        if not self.provider:
+            self.provider = Provider.OPENAI
+
+        # Set API base for local models
+        if self.provider == Provider.OLLAMA and not self.api_base:
+            self.api_base = "http://192.168.180.137:8006"
+
+    @property
+    def full_model_name(self) -> str:
+        """Get the full model name with provider prefix."""
+        return f"{self.provider}/{self.model}"
+
+
+def create_completion_params(
+    config: LLMConfig,
+    messages: List[Message],
+    json_mode: bool = False,
+    response_format: Optional[Dict] = None,
+) -> Dict:
+    """Create parameters for LLM API completion.
+
+    Args:
+        config: LLM configuration
+        messages: List of message dictionaries
+        json_mode: Whether to request JSON output
+        response_format: Custom response format configuration
+
+    Returns:
+        Dictionary of completion parameters
+    """
+    params = {
+        "model": config.full_model_name,
+        "messages": messages,
+        "metadata": {
+            "opik": {
+                "current_span_data": get_current_span_data(),
+                "tags": ["streaming-test"],
+            },
+        },
+    }
+
+    # Add API base if specified
+    if config.api_base:
+        params["api_base"] = config.api_base
+
+    # Handle response format configuration
+    if config.provider == Provider.OPENAI:
+        if json_mode:
+            params["response_format"] = {"type": "json_object"}
+        elif response_format:
+            params["response_format"] = response_format
+
+    return params
+
+
 @track()
-def query_llm(messages, model=None, provider=None, json_mode=False):
+def query_llm(
+    messages: List[Message],
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    json_mode: bool = False,
+    response_format: Optional[Dict] = None,
+) -> Optional[str]:
     """Send a synchronous query to the LLM and get the response using LiteLLM.
 
     Args:
-        messages (list): List of message dictionaries with role and content.
-        model (str, optional): The specific model to use. Defaults to "openai/gpt-4o".
-            Supported formats:
-            - OpenAI: "openai/gpt-4o"
-            - Anthropic: "anthropic/claude-3-sonnet-20240229"
-            - Local: "ollama/Qwen2.5-32B-Instruct-AWQ"
-        json_mode (bool, optional): Whether to request JSON output (OpenAI only). Defaults to False.
+        messages: List of message dictionaries with role and content
+        model: The specific model to use (defaults to "gpt-4o")
+        provider: The provider to use (defaults to "openai")
+        json_mode: Whether to request JSON output (OpenAI only)
+        response_format: Custom response format configuration
 
     Returns:
-        Optional[str]: The model's response text, or None if the query fails.
+        The model's response text, or None if the query fails
     """
     try:
-        # Ensure model has a value
-        if model is None:
-            model = "openai/gpt-4o"
-
-        # Configure completion parameters
-        completion_params = {
-            "model": provider + "/" + model,
-            "messages": messages,
-        }
-
-        # Add JSON mode for OpenAI if requested
-        if json_mode and model.startswith("openai/"):
-            completion_params["response_format"] = {"type": "json_object"}
-
-        # Add API base for local models
-        if model.startswith("ollama/"):
-            completion_params["api_base"] = "http://192.168.180.137:8006"
-
-        # Make the API call
-        response = completion(
-            **completion_params,
-            metadata={
-                "opik": {
-                    "current_span_data": get_current_span_data(),
-                    "tags": ["streaming-test"],
-                },
-            },
+        # Create and validate configuration
+        config = LLMConfig(
+            provider=Provider(provider) if provider else Provider.OPENAI,
+            model=model or "gpt-4o",
+            response_format=response_format,
         )
 
+        # Get completion parameters
+        completion_params = create_completion_params(
+            config=config,
+            messages=messages,
+            json_mode=json_mode,
+            response_format=response_format,
+        )
+
+        # Make the API call
+        response = completion(**completion_params)
+
+        # Handle response based on format
         return response.choices[0].message.content
+
     except Exception as e:
         print(f"Error querying LLM: {e}")
         return None
 
 
 @track()
-async def aquery_llm(messages, model=None, provider=None, json_mode=False):
+async def aquery_llm(
+    messages: List[Message],
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    json_mode: bool = False,
+    response_format: Optional[Dict] = None,
+) -> Optional[str]:
     """Send an asynchronous query to the LLM and get the response using LiteLLM.
 
     Args:
-        messages (list): List of message dictionaries with role and content.
-        model (str, optional): The specific model to use. Defaults to "openai/gpt-4o".
-            Supported formats:
-            - OpenAI: "openai/gpt-4o"
-            - Anthropic: "anthropic/claude-3-sonnet-20240229"
-            - Local: "ollama/Qwen2.5-32B-Instruct-AWQ"
-        json_mode (bool, optional): Whether to request JSON output (OpenAI only). Defaults to False.
+        messages: List of message dictionaries with role and content
+        model: The specific model to use (defaults to "gpt-4o")
+        provider: The provider to use (defaults to "openai")
+        json_mode: Whether to request JSON output (OpenAI only)
+        response_format: Custom response format configuration
 
     Returns:
-        Optional[str]: The model's response text, or None if the query fails.
+        The model's response text, or None if the query fails
     """
     try:
-        # Ensure model has a value
-        if model is None:
-            model = "openai/gpt-4o"
-
-        # Configure completion parameters
-        completion_params = {
-            "model": provider + "/" + model,
-            "messages": messages,
-        }
-
-        # Add JSON mode for OpenAI if requested
-        if json_mode and model.startswith("openai/"):
-            completion_params["response_format"] = {"type": "json_object"}
-
-        # Add API base for local models
-        if model.startswith("ollama/"):
-            completion_params["api_base"] = "http://192.168.180.137:8006"
-
-        # Make the async API call
-        response = await acompletion(
-            **completion_params,
-            metadata={
-                "opik": {
-                    "current_span_data": get_current_span_data(),
-                    "tags": ["streaming-test"],
-                },
-            },
+        # Create and validate configuration
+        config = LLMConfig(
+            provider=Provider(provider) if provider else Provider.OPENAI,
+            model=model or "gpt-4o",
+            response_format=response_format,
         )
 
+        # Get completion parameters
+        completion_params = create_completion_params(
+            config=config,
+            messages=messages,
+            json_mode=json_mode,
+            response_format=response_format,
+        )
+
+        # Make the async API call
+        response = await acompletion(**completion_params)
+
+        # Handle response based on format
+        if (
+            response_format
+            and config.provider == Provider.OPENAI
+            and hasattr(response.choices[0].message, "parsed")
+        ):
+            return response.choices[0].message.parsed.filtered_content
+
         return response.choices[0].message.content
+
     except Exception as e:
         print(f"Error querying LLM: {e}")
         return None
 
 
-async def async_main(messages, model="openai/gpt-4o"):
+async def async_main(
+    messages: List[Message], model: str = "gpt-4o", provider: str = "openai"
+) -> None:
     """Async entry point for command line usage."""
-    response = await aquery_llm(messages, model=model)
+    response = await aquery_llm(messages, model=model, provider=provider)
     if response:
         print(response)
     else:
@@ -139,12 +224,7 @@ async def async_main(messages, model="openai/gpt-4o"):
 
 
 def main():
-    """Command-line interface for querying LLMs.
-
-    Provides a command-line interface for sending prompts to various LLM providers
-    with configurable models. Handles argument parsing and displays the results
-    or error messages.
-    """
+    """Command-line interface for querying LLMs."""
     parser = argparse.ArgumentParser(description="Query an LLM with a prompt")
     parser.add_argument(
         "--prompt", type=str, help="The prompt to send to the LLM", required=True
@@ -162,11 +242,11 @@ def main():
     )
     args = parser.parse_args()
 
+    messages = [{"role": "user", "content": args.prompt}]
+
     if args.use_async:
-        messages = [{"role": "user", "content": args.prompt}]
         asyncio.run(async_main(messages, model=args.model))
     else:
-        messages = [{"role": "user", "content": args.prompt}]
         response = query_llm(messages, model=args.model)
         if response:
             print(response)

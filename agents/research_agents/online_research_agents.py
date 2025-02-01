@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAX_SEARCH_RESULTS = 8
+MAX_SEARCH_RESULTS = 2
 
 
 @track()

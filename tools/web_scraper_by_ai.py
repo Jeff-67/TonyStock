@@ -1,20 +1,18 @@
 """Module for crawling and cleaning web content from financial news sources."""
 
 import asyncio
+import json
 import re
 from typing import List
 
 from crawl4ai import AsyncWebCrawler
 from dotenv import load_dotenv
-from openai import OpenAI
 from opik import track
-from opik.integrations.openai import track_openai
 from pydantic import BaseModel
 
-load_dotenv()
+from tools.llm_api import query_llm
 
-openai_client = OpenAI()
-openai_client = track_openai(openai_client)
+load_dotenv()
 
 
 class FilteredContent(BaseModel):
@@ -38,13 +36,16 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
     return the filtered content.
     """
     try:
-        # TODO: use need to use the query_llm from litellm later
-        response = openai_client.beta.chat.completions.parse(
+        # Format messages properly for LLM API
+        messages = [{"role": "user", "content": prompt}]
+        response = query_llm(
+            messages=messages,
             model="gpt-4o-2024-08-06",
-            messages=[{"role": "user", "content": prompt}],
+            provider="openai",
             response_format=FilteredContent,
         )
-        return response.choices[0].message.parsed.filtered_content
+        json_response = json.loads(response)
+        return json_response["filtered_content"]
     except Exception as e:
         print(f"Error parsing response: {str(e)}, response: {response}")
         return scrapped_content

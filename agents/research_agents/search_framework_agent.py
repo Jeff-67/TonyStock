@@ -9,12 +9,11 @@ This module implements the first step of the analysis framework by using LLM to:
 import json
 import logging
 
-import anthropic
 from opik import track
 
 from prompts.analysis_prompts import searching_framework
 from prompts.system_prompts import finance_agent_prompt
-from settings import Settings
+from tools.llm_api import query_llm
 from tools.time_tool import get_current_time
 
 # Configure logging
@@ -22,9 +21,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-settings = Settings()
-client = anthropic.Client()
 
 
 def get_all_stock_mapping():
@@ -69,22 +65,17 @@ def generate_search_framework(company_name: str) -> str:
     prompt = get_search_framework_prompt(company_name, stock_id)
 
     try:
-        response = client.messages.create(
-            model=settings.model.claude_large,
-            max_tokens=settings.max_tokens,
-            temperature=0.7,
-            messages=[{"role": "user", "content": prompt}],
+        messages = [{"role": "user", "content": prompt}]
+        response = query_llm(
+            messages=messages,
+            model="claude-3-5-sonnet-latest",
+            provider="anthropic",
         )
 
-        # Extract and parse JSON response
-        text_content = next(
-            (block.text for block in response.content if hasattr(block, "text")), None
-        )
+        if not response:
+            raise ValueError("No response from LLM")
 
-        if not text_content:
-            raise ValueError("No text content in response")
-
-        return text_content
+        return response
 
     except Exception as e:
         logger.error(f"Error generating search framework: {str(e)}")
