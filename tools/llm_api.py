@@ -15,8 +15,9 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion, completion
 from litellm.integrations.opik.opik import OpikLogger
-from opik import track
+from opik import opik_context, track
 from opik.opik_context import get_current_span_data
+from tokencost import calculate_cost_by_tokens
 
 from settings import Settings
 
@@ -149,6 +150,16 @@ def query_llm(
 
         # Make the API call
         response = completion(**completion_params)
+        opik_context.update_current_span(
+            total_cost=calculate_cost_by_tokens(
+                response.usage.prompt_tokens, model=response.model, token_type="input"
+            )
+            + calculate_cost_by_tokens(
+                response.usage.completion_tokens,
+                model=response.model,
+                token_type="output",
+            )
+        )
 
         # Handle response based on format
         return response.choices[0].message.content
