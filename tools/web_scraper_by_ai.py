@@ -44,7 +44,7 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
             provider="openai",
             response_format=FilteredContent,
         )
-        json_response = json.loads(response)
+        json_response = json.loads(response.choices[0].message.content)
         return json_response["filtered_content"]
     except Exception as e:
         print(f"Error parsing response: {str(e)}, response: {response}")

@@ -9,7 +9,7 @@ import argparse
 import asyncio
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 
 import litellm
 from dotenv import load_dotenv
@@ -73,6 +73,7 @@ class LLMConfig:
 def create_completion_params(
     config: LLMConfig,
     messages: List[Message],
+    tools: Optional[List[Dict]] = None,
     json_mode: bool = False,
     response_format: Optional[Dict] = None,
 ) -> Dict:
@@ -81,6 +82,7 @@ def create_completion_params(
     Args:
         config: LLM configuration
         messages: List of message dictionaries
+        tools: List of tool dictionaries
         json_mode: Whether to request JSON output
         response_format: Custom response format configuration
 
@@ -97,6 +99,10 @@ def create_completion_params(
             },
         },
     }
+
+    if tools:
+        params["tools"] = tools
+        params["tool_choice"] = "auto"
 
     # Add API base if specified
     if config.api_base:
@@ -115,11 +121,12 @@ def create_completion_params(
 @track()
 def query_llm(
     messages: List[Message],
+    tools: Optional[List[Dict]] = None,
     model: Optional[str] = None,
     provider: Optional[str] = None,
     json_mode: bool = False,
     response_format: Optional[Dict] = None,
-) -> Optional[str]:
+) -> Any:
     """Send a synchronous query to the LLM and get the response using LiteLLM.
 
     Args:
@@ -144,6 +151,7 @@ def query_llm(
         completion_params = create_completion_params(
             config=config,
             messages=messages,
+            tools=tools,
             json_mode=json_mode,
             response_format=response_format,
         )
@@ -161,8 +169,7 @@ def query_llm(
             )
         )
 
-        # Handle response based on format
-        return response.choices[0].message.content
+        return response
 
     except Exception as e:
         print(f"Error querying LLM: {e}")

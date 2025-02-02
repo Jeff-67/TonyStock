@@ -13,9 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol
 
 import anthropic
-from opik import opik_context, track
+from opik import track
 from opik.integrations.anthropic import track_anthropic
-from tokencost import calculate_cost_by_tokens
 
 from agents.research_agents.online_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
@@ -25,6 +24,7 @@ from prompts.system_prompts import (
     tool_prompt_construct_anthropic,
 )
 from settings import Settings
+from tools.llm_api import query_llm
 from tools.time_tool import get_current_time
 from utils.stock_utils import retrieve_stock_name, stock_name_to_id
 
@@ -156,43 +156,18 @@ class ClaudeAgent:
         self,
         system: str,
         model: str,
-        max_tokens: int,
-        tool_choice: Dict[str, Any],
         tools: List[Dict[str, Any]],
         messages: List[Dict[str, Any]],
     ) -> ModelResponse:
         """Process the model response."""
-        response = self.client.messages.create(
-            system=system,
+        response = query_llm(
+            messages=[{"role": "system", "content": system}] + messages,
             model=model,
-            max_tokens=max_tokens,
-            tool_choice=tool_choice,
+            provider="anthropic",
             tools=tools,
-            messages=messages,
         )
 
-        text_content = next(
-            (block.text for block in response.content if hasattr(block, "text")), None
-        )
-        tool_use = next(
-            (block for block in response.content if block.type == "tool_use"), None
-        )
-
-        opik_context.update_current_span(
-            total_cost=calculate_cost_by_tokens(
-                response.usage.input_tokens, model=response.model, token_type="input"
-            )
-            + calculate_cost_by_tokens(
-                response.usage.output_tokens, model=response.model, token_type="output"
-            )
-        )
-
-        return ModelResponse(
-            stop_reason=response.stop_reason,
-            content=response.content,
-            tool_use=tool_use,
-            text_content=text_content,
-        )
+        return response
 
     @track()
     def call_model(
@@ -208,14 +183,11 @@ class ClaudeAgent:
             + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
             + f"</{stock_name} instruction>"
         )
-        tool_choice = {"type": "auto"}
         tool_prompt_text = tool_prompt_construct_anthropic()["tools"]
 
         return self.process_model_response(
             system=system_text,
             model=self.settings.model.claude_large,
-            max_tokens=self.settings.max_tokens,
-            tool_choice=tool_choice,
             tools=tool_prompt_text,
             messages=self.message_history,
         )
@@ -241,9 +213,11 @@ class ClaudeAgent:
             # Initial call with system prompt
             response = self.call_model([{"role": "user", "content": user_message}])
 
-            while response.stop_reason == "tool_use" and response.tool_use:
-                tool_name = response.tool_use.name
-                tool_input = response.tool_use.input
+            while response.choices[0].message.tool_calls:
+                tool_name = response.choices[0].message.tool_calls[0].function.name
+                tool_input = json.loads(
+                    response.choices[0].message.tool_calls[0].function.arguments
+                )
 
                 logger.info(f"Executing tool {tool_name} with input: {tool_input}")
 
@@ -254,7 +228,7 @@ class ClaudeAgent:
 
                     # Continue conversation with verified result
                     self.message_history.append(
-                        {"role": "assistant", "content": response.content}
+                        response.choices[0].message.model_dump()
                     )
 
                     # Format tool result as JSON string if it's a list or dict
@@ -267,14 +241,14 @@ class ClaudeAgent:
                     response = self.call_model(
                         [
                             {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "tool_result",
-                                        "tool_use_id": response.tool_use.id,
-                                        "content": formatted_result,
-                                    }
-                                ],
+                                "tool_call_id": response.choices[0]
+                                .message.tool_calls[0]
+                                .id,
+                                "role": "tool",
+                                "name": response.choices[0]
+                                .message.tool_calls[0]
+                                .function.name,
+                                "content": formatted_result,
                             }
                         ]
                     )
@@ -282,7 +256,7 @@ class ClaudeAgent:
                     logger.error(f"Tool execution error: {str(e)}")
                     return f"Error executing tool: {str(e)}"
 
-            return response.text_content or "No response generated"
+            return response.choices[0].message.content or "No response generated"
         except Exception as e:
             logger.error(f"Chat error: {str(e)}")
             return f"Error during chat: {str(e)}"

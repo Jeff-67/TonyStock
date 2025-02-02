@@ -72,10 +72,10 @@ def generate_search_framework(company_name: str) -> str:
             provider="anthropic",
         )
 
-        if not response:
+        if not response.choices[0].message.content:
             raise ValueError("No response from LLM")
 
-        return response
+        return response.choices[0].message.content
 
     except Exception as e:
         logger.error(f"Error generating search framework: {str(e)}")

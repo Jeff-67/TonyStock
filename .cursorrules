@@ -493,4 +493,12 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * 中期（3-6個月）：市場發展、競爭反應
       * 長期（6個月以上）：策略實現、商業永續
 
+19. Python TypedDict Usage (Added 2025/02)
+    - Dictionary Access
+      * TypedDict returns regular dictionaries at runtime
+      * Use dict['key'] instead of dict.key to access values
+      * Cannot use attribute access (dot notation)
+      * TypedDict only provides type hints during development
+      * Remember it's still a regular dict when actually running
+
 # Scratchpad
