@@ -374,16 +374,133 @@ def system_prompt(stock_name: str | None = None) -> str:
 """
 
 
-def tool_prompt_construct_anthropic() -> dict:
+def tool_prompt_construct_anthropic() -> list:
     """Construct tool configuration for Anthropic models.
 
     Returns:
         dict: Tool configuration dictionary containing search engine,
             web scraper, and PDF reader tool specifications.
     """
-    return {
-        "tools": [
-            {
+    return [
+        {
+            "name": "research",
+            "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
+
+Query Construction Guidelines:
+1. Basic Format (Most Effective):
+   - Use: "[Company Name] [Stock Code] [Key Products/Technology] [Year]"
+   - Example: "群聯 8299 PCIe SSD 2025"
+   - Keep it simple, avoid complex operators
+
+2. Core Business Search:
+   - Focus on main products and technologies
+   - Example: "群聯 控制晶片 AI 2025"
+   - Example: "Phison NAND Flash 2025"
+
+3. Industry Chain Search:
+   - Add one topic at a time
+   - Example: "群聯 8299 營收"
+   - Example: "群聯 8299 新產品"
+
+4. Search Tips:
+   - Use both company name and stock code
+   - Add year for recent news
+   - Keep queries concise (4-5 terms max)
+   - Mix Chinese and English terms
+   - Avoid special operators (date:, site:, etc.)""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query following the query construction guidelines above",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "web_scraper",
+            "description": "Scrape full content from URLs returned by search_engine",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "urls": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of complete URLs (with http:// or https://) to scrape",
+                    },
+                },
+                "required": ["urls"],
+            },
+        },
+        {
+            "name": "time_tool",
+            "description": """Get current time information in Asia/Taipei timezone (UTC+8).
+Common timezone options:
+- Asia/Taipei (UTC+8, default)
+- Asia/Shanghai (UTC+8)
+- Asia/Tokyo (UTC+9)
+- Asia/Seoul (UTC+9)
+- UTC
+- America/New_York (UTC-5/UTC-4)
+- Europe/London (UTC/UTC+1)""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "timezone": {
+                        "type": "string",
+                        "description": "Optional: Timezone name (e.g., 'Asia/Taipei', 'UTC'). Defaults to 'Asia/Taipei'",
+                    },
+                },
+            },
+        },
+        {
+            "name": "search_framework",
+            "description": """Generate a comprehensive search framework for company analysis.
+
+Framework Generation Guidelines:
+1. Industry Understanding:
+   - Analyzes industry characteristics and value chain
+   - Identifies company's position and competitive advantages
+   - Maps key stakeholders (suppliers, customers, competitors)
+
+2. Search Categories:
+   - Company-specific: financials, operations, strategy
+   - Industry chain: upstream/downstream dynamics
+   - Market trends: demand, technology, regulations
+   - Competition: market share, product development
+
+3. Output Format:
+   - Returns JSON array of structured search queries
+   - Each query includes purpose and expected insights
+   - Queries are prioritized by importance
+   - Covers both immediate and long-term factors""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Company name to generate search framework for (e.g., '群聯', '京鼎')",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    ]
+
+
+def tool_prompt_construct_openai() -> list:
+    """Construct tool configuration for OpenAI models.
+
+    Returns:
+        list: List of tool configurations in OpenAI format containing search engine,
+            web scraper, and other tool specifications.
+    """
+    return [
+        {
+            "type": "function",
+            "function": {
                 "name": "research",
                 "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
 
@@ -409,7 +526,7 @@ Query Construction Guidelines:
    - Keep queries concise (4-5 terms max)
    - Mix Chinese and English terms
    - Avoid special operators (date:, site:, etc.)""",
-                "input_schema": {
+                "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {
@@ -420,43 +537,10 @@ Query Construction Guidelines:
                     "required": ["query"],
                 },
             },
-            {
-                "name": "web_scraper",
-                "description": "Scrape full content from URLs returned by search_engine",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "urls": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of complete URLs (with http:// or https://) to scrape",
-                        },
-                    },
-                    "required": ["urls"],
-                },
-            },
-            {
-                "name": "time_tool",
-                "description": """Get current time information in Asia/Taipei timezone (UTC+8).
-Common timezone options:
-- Asia/Taipei (UTC+8, default)
-- Asia/Shanghai (UTC+8)
-- Asia/Tokyo (UTC+9)
-- Asia/Seoul (UTC+9)
-- UTC
-- America/New_York (UTC-5/UTC-4)
-- Europe/London (UTC/UTC+1)""",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "timezone": {
-                            "type": "string",
-                            "description": "Optional: Timezone name (e.g., 'Asia/Taipei', 'UTC'). Defaults to 'Asia/Taipei'",
-                        },
-                    },
-                },
-            },
-            {
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "search_framework",
                 "description": """Generate a comprehensive search framework for company analysis.
 
@@ -477,7 +561,7 @@ Framework Generation Guidelines:
    - Each query includes purpose and expected insights
    - Queries are prioritized by importance
    - Covers both immediate and long-term factors""",
-                "input_schema": {
+                "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {
@@ -488,8 +572,8 @@ Framework Generation Guidelines:
                     "required": ["query"],
                 },
             },
-        ]
-    }
+        },
+    ]
 
 
 def finance_agent_prompt(stock_id: str | None = None) -> str:

@@ -12,9 +12,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol
 
-import anthropic
 from opik import track
-from opik.integrations.anthropic import track_anthropic
 
 from agents.research_agents.online_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
@@ -22,17 +20,19 @@ from prompts.system_prompts import (
     finance_agent_prompt,
     system_prompt,
     tool_prompt_construct_anthropic,
+    tool_prompt_construct_openai,
 )
 from settings import Settings
 from tools.llm_api import query_llm
 from tools.time_tool import get_current_time
-from utils.stock_utils import retrieve_stock_name, stock_name_to_id
+from utils.stock_utils import stock_name_to_id
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+settings = Settings()
 
 
 class ToolExecutionError(Exception):
@@ -128,46 +128,38 @@ class SearchFrameworkTool:
         return generate_search_framework(input_data["query"])
 
 
-class ClaudeAgent:
+class Agent:
     """Agent for interacting with Claude AI model."""
 
     def __init__(
         self,
-        client: Optional[anthropic.Client] = None,
-        settings: Optional[Settings] = None,
+        provider: Optional[str] = None,
+        model_name: Optional[str] = None,
+        tools: Optional[Dict[str, Tool]] = None,
+        stock_name: Optional[str] = None,
     ):
-        """Initialize the Claude agent.
+        """Initialize the LLM agent.
 
         Args:
-            client: Anthropic client instance
-            settings: Settings instance
+            provider: Provider name
+            model_name: Model name
+            tools: Tools
+            stock_name: Stock name for system prompt
         """
-        self.client = client or track_anthropic(anthropic.Client())
-        self.settings = settings or Settings()
-        self.message_history: List[Dict[str, Any]] = []
-        self.tools: Dict[str, Tool] = {
-            "research": ResearchTool(),
-            "time_tool": TimeTool(),
-            "search_framework": SearchFrameworkTool(),
-        }
+        self.provider = provider
+        self.model_name = model_name
+        self.tools: Dict[str, Tool] = tools if tools is not None else {}
 
-    @track()
-    def process_model_response(
-        self,
-        system: str,
-        model: str,
-        tools: List[Dict[str, Any]],
-        messages: List[Dict[str, Any]],
-    ) -> ModelResponse:
-        """Process the model response."""
-        response = query_llm(
-            messages=[{"role": "system", "content": system}] + messages,
-            model=model,
-            provider="anthropic",
-            tools=tools,
+        # Initialize system message in history
+        system_text = (
+            system_prompt(stock_name=stock_name)
+            + f"\n<{stock_name} instruction>"
+            + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
+            + f"</{stock_name} instruction>"
         )
-
-        return response
+        self.message_history: List[Dict[str, Any]] = [
+            {"role": "system", "content": system_text}
+        ]
 
     @track()
     def call_model(
@@ -175,21 +167,19 @@ class ClaudeAgent:
         user_messages: List[Dict[str, Any]],
     ) -> ModelResponse:
         """Make an API call to the model."""
+        # Add user messages to history
         self.message_history.extend(user_messages)
-        stock_name = retrieve_stock_name(user_messages)
-        system_text = (
-            system_prompt(stock_name=stock_name)
-            + f"\n<{stock_name} instruction>"
-            + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
-            + f"</{stock_name} instruction>"
+        tool_prompt_text = (
+            tool_prompt_construct_anthropic()
+            if self.provider == "anthropic"
+            else tool_prompt_construct_openai()
         )
-        tool_prompt_text = tool_prompt_construct_anthropic()["tools"]
 
-        return self.process_model_response(
-            system=system_text,
-            model=self.settings.model.claude_large,
-            tools=tool_prompt_text,
+        return query_llm(
             messages=self.message_history,
+            model=self.model_name,
+            provider=self.provider,
+            tools=tool_prompt_text,
         )
 
     @track()
@@ -199,9 +189,10 @@ class ClaudeAgent:
         """Process a tool call and return the result."""
         try:
             tool = self.tools.get(tool_name)
-            if tool is None:
+            if not tool:
                 raise ToolExecutionError(f"Unknown tool: {tool_name}")
             return await tool.execute(tool_input)
+
         except Exception as e:
             logger.error(f"Tool execution failed: {str(e)}")
             raise ToolExecutionError(f"Tool execution failed: {str(e)}")
@@ -263,6 +254,15 @@ class ClaudeAgent:
 
 
 if __name__ == "__main__":
-    agent = ClaudeAgent()
-    response = asyncio.run(agent.chat("京鼎"))
+    agent = Agent(
+        provider="openai",
+        model_name="gpt-4o",
+        tools={
+            "research": ResearchTool(),
+            "time_tool": TimeTool(),
+            "search_framework": SearchFrameworkTool(),
+        },
+        stock_name="京鼎",
+    )
+    response = asyncio.run(agent.chat("請幫我統整京鼎新聞"))
     print(response)

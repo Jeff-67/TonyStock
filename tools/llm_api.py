@@ -22,11 +22,10 @@ from tokencost import calculate_cost_by_tokens
 from settings import Settings
 
 Settings()
+load_dotenv()
+
 opik_logger = OpikLogger()
 litellm.callbacks = [opik_logger]
-
-# Load .env.local file
-load_dotenv()
 
 
 class Provider(str, Enum):
@@ -70,6 +69,7 @@ class LLMConfig:
         return f"{self.provider}/{self.model}"
 
 
+@track()
 def create_completion_params(
     config: LLMConfig,
     messages: List[Message],
@@ -95,7 +95,7 @@ def create_completion_params(
         "metadata": {
             "opik": {
                 "current_span_data": get_current_span_data(),
-                "tags": ["streaming-test"],
+                "tags": ["llm-api"],
             },
         },
     }
