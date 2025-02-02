@@ -255,8 +255,8 @@ class Agent:
 
 if __name__ == "__main__":
     agent = Agent(
-        provider="openai",
-        model_name="gpt-4o",
+        provider="anthropic",
+        model_name="claude-3-5-sonnet-latest",
         tools={
             "research": ResearchTool(),
             "time_tool": TimeTool(),
