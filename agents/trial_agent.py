@@ -162,13 +162,11 @@ class Agent:
         ]
 
     @track()
-    def call_model(
-        self,
-        user_messages: List[Dict[str, Any]],
-    ) -> ModelResponse:
+    def call_model(self) -> ModelResponse:
         """Make an API call to the model."""
-        # Add user messages to history
-        self.message_history.extend(user_messages)
+        # Create new list with shallow copies of each message dict
+        messages = [dict(msg) for msg in self.message_history]
+
         tool_prompt_text = (
             tool_prompt_construct_anthropic()
             if self.provider == "anthropic"
@@ -176,7 +174,7 @@ class Agent:
         )
 
         return query_llm(
-            messages=self.message_history,
+            messages=messages,
             model=self.model_name,
             provider=self.provider,
             tools=tool_prompt_text,
@@ -201,13 +199,13 @@ class Agent:
     async def chat(self, user_message: str) -> str:
         """Handle the chat flow with tool usage."""
         try:
-            # Initial call with system prompt
-            response, _ = self.call_model([{"role": "user", "content": user_message}])
+            # Add user message to history
+            self.message_history.append({"role": "user", "content": user_message})
+            response, _ = self.call_model()
+            # Add the assistant's message with tool calls to history
+            self.message_history.append(response.choices[0].message.model_dump())
 
             while response.choices[0].message.tool_calls:
-                # Add the assistant's message with tool calls to history
-                self.message_history.append(response.choices[0].message.model_dump())
-
                 # Process all tool calls and collect their responses
                 tool_responses = []
                 for tool_call in response.choices[0].message.tool_calls:
@@ -230,21 +228,24 @@ class Agent:
                             else str(tool_result)
                         )
 
-                        # Add tool response to the collection
-                        tool_responses.append(
-                            {
-                                "tool_call_id": tool_call.id,
-                                "role": "tool",
-                                "name": tool_name,
-                                "content": formatted_result,
-                            }
-                        )
+                        # Create tool response
+                        tool_response = {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": formatted_result,
+                        }
+                        tool_responses.append(tool_response)
                     except ToolExecutionError as e:
                         logger.error(f"Tool execution error: {str(e)}")
                         return f"Error executing tool: {str(e)}"
 
-                # Continue conversation with all tool responses
-                response, _ = self.call_model(tool_responses)
+                # Update message history with all tool responses at once
+                self.message_history.extend(tool_responses)
+
+                # Continue conversation with empty messages since history is updated
+                response, _ = self.call_model()
+                self.message_history.append(response.choices[0].message.model_dump())
 
             return response.choices[0].message.content or "No response generated"
         except Exception as e:
