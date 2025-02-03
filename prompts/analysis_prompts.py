@@ -2,7 +2,11 @@
 
 
 def searching_framework(
-    company_name: str, stock_id: str | None, current_time: str, company_instruction: str
+    company_name: str,
+    stock_id: str | None,
+    current_time: str,
+    company_instruction: str,
+    searching_instruction: str,
 ) -> str:
     """Generate prompt for search framework analysis.
 
@@ -33,5 +37,40 @@ Each query object should have:
     "expected_insights": str  // What insights we expect to gain from this query
 }}
 
-Company-specific context and industry characteristics:
-{company_instruction}"""
+<Company-specific context and industry characteristics>
+{company_instruction}
+</Company-specific context and industry characteristics>
+
+<Searching keywords instruction>
+{searching_instruction}
+</Searching keywords instruction>"""
+
+
+def analysis_report_prompt(
+    company_news: str, company_instruction: str, writing_instruction: str
+) -> str:
+    """Generate prompt for news analysis report.
+
+    Args:
+        company_news: Collected news content to analyze
+        company_instruction: Company-specific analysis instructions
+        writing_instruction: Writing style and format instructions
+
+    Returns:
+        Formatted prompt for generating analysis report
+    """
+    return f"""Please analyze the provided news content and generate a comprehensive analysis report following the structured framework below.
+
+<Company Context and Industry Characteristics>
+{company_instruction}
+</Company Context and Industry Characteristics>
+
+<Writing Guidelines>
+{writing_instruction}
+</Writing Guidelines>
+
+<News Content to Analyze>
+{company_news}
+</News Content to Analyze>
+
+Based on the above framework, please analyze the news content following the writing guidelines provided."""

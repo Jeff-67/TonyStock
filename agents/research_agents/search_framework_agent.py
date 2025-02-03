@@ -12,7 +12,7 @@ import logging
 from opik import track
 
 from prompts.analysis_prompts import searching_framework
-from prompts.system_prompts import finance_agent_prompt
+from prompts.system_prompts import finance_agent_prompt, search_planning_prompt
 from tools.llm_api import query_llm
 from tools.time_tool import get_current_time
 
@@ -41,6 +41,7 @@ def stock_name_to_id(stock_name: str | None = None) -> str | None:
 def get_search_framework_prompt(company_name: str, stock_id: str | None) -> str:
     """Generate prompt for search framework analysis."""
     company_instruction = finance_agent_prompt(stock_id=stock_id)
+    searching_instruction = search_planning_prompt()
     current_time = get_current_time()
 
     return searching_framework(
@@ -48,6 +49,7 @@ def get_search_framework_prompt(company_name: str, stock_id: str | None) -> str:
         stock_id=stock_id,
         current_time=current_time,
         company_instruction=company_instruction,
+        searching_instruction=searching_instruction,
     )
 
 

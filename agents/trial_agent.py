@@ -14,11 +14,12 @@ from typing import Any, Dict, List, Optional, Protocol
 
 from opik import track
 
+from agents.analysis_agents.analysis_report_agent import generate_analysis_report
 from agents.research_agents.online_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
 from prompts.system_prompts import (
     finance_agent_prompt,
-    system_prompt,
+    report_planning_prompt,
     tool_prompt_construct_anthropic,
     tool_prompt_construct_openai,
 )
@@ -83,8 +84,16 @@ class Tool(Protocol):
         ...
 
 
-class ResearchTool:
+class ResearchTool(Tool):
     """Tool for performing research queries."""
+
+    def __init__(self, update_news_callback):
+        """Initialize the tool with a callback function.
+
+        Args:
+            update_news_callback: Function to call with new company news
+        """
+        self.update_news = update_news_callback
 
     async def execute(self, input_data: Dict[str, Any]) -> Any:
         """Execute research query using the research_keyword function.
@@ -95,10 +104,12 @@ class ResearchTool:
         Returns:
             Research results from the query
         """
-        return await research_keyword(input_data["query"])
+        company_news = await research_keyword(input_data["query"])
+        self.update_news(company_news)
+        return company_news
 
 
-class TimeTool:
+class TimeTool(Tool):
     """Tool for getting current time."""
 
     async def execute(self, input_data: Dict[str, Any]) -> Any:
@@ -113,7 +124,7 @@ class TimeTool:
         return get_current_time(input_data.get("timezone", "Asia/Taipei"))
 
 
-class SearchFrameworkTool:
+class SearchFrameworkTool(Tool):
     """Tool for generating search frameworks."""
 
     async def execute(self, input_data: Dict[str, Any]) -> Any:
@@ -126,6 +137,24 @@ class SearchFrameworkTool:
             Generated search framework
         """
         return generate_search_framework(input_data["query"])
+
+
+class AnalysisTool(Tool):
+    """Tool for generating stock news analysis report."""
+
+    def __init__(self, get_news_callback):
+        """Initialize the tool with a callback function.
+
+        Args:
+            get_news_callback: Function to get company news
+        """
+        self.get_news = get_news_callback
+
+    async def execute(self, input_data: Dict[str, Any]) -> Any:
+        """Execute analysis query using the analysis_report function."""
+        return await generate_analysis_report(
+            self.get_news(), input_data["company_name"]
+        )
 
 
 class Agent:
@@ -152,7 +181,7 @@ class Agent:
 
         # Initialize system message in history
         system_text = (
-            system_prompt(stock_name=stock_name)
+            report_planning_prompt(stock_name=stock_name)
             + f"\n<{stock_name} instruction>"
             + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
             + f"</{stock_name} instruction>"
@@ -160,6 +189,7 @@ class Agent:
         self.message_history: List[Dict[str, Any]] = [
             {"role": "system", "content": system_text}
         ]
+        self.company_news: list[Dict[str, str]] = []
 
     @track()
     def call_model(self) -> ModelResponse:
@@ -254,15 +284,25 @@ class Agent:
 
 
 if __name__ == "__main__":
+    # Create agent first without tools
     agent = Agent(
         provider="anthropic",
         model_name="claude-3-5-sonnet-latest",
-        tools={
-            "research": ResearchTool(),
-            "time_tool": TimeTool(),
-            "search_framework": SearchFrameworkTool(),
-        },
+        tools={},  # Empty tools dict initially
         stock_name="京鼎",
     )
+
+    # Now set up tools using the fully created agent
+    tools: Dict[str, Tool] = {
+        "research": ResearchTool(lambda news: agent.company_news.extend(news)),
+        "time_tool": TimeTool(),
+        "search_framework": SearchFrameworkTool(),
+        "analysis_report": AnalysisTool(lambda: agent.company_news),
+    }
+
+    # Update agent's tools
+    agent.tools = tools
+
+    # Run the chat
     response = asyncio.run(agent.chat("請幫我統整京鼎新聞"))
     print(response)

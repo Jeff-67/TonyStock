@@ -6,7 +6,7 @@ specialized finance agent prompts.
 """
 
 
-def system_prompt(stock_name: str | None = None) -> str:
+def report_planning_prompt(stock_name: str | None = None) -> str:
     """Generate the base system prompt for the AI financial research assistant.
 
     Args:
@@ -28,19 +28,6 @@ def system_prompt(stock_name: str | None = None) -> str:
      * 查詢按重要性排序
      * 涵蓋即時與長期因素
 
-   - 根據`{stock_name}_instruction` 了解：
-     * 產業特性與價值鏈結構
-     * 公司在產業鏈中的定位
-     * 核心競爭力與關鍵指標
-     * 重要合作夥伴與客戶
-     * 主要競爭對手
-
-   - 建立搜索框架：
-     * 依產業特性設計關鍵字組合
-     * 建立邏輯性的搜索層級
-     * 定義各面向的重要程度
-     * 準備同義詞與相關術語
-
 <第二步：新聞蒐集流程>
    A. 使用`search_framework`返回的查詢執行搜索
       - 依照重要性順序處理每個查詢
@@ -48,7 +35,57 @@ def system_prompt(stock_name: str | None = None) -> str:
       - 記錄每個查詢的目的與預期洞見
       - 確保搜索結果符合預期目標
 
-   B. 關鍵字邏輯展開（依產業特性）
+   B. 系統性搜索執行
+      - 使用 research 工具搜索新聞
+        * 按時間順序搜索
+        * 考慮不同語言版本
+        * 完整保存原文
+        * 記錄來源與時間
+        * 建立分類標籤
+
+<第三步：新聞影響分析與整理並報告產出>
+   A. 使用`analysis_report`工具進行分析以及報告產出
+      - 輸入參數準備：
+        * company_news：搜集到的新聞內容字典，key為新聞來源，value為新聞內容
+        * company_name：公司名稱
+
+      - 分析架構：
+        1. 新聞分類
+           * 依影響面向：營運影響、產業結構、市場環境、競爭態勢
+           * 依時間維度：即時事件、短期趨勢、中期發展、長期規劃
+
+        2. 影響評估
+           * 基本面影響：財務指標、營運效率、市場地位、競爭優勢
+           * 未來展望：關鍵指標、重大事件、市場反應、風險監控
+
+        3. 報告結構
+           * 重要發現摘要
+           * 詳細分析說明
+           * 具體影響評估
+           * 後續觀察重點
+
+      - 報告要求：
+        * 數據佐證完整
+        * 邏輯推理清晰
+        * 關聯性分析充分
+        * 預測建議具體
+        * 時效性資訊標註日期
+        * 重要訊息需註明來源
+"""
+
+
+def search_planning_prompt() -> str:
+    """Generate search planning prompt for stock analysis.
+
+    Args:
+        stock_name: Name of the stock to analyze
+
+    Returns:
+        Formatted prompt string for the search planning
+    """
+    return """
+## News Search Strategy
+- 關鍵字按造邏輯展開（依產業特性）
       - 公司本身
         * 基本面指標
         * 重大營運事件
@@ -73,98 +110,7 @@ def system_prompt(stock_name: str | None = None) -> str:
         * 新產品發展
         * 市占率變動
 
-   C. 系統性搜索執行
-      - 使用 research 工具搜索新聞
-        * 按時間順序搜索
-        * 使用邏輯運算符組合
-        * 考慮不同語言版本
-        * 過濾無關訊息
-        * 完整保存原文
-        * 記錄來源與時間
-        * 建立分類標籤
-        * 標注重要程度
-
-<第三步：新聞分析與整理>
-   A. 分類整理
-      - 依影響面向分類
-        * 直接營運影響
-        * 產業結構改變
-        * 市場環境變化
-        * 競爭態勢轉變
-
-      - 依時間維度分類
-        * 即時重大事件
-        * 短期趨勢變化
-        * 中期發展方向
-        * 長期策略布局
-
-   B. 重要性評估
-      - 高度重要：
-        * 直接影響獲利能力
-        * 改變競爭優勢
-        * 影響市場地位
-        * 衝擊產業結構
-
-      - 中度重要：
-        * 影響營運效率
-        * 改變成本結構
-        * 調整策略方向
-        * 轉變市場條件
-
-      - 低度重要：
-        * 例行性更新
-        * 一般營運資訊
-        * 市場預期調整
-        * 非核心業務
-
-<第四步：影響分析>
-    A. 基本面影響
-        - 財務面
-            * 營收變化
-            * 獲利能力
-            * 成本結構
-            * 現金流量
-
-        - 營運面
-            * 產能利用
-            * 庫存水位
-            * 訂單能見度
-            * 產品組合
-
-        - 競爭力
-            * 技術領先程度
-            * 市場份額變化
-            * 品牌價值調整
-            * 議價能力變化
-
-    B. 未來展望
-        - 短期觀察重點
-            * 關鍵數據追蹤
-            * 重大事件發展
-            * 市場反應評估
-            * 風險因素監控
-
-        - 中長期發展
-            * 策略執行進度
-            * 市場布局成效
-            * 競爭優勢維持
-            * 成長動能評估
-
-<第五步：報告產出>
-   A. 架構安排
-      - 重大發現摘要
-      - 詳細分析說明
-      - 具體影響評估
-      - 後續觀察重點
-
-   B. 內容要求
-      - 數據佐證完整
-      - 邏輯推理清晰
-      - 關聯性分析充分
-      - 預測建議具體
-
 以下是一些實戰經驗，請參考：
-## News Search Strategy
 1. Keyword Structure
    - Core Business Keywords
      * Company name AND product lines
@@ -207,6 +153,94 @@ def system_prompt(stock_name: str | None = None) -> str:
      * Verify news dates manually rather than using date operators
      * Use multiple language versions for comprehensive coverage
      * Consider regional news sources for local market insights
+"""
+
+
+def writing_planning_prompt() -> str:
+    """Generate writing report prompt for stock news analysis.
+
+    Returns:
+        Formatted prompt string for the writing report
+    """
+    return """
+<第一步：新聞分析與整理>
+   A. 分類整理
+      - 依影響面向分類
+        * 直接營運影響
+        * 產業結構改變
+        * 市場環境變化
+        * 競爭態勢轉變
+
+      - 依時間維度分類
+        * 即時重大事件
+        * 短期趨勢變化
+        * 中期發展方向
+        * 長期策略布局
+
+   B. 重要性評估
+      - 高度重要：
+        * 直接影響獲利能力
+        * 改變競爭優勢
+        * 影響市場地位
+        * 衝擊產業結構
+
+      - 中度重要：
+        * 影響營運效率
+        * 改變成本結構
+        * 調整策略方向
+        * 轉變市場條件
+
+      - 低度重要：
+        * 例行性更新
+        * 一般營運資訊
+        * 市場預期調整
+        * 非核心業務
+
+<第二步：影響分析>
+    A. 基本面影響
+        - 財務面
+            * 營收變化
+            * 獲利能力
+            * 成本結構
+            * 現金流量
+
+        - 營運面
+            * 產能利用
+            * 庫存水位
+            * 訂單能見度
+            * 產品組合
+
+        - 競爭力
+            * 技術領先程度
+            * 市場份額變化
+            * 品牌價值調整
+            * 議價能力變化
+
+    B. 未來展望
+        - 短期觀察重點
+            * 關鍵數據追蹤
+            * 重大事件發展
+            * 市場反應評估
+            * 風險因素監控
+
+        - 中長期發展
+            * 策略執行進度
+            * 市場布局成效
+            * 競爭優勢維持
+            * 成長動能評估
+
+<第三步：報告產出>
+   A. 架構安排
+      - 重大發現摘要
+      - 詳細分析說明
+      - 具體影響評估
+      - 後續觀察重點
+
+   B. 內容要求
+      - 數據佐證完整
+      - 邏輯推理清晰
+      - 關聯性分析充分
+      - 預測建議具體
 
 ## Analysis Standards
 1. Importance Classification
@@ -449,6 +483,23 @@ Framework Generation Guidelines:
                     },
                 },
                 "required": ["query"],
+            },
+        },
+        {
+            "name": "analysis_report",
+            "description": """Generate a comprehensive stock news analysis report based on collected news and information.
+
+Input Schema:
+- company_name: Name of the company to analyze""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "company_name": {
+                        "type": "string",
+                        "description": "Name of the company to analyze",
+                    }
+                },
+                "required": ["company_name"],
             },
         },
     ]
