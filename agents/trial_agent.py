@@ -17,16 +17,14 @@ from opik import track
 from agents.analysis_agents.analysis_report_agent import generate_analysis_report
 from agents.research_agents.online_research_agents import research_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
-from prompts.system_prompts import (
-    finance_agent_prompt,
-    report_planning_prompt,
+from prompts.agents.planning import report_planning_prompt
+from prompts.tools.tools_schema import (
     tool_prompt_construct_anthropic,
     tool_prompt_construct_openai,
 )
 from settings import Settings
 from tools.llm_api import query_llm
 from tools.time_tool import get_current_time
-from utils.stock_utils import stock_name_to_id
 
 # Configure logging
 logging.basicConfig(
@@ -180,12 +178,7 @@ class Agent:
         self.tools: Dict[str, Tool] = tools if tools is not None else {}
 
         # Initialize system message in history
-        system_text = (
-            report_planning_prompt(stock_name=stock_name)
-            + f"\n<{stock_name} instruction>"
-            + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
-            + f"</{stock_name} instruction>"
-        )
+        system_text = report_planning_prompt(stock_name=stock_name)
         self.message_history: List[Dict[str, Any]] = [
             {"role": "system", "content": system_text}
         ]

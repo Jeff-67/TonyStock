@@ -1,7 +1,7 @@
-"""Analysis prompts for different types of analysis tasks."""
+"""Module containing core prompt generation functions for search and analysis tasks."""
 
 
-def searching_framework(
+def searching_framework_prompt(
     company_name: str,
     stock_id: str | None,
     current_time: str,

@@ -5,10 +5,11 @@ from typing import Dict
 
 from opik import track
 
-from agents.research_agents.search_framework_agent import stock_name_to_id
-from prompts.analysis_prompts import analysis_report_prompt
-from prompts.system_prompts import finance_agent_prompt, writing_planning_prompt
+from prompts.agents.knowledge import finance_agent_prompt
+from prompts.agents.main import analysis_report_prompt
+from prompts.agents.planning import writing_planning_prompt
 from tools.llm_api import query_llm
+from utils.stock_utils import stock_name_to_id
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
