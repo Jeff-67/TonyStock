@@ -420,42 +420,6 @@ Query Construction Guidelines:
             },
         },
         {
-            "name": "web_scraper",
-            "description": "Scrape full content from URLs returned by search_engine",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "urls": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of complete URLs (with http:// or https://) to scrape",
-                    },
-                },
-                "required": ["urls"],
-            },
-        },
-        {
-            "name": "time_tool",
-            "description": """Get current time information in Asia/Taipei timezone (UTC+8).
-Common timezone options:
-- Asia/Taipei (UTC+8, default)
-- Asia/Shanghai (UTC+8)
-- Asia/Tokyo (UTC+9)
-- Asia/Seoul (UTC+9)
-- UTC
-- America/New_York (UTC-5/UTC-4)
-- Europe/London (UTC/UTC+1)""",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "timezone": {
-                        "type": "string",
-                        "description": "Optional: Timezone name (e.g., 'Asia/Taipei', 'UTC'). Defaults to 'Asia/Taipei'",
-                    },
-                },
-            },
-        },
-        {
             "name": "search_framework",
             "description": """Generate a comprehensive search framework for company analysis.
 
