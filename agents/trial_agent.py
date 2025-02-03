@@ -205,47 +205,46 @@ class Agent:
             response = self.call_model([{"role": "user", "content": user_message}])
 
             while response.choices[0].message.tool_calls:
-                tool_name = response.choices[0].message.tool_calls[0].function.name
-                tool_input = json.loads(
-                    response.choices[0].message.tool_calls[0].function.arguments
-                )
+                # Add the assistant's message with tool calls to history
+                self.message_history.append(response.choices[0].message.model_dump())
 
-                logger.info(f"Executing tool {tool_name} with input: {tool_input}")
+                # Process all tool calls and collect their responses
+                tool_responses = []
+                for tool_call in response.choices[0].message.tool_calls:
+                    tool_name = tool_call.function.name
+                    tool_input = json.loads(tool_call.function.arguments)
 
-                try:
-                    # Execute tool
-                    tool_result = await self.process_tool_call(tool_name, tool_input)
-                    logger.info(f"Tool result: {tool_result}")
+                    logger.info(f"Executing tool {tool_name} with input: {tool_input}")
 
-                    # Continue conversation with verified result
-                    self.message_history.append(
-                        response.choices[0].message.model_dump()
-                    )
+                    try:
+                        # Execute tool
+                        tool_result = await self.process_tool_call(
+                            tool_name, tool_input
+                        )
+                        logger.info(f"Tool result: {tool_result}")
 
-                    # Format tool result as JSON string if it's a list or dict
-                    formatted_result = (
-                        json.dumps(tool_result, ensure_ascii=False, indent=2)
-                        if isinstance(tool_result, (list, dict))
-                        else str(tool_result)
-                    )
+                        # Format tool result as JSON string if it's a list or dict
+                        formatted_result = (
+                            json.dumps(tool_result, ensure_ascii=False, indent=2)
+                            if isinstance(tool_result, (list, dict))
+                            else str(tool_result)
+                        )
 
-                    response = self.call_model(
-                        [
+                        # Add tool response to the collection
+                        tool_responses.append(
                             {
-                                "tool_call_id": response.choices[0]
-                                .message.tool_calls[0]
-                                .id,
+                                "tool_call_id": tool_call.id,
                                 "role": "tool",
-                                "name": response.choices[0]
-                                .message.tool_calls[0]
-                                .function.name,
+                                "name": tool_name,
                                 "content": formatted_result,
                             }
-                        ]
-                    )
-                except ToolExecutionError as e:
-                    logger.error(f"Tool execution error: {str(e)}")
-                    return f"Error executing tool: {str(e)}"
+                        )
+                    except ToolExecutionError as e:
+                        logger.error(f"Tool execution error: {str(e)}")
+                        return f"Error executing tool: {str(e)}"
+
+                # Continue conversation with all tool responses
+                response = self.call_model(tool_responses)
 
             return response.choices[0].message.content or "No response generated"
         except Exception as e:
