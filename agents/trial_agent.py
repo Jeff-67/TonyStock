@@ -202,7 +202,7 @@ class Agent:
         """Handle the chat flow with tool usage."""
         try:
             # Initial call with system prompt
-            response = self.call_model([{"role": "user", "content": user_message}])
+            response, _ = self.call_model([{"role": "user", "content": user_message}])
 
             while response.choices[0].message.tool_calls:
                 # Add the assistant's message with tool calls to history
@@ -244,7 +244,7 @@ class Agent:
                         return f"Error executing tool: {str(e)}"
 
                 # Continue conversation with all tool responses
-                response = self.call_model(tool_responses)
+                response, _ = self.call_model(tool_responses)
 
             return response.choices[0].message.content or "No response generated"
         except Exception as e:

@@ -38,7 +38,7 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
     try:
         # Format messages properly for LLM API
         messages = [{"role": "user", "content": prompt}]
-        response = query_llm(
+        response, _ = query_llm(
             messages=messages,
             model="gpt-4o-2024-08-06",
             provider="openai",

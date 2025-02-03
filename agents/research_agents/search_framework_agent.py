@@ -66,7 +66,7 @@ def generate_search_framework(company_name: str) -> str:
 
     try:
         messages = [{"role": "user", "content": prompt}]
-        response = query_llm(
+        response, _ = query_llm(
             messages=messages,
             model="claude-3-5-sonnet-latest",
             provider="anthropic",

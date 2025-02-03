@@ -7,6 +7,7 @@ error handling. Supports both sync and async operations.
 
 import argparse
 import asyncio
+import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict
@@ -69,7 +70,6 @@ class LLMConfig:
         return f"{self.provider}/{self.model}"
 
 
-@track()
 def create_completion_params(
     config: LLMConfig,
     messages: List[Message],
@@ -169,7 +169,40 @@ def query_llm(
             )
         )
 
-        return response
+        content = response.choices[0].message.content
+
+        # Handle tool calls serialization
+        tool_calls = []
+        if (
+            hasattr(response.choices[0].message, "tool_calls")
+            and response.choices[0].message.tool_calls
+        ):
+            for tool_call in response.choices[0].message.tool_calls:
+                try:
+                    tool_calls.append(
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": json.loads(tool_call.function.arguments),
+                            },
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error parsing tool call arguments: {e}")
+                    tool_calls.append(
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            },
+                        }
+                    )
+
+        return response, {"content": content, "tool_calls": tool_calls}
 
     except Exception as e:
         print(f"Error querying LLM: {e}")
@@ -223,7 +256,7 @@ async def aquery_llm(
         ):
             return response.choices[0].message.parsed.filtered_content
 
-        return response.choices[0].message.content
+        return response.choices[0].message
 
     except Exception as e:
         print(f"Error querying LLM: {e}")
@@ -265,7 +298,7 @@ def main():
     if args.use_async:
         asyncio.run(async_main(messages, model=args.model))
     else:
-        response = query_llm(messages, model=args.model)
+        response, _ = query_llm(messages, model=args.model)
         if response:
             print(response)
         else:
