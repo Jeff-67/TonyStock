@@ -74,8 +74,12 @@ Framework Generation Guidelines:
                         "type": "string",
                         "description": "Company name to generate search framework for (e.g., '群聯', '京鼎')",
                     },
+                    "user_message": {
+                        "type": "string",
+                        "description": "User message to generate search framework for",
+                    },
                 },
-                "required": ["query"],
+                "required": ["query", "user_message"],
             },
         },
         {

@@ -1,4 +1,10 @@
-"""Module containing prompt generation functions for report planning and writing."""
+"""Module containing prompt templates for planning and writing stock analysis reports.
+
+This module provides functions that generate structured prompts used by agents to:
+1. Plan and write comprehensive stock analysis reports
+2. Follow best practices for news analysis and report structuring
+3. Maintain consistent analysis standards and report quality
+"""
 
 
 def writing_planning_prompt() -> str:
@@ -253,23 +259,19 @@ def writing_planning_prompt() -> str:
 """
 
 
-def report_planning_prompt(
-    stock_name: str | None = None, current_time: str | None = None
-) -> str:
+def report_planning_prompt(current_time: str | None = None) -> str:
     """Generate the base system prompt for the AI financial research assistant.
 
     Args:
-        model_name (str): Name of the model to be used (e.g., 'Claude-3-Sonnet').
+        current_time: Current time
 
     Returns:
         str: Formatted system prompt with model name and complete instructions.
     """
-    if not stock_name:
-        stock_name = "台灣股市"
     return f"""
 Current Time: {current_time}
-# {stock_name} News Analysis Framework
-以下是{stock_name}的分析框架，你的任務是根據此框架進行分析。
+# 股市 News Analysis Framework
+以下是股市的分析框架，你的任務是根據此框架進行分析。
 
 <第一步：建立搜索框架>
    - 使用`search_framework`工具生成結構化搜索框架：
@@ -279,7 +281,7 @@ Current Time: {current_time}
      * 涵蓋即時與長期因素
 
 <第二步：新聞蒐集流程>
-   A. 使用`search_framework`返回的查詢執行搜索
+   A. 使用`search_framework`返回的結果執行搜索
       - 依照重要性順序處理每個查詢
       - 使用`research`工具執行每個查詢
       - 記錄每個查詢的目的與預期洞見
@@ -304,87 +306,5 @@ Current Time: {current_time}
         * 關聯性分析充分
         * 建議具體
         * 時效性資訊標註日期
-        * 訊息需註明來源
-"""
-
-
-def search_planning_prompt() -> str:
-    """Generate search planning prompt for stock analysis.
-
-    Args:
-        stock_name: Name of the stock to analyze
-
-    Returns:
-        Formatted prompt string for the search planning
-    """
-    return """
-## News Search Strategy
-- 關鍵字按造邏輯展開（依產業特性）
-      - 公司本身
-        * 基本面指標
-        * 重大營運事件
-        * 策略方向調整
-        * 人事變動
-
-      - 產業鏈分析
-        * 上游供應商動態
-        * 下游客戶發展
-        * 替代產品威脅
-        * 新進入者情況
-
-      - 終端市場
-        * 市場規模變化
-        * 需求趨勢轉變
-        * 技術發展方向
-        * 法規政策影響
-
-      - 競爭對手
-        * 營運表現比較
-        * 策略布局變化
-        * 新產品發展
-        * 市占率變動
-
-以下是一些實戰經驗，請參考：
-1. Keyword Structure
-   - Core Business Keywords
-     * Company name AND product lines
-     * Company name AND technology
-     * Company name AND market share
-
-   - Industry Chain Keywords
-     * Upstream suppliers AND capacity/price
-     * Downstream applications AND demand
-     * Competitors AND strategy
-
-   - Market Trend Keywords
-     * Industry name AND forecast
-     * Technology AND development
-     * Application AND growth
-
-2. Search Principles
-   - Use AND/OR operators for precise results
-   - Add time range limiters
-   - Exclude irrelevant terms (e.g., -recruitment)
-   - Consider synonyms and related terms
-
-3. Search Engine Best Practices (Added 2025/01)
-   - Language Handling
-     * Use both English and Chinese company names
-     * For Chinese companies, try:
-       - English name (e.g., "Phison" for "群聯")
-       - Stock symbol (e.g., "8299")
-       - Simplified Chinese name if available
-     * Keep Chinese queries simple without complex operators
-
-   - Query Structure
-     * Basic format: "[Company Name] [Stock Symbol] [Category]"
-     * Avoid complex date syntax (e.g., date:today)
-     * Use explicit dates in YYYY/MM/DD format if needed
-     * Keep queries concise for better encoding handling
-
-   - Results Validation
-     * Cross-check results from different query formats
-     * Verify news dates manually rather than using date operators
-     * Use multiple language versions for comprehensive coverage
-     * Consider regional news sources for local market insights
+        * 訊息需註明來源, 採用[來源, 日期, 文章標題]格式，其中利用url超連結格式，例如[來源, 日期, 文章標題](url)
 """

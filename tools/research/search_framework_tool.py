@@ -21,4 +21,6 @@ class SearchFrameworkTool(Tool):
         Returns:
             Generated search framework
         """
-        return generate_search_framework(input_data["query"])
+        return generate_search_framework(
+            input_data["query"], input_data["user_message"]
+        )

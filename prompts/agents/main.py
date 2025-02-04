@@ -7,6 +7,7 @@ def searching_framework_prompt(
     current_time: str,
     company_instruction: str,
     searching_instruction: str,
+    user_message: str,
 ) -> str:
     """Generate prompt for search framework analysis.
 
@@ -16,13 +17,15 @@ def searching_framework_prompt(
         current_time: Current time in Asia/Taipei timezone
         company_instruction: Company specific instructions
         searching_instruction: Additional search keywords instructions
-
+        user_message: User message
     Returns:
         Formatted prompt for search framework analysis
     """
     return f"""Current time: {current_time}
 
-For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me generate a comprehensive set of search queries to understand its investment opportunity by focusing on these core questions:
+For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me generate a comprehensive set of search queries to understand its investment opportunity by considering the user message: `{user_message}`.
+
+First, consider these core questions about the company:
 
 1. 為什麼會賺錢？(Why is it profitable?)
    - Business model and revenue streams
@@ -67,13 +70,43 @@ For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me genera
    - Geographic limitations
    - Management risks
 
-Please output your response as a raw JSON array of search queries (without any markdown code blocks or additional text).
+Then, based on the user's message and company context, expand your search scope to include relevant external factors that could impact these core questions:
+
+A. 產業鏈關聯 (Industry Chain Connections)
+   - How do industry chain dynamics affect the core questions?
+   - What upstream/downstream trends are relevant?
+   - How do supply chain changes impact the company?
+
+B. 總體環境 (Macro Environment)
+   - Which global economic factors are relevant?
+   - What geopolitical events could impact the analysis?
+   - How do government policies affect the situation?
+
+C. 市場趨勢 (Market Trends)
+   - What are the relevant technology transitions?
+   - How are customer preferences changing?
+   - What new market opportunities or threats exist?
+
+D. 競爭格局 (Competitive Landscape)
+   - How are competitor actions affecting the situation?
+   - What are the changes in market share?
+   - How is the industry structure evolving?
+
+Please analyze the user's message and generate search queries that:
+1. Address the relevant core questions (1-6)
+2. Incorporate necessary external factors (A-D) that could impact those core questions
+3. Consider both immediate and longer-term implications
+4. Connect company-specific issues with broader industry/market context
+
+Output your response as a raw JSON array of search queries (without any markdown code blocks or additional text).
 Each query object should have:
 {{
     "query": str,  // The actual search query combining company identifiers with keywords
-    "category": str,  // Which core question this query addresses (1-6 above)
+    "core_question": str,  // Which core question (1-6) this query primarily addresses
+    "external_factors": [str],  // List of relevant external factors (A-D) this query considers
     "purpose": str,  // What specific information we're looking for
-    "expected_insights": str  // What insights we expect to gain from this query
+    "expected_insights": str,  // What insights we expect to gain from this query
+    "reasoning": str  // Why this query is relevant to the user's message
 }}
 
 <Company-specific context and industry characteristics>

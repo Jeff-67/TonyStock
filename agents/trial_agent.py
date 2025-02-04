@@ -83,7 +83,6 @@ class Agent:
         provider: Optional[str] = None,
         model_name: Optional[str] = None,
         tools: Optional[Dict[str, Tool]] = None,
-        stock_name: Optional[str] = None,
     ):
         """Initialize the LLM agent.
 
@@ -98,9 +97,7 @@ class Agent:
         self.tools: Dict[str, Tool] = tools if tools is not None else {}
 
         # Initialize system message in history
-        system_text = report_planning_prompt(
-            stock_name=stock_name, current_time=get_current_time()
-        )
+        system_text = report_planning_prompt(current_time=get_current_time())
         self.message_history: List[Dict[str, Any]] = [
             {"role": "system", "content": system_text}
         ]
@@ -204,7 +201,6 @@ if __name__ == "__main__":
         provider="anthropic",
         model_name="claude-3-5-sonnet-latest",
         tools={},  # Empty tools dict initially
-        stock_name="京鼎",
     )
 
     # Now set up tools using the fully created agent

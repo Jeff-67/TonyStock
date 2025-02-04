@@ -11,9 +11,9 @@ import logging
 
 from opik import track
 
+from prompts.agents.experience import search_experience_prompt
 from prompts.agents.knowledge import finance_agent_prompt
 from prompts.agents.main import searching_framework_prompt
-from prompts.agents.planning import search_planning_prompt
 from tools.llm_api import query_llm
 from tools.time.time_tool import get_current_time
 from utils.stock_utils import stock_name_to_id
@@ -25,10 +25,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_search_framework_prompt(company_name: str, stock_id: str | None) -> str:
+def get_search_framework_prompt(
+    company_name: str, stock_id: str | None, user_message: str
+) -> str:
     """Generate prompt for search framework analysis."""
     company_instruction = finance_agent_prompt(stock_id=stock_id)
-    searching_instruction = search_planning_prompt()
+    searching_instruction = search_experience_prompt()
     current_time = get_current_time()
 
     return searching_framework_prompt(
@@ -37,11 +39,12 @@ def get_search_framework_prompt(company_name: str, stock_id: str | None) -> str:
         current_time=current_time,
         company_instruction=company_instruction,
         searching_instruction=searching_instruction,
+        user_message=user_message,
     )
 
 
 @track()
-def generate_search_framework(company_name: str) -> str:
+def generate_search_framework(company_name: str, user_message: str) -> str:
     """Generate comprehensive search framework using LLM.
 
     Args:
@@ -51,7 +54,7 @@ def generate_search_framework(company_name: str) -> str:
         Dict containing industry analysis and structured search queries
     """
     stock_id = stock_name_to_id(company_name)
-    prompt = get_search_framework_prompt(company_name, stock_id)
+    prompt = get_search_framework_prompt(company_name, stock_id, user_message)
 
     try:
         messages = [{"role": "user", "content": prompt}]

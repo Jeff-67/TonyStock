@@ -17,7 +17,7 @@ def finance_agent_prompt(stock_id: str | None = None) -> str:
     if not stock_id:
         return ""
     with open(
-        f"prompts/company_knowledge/{stock_id}_instruction.md", "r", encoding="utf-8"
+        f"prompts/company_knowledge/{stock_id}_background.md", "r", encoding="utf-8"
     ) as file:
         instruction = file.read()
     return instruction
