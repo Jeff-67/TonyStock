@@ -6,8 +6,11 @@ accurate temporal context.
 """
 
 from datetime import datetime
+from typing import Any, Dict
 
 import pytz
+
+from tools.core.tool_protocol import Tool
 
 
 def get_current_time(timezone="Asia/Taipei"):
@@ -40,6 +43,21 @@ def get_current_time(timezone="Asia/Taipei"):
         }
     except pytz.exceptions.UnknownTimeZoneError:
         return {"error": f"Unknown timezone: {timezone}"}
+
+
+class TimeTool(Tool):
+    """Tool for getting current time."""
+
+    async def execute(self, input_data: Dict[str, Any]) -> Any:
+        """Get current time for specified timezone.
+
+        Args:
+            input_data: Dictionary optionally containing 'timezone' key (defaults to 'Asia/Taipei')
+
+        Returns:
+            Current time in specified timezone
+        """
+        return get_current_time(input_data.get("timezone", "Asia/Taipei"))
 
 
 def main():

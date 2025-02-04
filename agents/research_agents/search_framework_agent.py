@@ -15,7 +15,7 @@ from prompts.agents.knowledge import finance_agent_prompt
 from prompts.agents.main import searching_framework_prompt
 from prompts.agents.planning import search_planning_prompt
 from tools.llm_api import query_llm
-from tools.time_tool import get_current_time
+from tools.time.time_tool import get_current_time
 from utils.stock_utils import stock_name_to_id
 
 # Configure logging

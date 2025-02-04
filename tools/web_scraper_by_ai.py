@@ -23,6 +23,7 @@ class FilteredContent(BaseModel):
     """
 
     filtered_content: str
+    time: str
 
 
 @track()
@@ -33,7 +34,7 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
     Here is the query: {query}
     Here is the scrapped content: {scrapped_content}
 
-    return the filtered content.
+    return the filtered content and the time of the content.
     """
     try:
         # Format messages properly for LLM API
@@ -45,7 +46,7 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
             response_format=FilteredContent,
         )
         json_response = json.loads(response.choices[0].message.content)
-        return json_response["filtered_content"]
+        return str(json_response)
     except Exception as e:
         print(f"Error parsing response: {str(e)}, response: {response}")
         return scrapped_content

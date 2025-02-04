@@ -10,21 +10,22 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional
 
 from opik import track
 
-from agents.analysis_agents.analysis_report_agent import generate_analysis_report
-from agents.research_agents.online_research_agents import research_keyword
-from agents.research_agents.search_framework_agent import generate_search_framework
 from prompts.agents.planning import report_planning_prompt
 from prompts.tools.tools_schema import (
     tool_prompt_construct_anthropic,
     tool_prompt_construct_openai,
 )
 from settings import Settings
+from tools.analysis.analysis_tool import AnalysisTool
+from tools.core.tool_protocol import Tool
 from tools.llm_api import query_llm
-from tools.time_tool import get_current_time
+from tools.research.research_tool import ResearchTool
+from tools.research.search_framework_tool import SearchFrameworkTool
+from tools.time.time_tool import TimeTool, get_current_time
 
 # Configure logging
 logging.basicConfig(
@@ -74,87 +75,6 @@ class ModelResponse:
     text_content: Optional[str] = None
 
 
-class Tool(Protocol):
-    """Protocol defining the interface for tools."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute the tool with given input data."""
-        ...
-
-
-class ResearchTool(Tool):
-    """Tool for performing research queries."""
-
-    def __init__(self, update_news_callback):
-        """Initialize the tool with a callback function.
-
-        Args:
-            update_news_callback: Function to call with new company news
-        """
-        self.update_news = update_news_callback
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute research query using the research_keyword function.
-
-        Args:
-            input_data: Dictionary containing the 'query' key with search term
-
-        Returns:
-            Research results from the query
-        """
-        company_news = await research_keyword(input_data["query"])
-        self.update_news(company_news)
-        return company_news
-
-
-class TimeTool(Tool):
-    """Tool for getting current time."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Get current time for specified timezone.
-
-        Args:
-            input_data: Dictionary optionally containing 'timezone' key (defaults to 'Asia/Taipei')
-
-        Returns:
-            Current time in specified timezone
-        """
-        return get_current_time(input_data.get("timezone", "Asia/Taipei"))
-
-
-class SearchFrameworkTool(Tool):
-    """Tool for generating search frameworks."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Generate a search framework for the given query.
-
-        Args:
-            input_data: Dictionary containing the 'query' key with search term
-
-        Returns:
-            Generated search framework
-        """
-        return generate_search_framework(input_data["query"])
-
-
-class AnalysisTool(Tool):
-    """Tool for generating stock news analysis report."""
-
-    def __init__(self, get_news_callback):
-        """Initialize the tool with a callback function.
-
-        Args:
-            get_news_callback: Function to get company news
-        """
-        self.get_news = get_news_callback
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute analysis query using the analysis_report function."""
-        return await generate_analysis_report(
-            self.get_news(), input_data["company_name"]
-        )
-
-
 class Agent:
     """Agent for interacting with Claude AI model."""
 
@@ -178,7 +98,9 @@ class Agent:
         self.tools: Dict[str, Tool] = tools if tools is not None else {}
 
         # Initialize system message in history
-        system_text = report_planning_prompt(stock_name=stock_name)
+        system_text = report_planning_prompt(
+            stock_name=stock_name, current_time=get_current_time()
+        )
         self.message_history: List[Dict[str, Any]] = [
             {"role": "system", "content": system_text}
         ]
@@ -297,5 +219,5 @@ if __name__ == "__main__":
     agent.tools = tools
 
     # Run the chat
-    response = asyncio.run(agent.chat("請幫我統整京鼎新聞"))
+    response = asyncio.run(agent.chat("文曄今天為什麼跌"))
     print(response)

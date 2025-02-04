@@ -253,7 +253,9 @@ def writing_planning_prompt() -> str:
 """
 
 
-def report_planning_prompt(stock_name: str | None = None) -> str:
+def report_planning_prompt(
+    stock_name: str | None = None, current_time: str | None = None
+) -> str:
     """Generate the base system prompt for the AI financial research assistant.
 
     Args:
@@ -265,6 +267,7 @@ def report_planning_prompt(stock_name: str | None = None) -> str:
     if not stock_name:
         stock_name = "台灣股市"
     return f"""
+Current Time: {current_time}
 # {stock_name} News Analysis Framework
 以下是{stock_name}的分析框架，你的任務是根據此框架進行分析。
 
@@ -301,7 +304,7 @@ def report_planning_prompt(stock_name: str | None = None) -> str:
         * 關聯性分析充分
         * 建議具體
         * 時效性資訊標註日期
-        * 重要訊息需註明來源
+        * 訊息需註明來源
 """
 
 
