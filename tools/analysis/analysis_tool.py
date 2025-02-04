@@ -30,5 +30,5 @@ class AnalysisTool(Tool):
             Generated analysis report
         """
         return await generate_analysis_report(
-            self.get_news(), input_data["company_name"]
+            self.get_news(), input_data["company_name"], input_data["user_message"]
         )

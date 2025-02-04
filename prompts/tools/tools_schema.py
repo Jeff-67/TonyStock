@@ -94,9 +94,13 @@ Input Schema:
                     "company_name": {
                         "type": "string",
                         "description": "Name of the company to analyze",
-                    }
+                    },
+                    "user_message": {
+                        "type": "string",
+                        "description": "User message to generate analysis report for",
+                    },
                 },
-                "required": ["company_name"],
+                "required": ["company_name", "user_message"],
             },
         },
     ]
@@ -180,8 +184,36 @@ Framework Generation Guidelines:
                             "type": "string",
                             "description": "Company name to generate search framework for (e.g., '群聯', '京鼎')",
                         },
+                        "user_message": {
+                            "type": "string",
+                            "description": "User message to generate search framework for",
+                        },
                     },
-                    "required": ["query"],
+                    "required": ["query", "user_message"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analysis_report",
+                "description": """Generate a comprehensive stock news analysis report based on collected news and information.
+
+Input Schema:
+- company_name: Name of the company to analyze""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "company_name": {
+                            "type": "string",
+                            "description": "Name of the company to analyze",
+                        },
+                        "user_message": {
+                            "type": "string",
+                            "description": "User message to generate analysis report for",
+                        },
+                    },
+                    "required": ["company_name", "user_message"],
                 },
             },
         },

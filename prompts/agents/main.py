@@ -103,7 +103,6 @@ Each query object should have:
 {{
     "query": str,  // The actual search query combining company identifiers with keywords
     "core_question": str,  // Which core question (1-6) this query primarily addresses
-    "external_factors": [str],  // List of relevant external factors (A-D) this query considers
     "purpose": str,  // What specific information we're looking for
     "expected_insights": str,  // What insights we expect to gain from this query
     "reasoning": str  // Why this query is relevant to the user's message
@@ -119,7 +118,10 @@ Each query object should have:
 
 
 def analysis_report_prompt(
-    company_news: str, company_instruction: str, writing_instruction: str
+    company_news: str,
+    company_instruction: str,
+    writing_instruction: str,
+    user_message: str,
 ) -> str:
     """Generate prompt for news analysis report.
 
@@ -131,7 +133,7 @@ def analysis_report_prompt(
     Returns:
         Formatted prompt for generating analysis report
     """
-    return f"""Please analyze the provided news content and generate a comprehensive analysis report following the structured framework below.
+    return f"""Please analyze the provided news content and generate a comprehensive analysis report following the structured framework below to answer the user's question `{user_message}`.
 
 <Company Context and Industry Characteristics>
 {company_instruction}

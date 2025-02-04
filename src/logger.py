@@ -106,6 +106,6 @@ class ConsoleHandler(logging.StreamHandler):
 
 
 formatter = CustomFormatter()
-file_handler = FileHandler("./logs")
+file_handler = FileHandler("./line_logs")
 console_handler = ConsoleHandler()
 logger = LoggerFactory.create_logger(formatter, [file_handler, console_handler])

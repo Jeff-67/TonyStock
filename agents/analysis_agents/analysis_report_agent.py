@@ -17,30 +17,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_analysis_report_prompt(company_news: str, stock_id: str | None) -> str:
+def get_analysis_report_prompt(
+    company_news: str, stock_id: str | None, user_message: str
+) -> str:
     """Generate prompt for search framework analysis."""
     company_instruction = finance_agent_prompt(stock_id=stock_id)
     writing_instruction = writing_planning_prompt()
 
     return analysis_report_prompt(
-        company_news, company_instruction, writing_instruction
+        company_news, company_instruction, writing_instruction, user_message
     )
 
 
 @track()
 async def generate_analysis_report(
-    company_news: Dict[str, str], company_name: str
+    company_news: Dict[str, str], company_name: str, user_message: str
 ) -> str:
     """Generate comprehensive search framework using LLM.
 
     Args:
         company_name: Name of the company to analyze
-
+        user_message: User message
     Returns:
         Dict containing industry analysis and structured search queries
     """
     stock_id = stock_name_to_id(company_name)
-    prompt = get_analysis_report_prompt(str(company_news), stock_id)
+    prompt = get_analysis_report_prompt(str(company_news), stock_id, user_message)
 
     try:
         messages = [{"role": "user", "content": prompt}]

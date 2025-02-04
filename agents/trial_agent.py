@@ -99,7 +99,11 @@ class Agent:
         # Initialize system message in history
         system_text = report_planning_prompt(current_time=get_current_time())
         self.message_history: List[Dict[str, Any]] = [
-            {"role": "system", "content": system_text}
+            {"role": "system", "content": system_text},
+            {
+                "role": "system",
+                "content": "如果有user問你你是誰，或是問候你，請回答你的專長是分析京鼎、文曄還有群聯這三隻股票的觀察家。",
+            },
         ]
         self.company_news: list[Dict[str, str]] = []
 
