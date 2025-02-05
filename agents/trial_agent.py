@@ -24,8 +24,7 @@ from tools.analysis.analysis_tool import AnalysisTool
 from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
-from tools.research.search_framework_tool import SearchFrameworkTool
-from tools.time.time_tool import TimeTool, get_current_time
+from tools.time.time_tool import get_current_time
 
 # Configure logging
 logging.basicConfig(
@@ -105,7 +104,7 @@ class Agent:
                 "content": "如果有user問你你是誰，或是問候你，請回答你的專長是分析京鼎、文曄還有群聯這三隻股票的觀察家。",
             },
         ]
-        self.company_news: list[Dict[str, str]] = []
+        self.company_news: list[Dict[str, Any]] = []
 
     @track()
     async def call_model(self) -> ModelResponse:
@@ -210,8 +209,6 @@ if __name__ == "__main__":
     # Now set up tools using the fully created agent
     tools: Dict[str, Tool] = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
-        "time_tool": TimeTool(),
-        "search_framework": SearchFrameworkTool(),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
     }
 

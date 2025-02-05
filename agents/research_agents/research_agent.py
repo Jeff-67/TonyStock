@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 from opik import track
 
-from agents.research_agents.online_search_agents import research_keyword
+from agents.research_agents.online_search_agents import search_keyword
 from agents.research_agents.search_framework_agent import generate_search_framework
 
 # Configure logging
@@ -49,7 +49,7 @@ async def perform_research(
         for query_item in framework:
             query = query_item["query"]
             logger.info(f"Creating research task for query: {query}")
-            tasks.append(research_keyword(query))
+            tasks.append(search_keyword(query))
 
         # Step 3: Execute all research tasks concurrently
         search_results = await asyncio.gather(*tasks)

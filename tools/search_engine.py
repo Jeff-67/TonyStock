@@ -45,7 +45,7 @@ async def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str,
     ) as client:
         try:
             url = "https://duckduckgo.com/lite"
-            params = {"q": query, "kl": "tw-tzh"}
+            params = {"q": query}
 
             response = await client.get(url, params=params)
             response.raise_for_status()

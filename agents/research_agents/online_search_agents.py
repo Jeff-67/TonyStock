@@ -24,9 +24,7 @@ MAX_SEARCH_RESULTS = 2
 
 
 @track()
-async def research_keyword(
-    keyword: str, max_results: Optional[int] = None
-) -> List[Dict]:
+async def search_keyword(keyword: str, max_results: Optional[int] = None) -> List[Dict]:
     """Search for a keyword and scrape all retrieved URLs.
 
     Args:
@@ -83,8 +81,8 @@ async def research_keyword(
         return research_results
 
     except Exception as e:
-        logger.error(f"Error in research_keyword: {str(e)}")
-        return [{"error": f"Research failed: {str(e)}"}]
+        logger.error(f"Error in search_keyword: {str(e)}")
+        return [{"error": f"Search failed: {str(e)}"}]
 
 
 async def main():
@@ -92,7 +90,7 @@ async def main():
     test_query = "京鼎 3413 半導體設備 訂單 2025"
     logger.info(f"Starting research with query: {test_query}")
 
-    results = await research_keyword(test_query)
+    results = await search_keyword(test_query)
 
     # Print summary
     print("\nResearch Results Summary:")
