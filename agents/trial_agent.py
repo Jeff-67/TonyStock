@@ -290,5 +290,5 @@ class ClaudeAgent:
 
 if __name__ == "__main__":
     agent = ClaudeAgent()
-    response = asyncio.run(agent.chat("群聯"))
+    response = asyncio.run(agent.chat("群聯最大宗的產品線是什麼？最大的客戶是誰？"))
     print(response)

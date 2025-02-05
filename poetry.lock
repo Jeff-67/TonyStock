@@ -3490,6 +3490,28 @@ requests = ">=2.26.0"
 blobfile = ["blobfile (>=2)"]
 
 [[package]]
+name = "tokencost"
+version = "0.1.17"
+description = "To calculate token and translated USD cost of string and message calls to OpenAI, for example when used by AI agents"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+markers = "python_version == \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "tokencost-0.1.17-py3-none-any.whl", hash = "sha256:3ebddb240c92185e7818b276748911e560ea0c985c68038d766f0a71bc906cdc"},
+    {file = "tokencost-0.1.17.tar.gz", hash = "sha256:62f1e87c72eecabea6d5ee5c6b7a1170bc0cedab64475e1ce0014081be87e464"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.9.3"
+anthropic = ">=0.34.0"
+tiktoken = ">=0.7.0"
+
+[package.extras]
+dev = ["coverage[toml] (>=7.4.0)", "flake8 (>=3.1.0)", "pandas (>=2.1.0)", "pytest (>=7.4.4)", "tabulate (>=0.9.0)", "tach (==0.6.9)"]
+llama-index = ["llama-index (>=0.10.23)"]
+
+[[package]]
 name = "tokenizers"
 version = "0.21.0"
 description = ""
@@ -3798,4 +3820,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "b3feed4ad84d6d27aeaa52d3811e076f0aef7df905ad15465827d7b51e9ebb59"
+content-hash = "a3b3a9a43ce89010688689af4f0cb60193f516a259651447fdf6dcbf5096e2bb"
