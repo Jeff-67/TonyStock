@@ -47,7 +47,7 @@ async def research_keyword(
     """
     try:
         # Use the search engine to get URLs
-        search_results = search_duckduckgo(
+        search_results = await search_duckduckgo(
             keyword, max_results=max_results or MAX_SEARCH_RESULTS
         )
 
