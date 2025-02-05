@@ -1,0 +1,18 @@
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2
+pytest-mockito==0.0.4
+
+# Development Tools
+pre-commit==4.0.1
+black==24.2.0
+isort==5.13.2
+mypy==1.9.0
+flake8==7.0.0
+
+# Type Checking
+types-requests==2.31.0.20240218
+types-python-dateutil==2.8.19.20240106
+pandas-stubs==2.2.3.241126
+types-pytz==2024.2.0.20241221
+types-html5lib==1.1.11.20241018

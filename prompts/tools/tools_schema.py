@@ -83,39 +83,40 @@ def tool_prompt_construct_openai() -> list:
             "type": "function",
             "function": {
                 "name": "research",
-                "description": """Search for relevant news and information online using DuckDuckGo with API/HTML fallback.
+                "description": """Strategic news search tool that generates structured queries and returns search results.
 
-Query Construction Guidelines:
-1. Basic Format (Most Effective):
-   - Use: "[Company Name] [Stock Code] [Key Products/Technology] [Year]"
-   - Example: "群聯 8299 PCIe SSD 2025"
-   - Keep it simple, avoid complex operators
+Key Features:
+1. Generates targeted search queries based on user's request
+2. Follows systematic framework covering company, industry, and market aspects
+3. Returns structured results with sources and context
 
-2. Core Business Search:
-   - Focus on main products and technologies
-   - Example: "群聯 控制晶片 AI 2025"
-   - Example: "Phison NAND Flash 2025"
-
-3. Industry Chain Search:
-   - Add one topic at a time
-   - Example: "群聯 8299 營收"
-   - Example: "群聯 8299 新產品"
-
-4. Search Tips:
-   - Use both company name and stock code
-   - Add year for recent news
-   - Keep queries concise (4-5 terms max)
-   - Mix Chinese and English terms
-   - Avoid special operators (date:, site:, etc.)""",
+Output Format:
+[{
+    "query": {
+        "query": str,           # The actual search query
+        "core_question": str,   # Which core question this addresses
+        "purpose": str,         # What information we're looking for
+        "expected_insights": str, # Expected insights from this query
+        "reasoning": str        # Why this query is relevant
+    },
+    "search_results": [{
+        "url": str,            # Source URL
+        "context": str         # Relevant content
+    }]
+}]""",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "query": {
+                        "company_name": {
                             "type": "string",
-                            "description": "The search query following the query construction guidelines above",
+                            "description": "Name of the company to research (e.g., '群聯', '京鼎')",
+                        },
+                        "user_message": {
+                            "type": "string",
+                            "description": "User's specific research request or focus area",
                         },
                     },
-                    "required": ["query"],
+                    "required": ["company_name", "user_message"],
                 },
             },
         },
