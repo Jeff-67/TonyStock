@@ -212,22 +212,24 @@ def query_llm(
 @track()
 async def aquery_llm(
     messages: List[Message],
+    tools: Optional[List[Dict]] = None,
     model: Optional[str] = None,
     provider: Optional[str] = None,
     json_mode: bool = False,
     response_format: Optional[Dict] = None,
-) -> Optional[str]:
+) -> Any:
     """Send an asynchronous query to the LLM and get the response using LiteLLM.
 
     Args:
         messages: List of message dictionaries with role and content
+        tools: List of tool dictionaries
         model: The specific model to use (defaults to "gpt-4o")
         provider: The provider to use (defaults to "openai")
         json_mode: Whether to request JSON output (OpenAI only)
         response_format: Custom response format configuration
 
     Returns:
-        The model's response text, or None if the query fails
+        Tuple of (response object, dict with content and tool_calls)
     """
     try:
         # Create and validate configuration
@@ -241,22 +243,58 @@ async def aquery_llm(
         completion_params = create_completion_params(
             config=config,
             messages=messages,
+            tools=tools,
             json_mode=json_mode,
             response_format=response_format,
         )
 
         # Make the async API call
         response = await acompletion(**completion_params)
+        opik_context.update_current_span(
+            total_cost=calculate_cost_by_tokens(
+                response.usage.prompt_tokens, model=response.model, token_type="input"
+            )
+            + calculate_cost_by_tokens(
+                response.usage.completion_tokens,
+                model=response.model,
+                token_type="output",
+            )
+        )
 
-        # Handle response based on format
+        content = response.choices[0].message.content
+
+        # Handle tool calls serialization
+        tool_calls = []
         if (
-            response_format
-            and config.provider == Provider.OPENAI
-            and hasattr(response.choices[0].message, "parsed")
+            hasattr(response.choices[0].message, "tool_calls")
+            and response.choices[0].message.tool_calls
         ):
-            return response.choices[0].message.parsed.filtered_content
+            for tool_call in response.choices[0].message.tool_calls:
+                try:
+                    tool_calls.append(
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": json.loads(tool_call.function.arguments),
+                            },
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error parsing tool call arguments: {e}")
+                    tool_calls.append(
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            },
+                        }
+                    )
 
-        return response.choices[0].message
+        return response, {"content": content, "tool_calls": tool_calls}
 
     except Exception as e:
         print(f"Error querying LLM: {e}")

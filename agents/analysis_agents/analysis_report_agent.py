@@ -8,7 +8,7 @@ from opik import track
 from prompts.agents.knowledge import finance_agent_prompt
 from prompts.agents.main import analysis_report_prompt
 from prompts.agents.planning import writing_planning_prompt
-from tools.llm_api import query_llm
+from tools.llm_api import aquery_llm
 from utils.stock_utils import stock_name_to_id
 
 logging.basicConfig(
@@ -46,7 +46,7 @@ async def generate_analysis_report(
 
     try:
         messages = [{"role": "user", "content": prompt}]
-        response, _ = query_llm(
+        response, _ = await aquery_llm(
             messages=messages,
             model="claude-3-5-sonnet-latest",
             provider="anthropic",

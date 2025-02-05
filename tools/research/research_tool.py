@@ -5,7 +5,7 @@ This module implements the research tool for performing keyword searches.
 
 from typing import Any, Callable, Dict, List
 
-from agents.research_agents.online_research_agents import research_keyword
+from agents.research_agents.online_search_agents import research_keyword
 from tools.core.tool_protocol import Tool
 
 

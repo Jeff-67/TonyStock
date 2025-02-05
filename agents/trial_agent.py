@@ -22,7 +22,7 @@ from prompts.tools.tools_schema import (
 from settings import Settings
 from tools.analysis.analysis_tool import AnalysisTool
 from tools.core.tool_protocol import Tool
-from tools.llm_api import query_llm
+from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
 from tools.research.search_framework_tool import SearchFrameworkTool
 from tools.time.time_tool import TimeTool, get_current_time
@@ -108,7 +108,7 @@ class Agent:
         self.company_news: list[Dict[str, str]] = []
 
     @track()
-    def call_model(self) -> ModelResponse:
+    async def call_model(self) -> ModelResponse:
         """Make an API call to the model."""
         # Create new list with shallow copies of each message dict
         messages = [dict(msg) for msg in self.message_history]
@@ -119,7 +119,7 @@ class Agent:
             else tool_prompt_construct_openai()
         )
 
-        return query_llm(
+        return await aquery_llm(
             messages=messages,
             model=self.model_name,
             provider=self.provider,
@@ -147,7 +147,7 @@ class Agent:
         try:
             # Add user message to history
             self.message_history.append({"role": "user", "content": user_message})
-            response, _ = self.call_model()
+            response, _ = await self.call_model()
             # Add the assistant's message with tool calls to history
             self.message_history.append(response.choices[0].message.model_dump())
 
@@ -190,7 +190,7 @@ class Agent:
                 self.message_history.extend(tool_responses)
 
                 # Continue conversation with empty messages since history is updated
-                response, _ = self.call_model()
+                response, _ = await self.call_model()
                 self.message_history.append(response.choices[0].message.model_dump())
 
             return response.choices[0].message.content or "No response generated"

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from opik import track
 from pydantic import BaseModel
 
-from tools.llm_api import query_llm
+from tools.llm_api import aquery_llm
 
 load_dotenv()
 
@@ -27,7 +27,7 @@ class FilteredContent(BaseModel):
 
 
 @track()
-def LLMfilter(scrapped_content: str, query: str) -> str:
+async def LLMfilter(scrapped_content: str, query: str) -> str:
     """Filter the scrapped content by the query."""
     prompt = f"""
     Given web-scraped raw content in Markdown format and a specific query, extract and return only the most relevant portion that may answer the query. Remove clearly irrelevant elements such as navigation menus, sidebars, and footer content, while preserving the exact language and structure of the original content.
@@ -39,7 +39,7 @@ def LLMfilter(scrapped_content: str, query: str) -> str:
     try:
         # Format messages properly for LLM API
         messages = [{"role": "user", "content": prompt}]
-        response, _ = query_llm(
+        response, _ = await aquery_llm(
             messages=messages,
             model="gpt-4o-2024-08-06",
             provider="openai",
@@ -84,7 +84,7 @@ async def scrape_url(url: str, query: str, crawler: AsyncWebCrawler) -> str:
     result = await crawler.arun(url=url)
     # Clean the markdown content
     cleaned_content = clean_markdown(result.markdown)
-    cleaned_content = LLMfilter(cleaned_content, query)
+    cleaned_content = await LLMfilter(cleaned_content, query)
     return cleaned_content
 
 
