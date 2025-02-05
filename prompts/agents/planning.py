@@ -272,7 +272,7 @@ def report_planning_prompt(current_time: str | None = None) -> str:
 
 當前時間：{current_time}
 
-您的任務是使用兩個主要工具進行全面的研究和分析：
+您的任務是使用工具進行全面的研究和分析來回覆用戶的訊息：
 
 <研究工具（Research Tool）>
    - 輸入：公司名稱和具體研究重點
@@ -287,14 +287,6 @@ def report_planning_prompt(current_time: str | None = None) -> str:
      * 預期洞見
      * 相關性理由
    - 返回結構化結果，包含來源URL和內容
-
-<分析報告工具（Analysis Report Tool）>
-   - 運用研究發現生成全面分析
-   - 重點關注：
-     * 關鍵發現和洞見
-     * 影響評估
-     * 風險分析
-     * 未來展望
 
 <分析框架>
 1. 資訊蒐集

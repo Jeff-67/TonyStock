@@ -47,27 +47,6 @@ Output Format:
                 "required": ["company_name", "user_message"],
             },
         },
-        {
-            "name": "analysis_report",
-            "description": """Generate a comprehensive stock news analysis report based on collected news and information.
-
-Input Schema:
-- company_name: Name of the company to analyze""",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "company_name": {
-                        "type": "string",
-                        "description": "Name of the company to analyze",
-                    },
-                    "user_message": {
-                        "type": "string",
-                        "description": "User message to generate analysis report for",
-                    },
-                },
-                "required": ["company_name", "user_message"],
-            },
-        },
     ]
 
 
