@@ -1,12 +1,17 @@
+# type: ignore
+# flake8: noqa
+
+import base64
 import json
 import logging
-import base64
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import redis
-from mysql.connector import connect, Error as MySQLError
-from pymongo import MongoClient, errors as MongoErrors
 import pymongo
+import redis
+from mysql.connector import Error as MySQLError
+from mysql.connector import connect
+from pymongo import MongoClient
+from pymongo import errors as MongoErrors
 
 from settings import Settings
 
@@ -31,12 +36,12 @@ class DatabaseManager:
     def _init_redis(self) -> Optional[redis.Redis]:
         try:
             pool = redis.ConnectionPool(
-                host=self.settings.redis_config['host'],
-                port=self.settings.redis_config['port'],
-                db=self.settings.redis_config['db'],
-                password=self.settings.redis_config.get('password'),
-                max_connections=self.settings.redis_config['max_connections'],
-                decode_responses=True
+                host=self.settings.redis_config["host"],
+                port=self.settings.redis_config["port"],
+                db=self.settings.redis_config["db"],
+                password=self.settings.redis_config.get("password"),
+                max_connections=self.settings.redis_config["max_connections"],
+                decode_responses=True,
             )
             client = redis.Redis(connection_pool=pool)
             client.ping()
@@ -82,29 +87,39 @@ class DatabaseManager:
     def _init_mongo(self) -> Tuple[Optional[MongoClient], Optional[Any]]:
         try:
             client = MongoClient(
-                self.settings.mongo_config['uri'],
-                username=self.settings.mongo_config.get('username'),
-                password=self.settings.mongo_config.get('password'),
-                maxPoolSize=self.settings.mongo_config['max_pool_size']
+                self.settings.mongo_config["uri"],
+                username=self.settings.mongo_config.get("username"),
+                password=self.settings.mongo_config.get("password"),
+                maxPoolSize=self.settings.mongo_config["max_pool_size"],
             )
-            client.admin.command('ping')
+            client.admin.command("ping")
             logger.info("Connected to MongoDB.")
-            db = client[self.settings.mongo_config['db_name']]
+            db = client[self.settings.mongo_config["db_name"]]
             return client, db
         except MongoErrors.ConnectionFailure as e:
             logger.error(f"MongoDB connection error: {e}")
             return None, None
 
-    def _insert_into_mongo(self, data: Union[Dict, List[Dict]], key: str, collection: str) -> bool:
+    def _insert_into_mongo(
+        self, data: Union[Dict, List[Dict]], key: str, collection: str
+    ) -> bool:
         if self.mongo_db is None:
             logger.error("MongoDB database unavailable.")
             return False
         try:
             coll = self.mongo_db[collection]
-            result = coll.insert_many(data) if isinstance(data, list) else coll.insert_one(data)
-            count = len(result.inserted_ids) if isinstance(result, pymongo.results.InsertManyResult) else 1
+            result = (
+                coll.insert_many(data)
+                if isinstance(data, list)
+                else coll.insert_one(data)
+            )
+            count = (
+                len(result.inserted_ids)
+                if isinstance(result, pymongo.results.InsertManyResult)
+                else 1
+            )
             logger.info(f"Inserted {count} document(s) into '{collection}'.")
-            for record in (data if isinstance(data, list) else [data]):
+            for record in data if isinstance(data, list) else [data]:
                 cache_key = self._generate_cache_key(collection, key, record.get(key))
                 self._cache_data(cache_key, record)
             return True
@@ -112,8 +127,10 @@ class DatabaseManager:
             logger.error(f"MongoDB insertion error: {e}")
             return False
 
-    def _fetch_from_mongo(self, query: Dict, key: str, collection: str) -> Optional[List[Dict]]:
-        if not self.mongo_db:
+    def _fetch_from_mongo(
+        self, query: Dict, key: str, collection: str
+    ) -> Optional[List[Dict]]:
+        if self.mongo_db is None:
             logger.error("MongoDB database unavailable.")
             return None
         try:
@@ -122,10 +139,12 @@ class DatabaseManager:
             documents = list(coll.find(query))
             if documents:
                 for doc in documents:
-                    doc['_id'] = str(doc['_id'])
+                    doc["_id"] = str(doc["_id"])
                 cache_key = self._generate_cache_key(collection, key, query.get(key))
                 self._cache_data(cache_key, documents)
-                logger.info(f"Fetched and cached {len(documents)} document(s) from '{collection}'.")
+                logger.info(
+                    f"Fetched and cached {len(documents)} document(s) from '{collection}'."
+                )
                 return documents
             logger.info(f"No documents found in '{collection}' for query.")
             return None
@@ -138,11 +157,11 @@ class DatabaseManager:
     def _init_mysql_connection(self) -> Optional[Any]:
         try:
             conn = connect(
-                host=self.mysql_config['host'],
-                port=self.mysql_config.get('port', 3306),
-                user=self.mysql_config['username'],
-                password=self.mysql_config['password'],
-                database=self.mysql_config['database'],
+                host=self.mysql_config["host"],
+                port=self.mysql_config.get("port", 3305),
+                user=self.mysql_config["username"],
+                password=self.mysql_config["password"],
+                database=self.mysql_config["database"],
             )
             if conn.is_connected():
                 logger.info("Connected to MySQL.")
@@ -151,7 +170,9 @@ class DatabaseManager:
             logger.error(f"MySQL connection error: {e}")
             return None
 
-    def _insert_into_mysql(self, table: str, key: str, data: Union[Dict, List[Dict]]) -> bool:
+    def _insert_into_mysql(
+        self, table: str, key: str, data: Union[Dict, List[Dict]]
+    ) -> bool:
         conn = self._init_mysql_connection()
         if not conn:
             return False
@@ -164,7 +185,9 @@ class DatabaseManager:
                 elif isinstance(data, list):
                     for record in data:
                         self._execute_mysql_insert(cursor, table, record)
-                        cache_key = self._generate_cache_key(table, key, record.get(key))
+                        cache_key = self._generate_cache_key(
+                            table, key, record.get(key)
+                        )
                         self._cache_data(cache_key, record)
                 else:
                     logger.error("Invalid data type for MySQL insertion.")
@@ -186,7 +209,9 @@ class DatabaseManager:
         values = tuple(data.values())
         cursor.execute(sql, values)
 
-    def _fetch_from_mysql(self, query: str, key: str, table: Optional[str] = None) -> Optional[List[Dict]]:
+    def _fetch_from_mysql(
+        self, query: str, key: str, table: Optional[str] = None
+    ) -> Optional[List[Dict]]:
         conn = self._init_mysql_connection()
         if not conn:
             return None
@@ -198,7 +223,9 @@ class DatabaseManager:
                 if results:
                     cache_key = self._generate_cache_key(table or "mysql", key, query)
                     self._cache_data(cache_key, results)
-                    logger.info(f"Fetched and cached {len(results)} record(s) from MySQL.")
+                    logger.info(
+                        f"Fetched and cached {len(results)} record(s) from MySQL."
+                    )
                     return results
                 logger.info("No records found for the query.")
                 return None
@@ -216,9 +243,13 @@ class DatabaseManager:
         db_type: str,
         key: str,
         query: Union[Dict, str],
-        collection_or_table: Optional[str] = None
+        collection_or_table: Optional[str] = None,
     ) -> Optional[Any]:
-        cache_key = self._generate_cache_key(collection_or_table, key, query.get(key) if isinstance(query, dict) else None)
+        cache_key = self._generate_cache_key(
+            collection_or_table,
+            key,
+            query.get(key) if isinstance(query, dict) else None,
+        )
         cached = self._get_cached_data(cache_key)
         if cached:
             return cached
@@ -227,12 +258,12 @@ class DatabaseManager:
             logger.error("Collection or table name is required.")
             return None
 
-        if db_type.lower() == 'mongo':
+        if db_type.lower() == "mongo":
             if not isinstance(query, dict):
                 logger.error("MongoDB query must be a dictionary.")
                 return None
             return self._fetch_from_mongo(query, key, collection_or_table)
-        elif db_type.lower() == 'mysql':
+        elif db_type.lower() == "mysql":
             if not isinstance(query, str):
                 logger.error("MySQL query must be a string.")
                 return None
@@ -247,15 +278,15 @@ class DatabaseManager:
         data: Union[Dict, List[Dict]],
         key: Optional[str] = None,
         table: Optional[str] = None,
-        collection: Optional[str] = None
+        collection: Optional[str] = None,
     ) -> bool:
         db_type = db_type.lower()
-        if db_type == 'mongo':
+        if db_type == "mongo":
             if not key or not collection:
                 logger.error("MongoDB requires both key and collection name.")
                 return False
             return self._insert_into_mongo(data, key, collection)
-        elif db_type == 'mysql':
+        elif db_type == "mysql":
             if not table or not key:
                 logger.error("MySQL requires both table name and key.")
                 return False
@@ -266,8 +297,12 @@ class DatabaseManager:
 
     # ------------------- Helper Methods -------------------
 
-    def _generate_cache_key(self, collection_or_table: str, key: str, value: Optional[str]) -> str:
-        encoded = base64.urlsafe_b64encode(str(value).encode()).decode() if value else ""
+    def _generate_cache_key(
+        self, collection_or_table: str, key: str, value: Optional[str]
+    ) -> str:
+        encoded = (
+            base64.urlsafe_b64encode(str(value).encode()).decode() if value else ""
+        )
         return f"{collection_or_table}:{key}:{encoded}"
 
     @staticmethod
@@ -313,10 +348,7 @@ def main():
     ]
 
     if db_manager.insert_data(
-        db_type='mongo',
-        data=mongo_documents,
-        collection='articles',
-        key='url'
+        db_type="mongo", data=mongo_documents, collection="articles", key="url"
     ):
         logger.info("Inserted multiple documents into MongoDB.")
     else:
@@ -331,10 +363,7 @@ def main():
     }
 
     if db_manager.insert_data(
-        db_type='mongo',
-        data=mongo_document,
-        collection='articles',
-        key='url'
+        db_type="mongo", data=mongo_document, collection="articles", key="url"
     ):
         logger.info("Inserted single document into MongoDB.")
     else:
@@ -347,10 +376,7 @@ def main():
     }
 
     if db_manager.insert_data(
-        db_type='mysql',
-        data=mysql_record,
-        table='TSWE_ticker',
-        key='ticker'
+        db_type="mysql", data=mysql_record, table="TWSE", key="ticker"
     ):
         logger.info("Inserted record into MySQL.")
     else:
@@ -365,10 +391,7 @@ def main():
     ]
 
     if db_manager.insert_data(
-        db_type='mysql',
-        data=mysql_records,
-        table='TSWE_ticker',
-        key='ticker'
+        db_type="mysql", data=mysql_records, table="TWSE", key="ticker"
     ):
         logger.info("Inserted list of records into MySQL.")
     else:
@@ -385,10 +408,7 @@ def main():
 
     for query in mongo_queries:
         data = db_manager.get_data(
-            db_type='mongo',
-            key='url',
-            query=query,
-            collection_or_table='articles'
+            db_type="mongo", key="url", query=query, collection_or_table="articles"
         )
         if data:
             logger.info(f"Retrieved MongoDB data for {query['url']}: {data}")
@@ -396,24 +416,25 @@ def main():
             logger.error(f"Failed to retrieve MongoDB data for {query['url']}.")
 
     # Fetch MySQL Record
-    mysql_query = "SELECT * FROM TSWE_ticker WHERE ticker = '2330'"
+    mysql_query = "SELECT * FROM TWSE WHERE ticker = '2330'"
 
     mysql_data = db_manager.get_data(
-        db_type='mysql',
-        key='ticker',
-        query=mysql_query,
-        collection_or_table='TSWE_ticker'
+        db_type="mysql", key="ticker", query=mysql_query, collection_or_table="TWSE"
     )
     if mysql_data:
-        logger.info(f"Retrieved MySQL data for ticker {mysql_record['ticker']}: {mysql_data}")
+        logger.info(
+            f"Retrieved MySQL data for ticker {mysql_record['ticker']}: {mysql_data}"
+        )
     else:
-        logger.error(f"Failed to retrieve MySQL data for ticker {mysql_record['ticker']}.")
+        logger.error(
+            f"Failed to retrieve MySQL data for ticker {mysql_record['ticker']}."
+        )
 
     # ------------------- Direct Cache Retrieval -------------------
 
     # Retrieve Cached MongoDB Data
     for query in mongo_queries:
-        cache_key = db_manager._generate_cache_key('articles', 'url', query['url'])
+        cache_key = db_manager._generate_cache_key("articles", "url", query["url"])
         cached_data = db_manager._get_cached_data(cache_key)
         if cached_data:
             logger.info(f"Cached MongoDB data for {query['url']}: {cached_data}")
@@ -421,10 +442,12 @@ def main():
             logger.error(f"No cached data found for {query['url']}.")
 
     # Retrieve Cached MySQL Data
-    cache_key = db_manager._generate_cache_key('TSWE_ticker', 'ticker', mysql_record['ticker'])
+    cache_key = db_manager._generate_cache_key("TWSE", "ticker", mysql_record["ticker"])
     cached_mysql = db_manager._get_cached_data(cache_key)
     if cached_mysql:
-        logger.info(f"Cached MySQL data for ticker {mysql_record['ticker']}: {cached_mysql}")
+        logger.info(
+            f"Cached MySQL data for ticker {mysql_record['ticker']}: {cached_mysql}"
+        )
     else:
         logger.error(f"No cached data found for ticker {mysql_record['ticker']}.")
 
