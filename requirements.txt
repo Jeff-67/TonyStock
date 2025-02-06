@@ -1,35 +1,109 @@
-# Core dependencies
-fastapi==0.110.0
-flask==3.1.0
-uvicorn==0.29.0
-
-# Data processing
-pandas==2.2.3
-numpy==1.26.4
-
-# HTTP and Web
-httpx==0.28.1
-aiohttp==3.11.11
-beautifulsoup4==4.12.3
-crawl4ai==0.4.247
-
-# AI/LLM
-anthropic==0.42.0
-openai==1.59.4
-tiktoken==0.8.0
-
-# Configuration and Settings
-pydantic==2.10.4
-python-dotenv==1.0.1
-pydantic-settings==2.7.1
-
-# Utilities
-tenacity==9.0.0
-opik==1.4.6
-typing-extensions==4.12.2
-
-# Line Bot
-line-bot-sdk==3.14.5
-
-# Logging and Error Handling
-rich==13.9.4
+aiohappyeyeballs==2.4.4 ; python_version == "3.11" or python_version >= "3.12"
+aiohttp==3.11.11 ; python_version == "3.11" or python_version >= "3.12"
+aiosignal==1.3.2 ; python_version == "3.11" or python_version >= "3.12"
+annotated-types==0.7.0 ; python_version == "3.11" or python_version >= "3.12"
+anthropic==0.45.2 ; python_version == "3.11" or python_version >= "3.12"
+anyio==4.8.0 ; python_version == "3.11" or python_version >= "3.12"
+async-timeout==5.0.1 ; python_version == "3.11" and python_full_version < "3.11.3"
+attrs==25.1.0 ; python_version == "3.11" or python_version >= "3.12"
+audioop-lts==0.2.1 ; python_version >= "3.13"
+beautifulsoup4==4.12.3 ; python_version == "3.11" or python_version >= "3.12"
+certifi==2024.12.14 ; python_version == "3.11" or python_version >= "3.12"
+cffi==1.17.1 ; python_version == "3.11" and platform_python_implementation != "PyPy" or python_version >= "3.12" and platform_python_implementation != "PyPy"
+charset-normalizer==3.4.1 ; python_version == "3.11" or python_version >= "3.12"
+click==8.1.8 ; python_version == "3.11" or python_version >= "3.12"
+cobble==0.1.4 ; python_version == "3.11" or python_version >= "3.12"
+colorama==0.4.6 ; python_version == "3.11" and platform_system == "Windows" or python_version == "3.11" and sys_platform == "win32" or python_version >= "3.12" and platform_system == "Windows" or python_version >= "3.12" and sys_platform == "win32"
+cryptography==44.0.0 ; python_version == "3.11" or python_version >= "3.12"
+distro==1.9.0 ; python_version == "3.11" or python_version >= "3.12"
+dnspython==2.7.0 ; python_version == "3.11" or python_version >= "3.12"
+et-xmlfile==2.0.0 ; python_version == "3.11" or python_version >= "3.12"
+filelock==3.17.0 ; python_version == "3.11" or python_version >= "3.12"
+frozendict==2.4.6 ; python_version == "3.11" or python_version >= "3.12"
+frozenlist==1.5.0 ; python_version == "3.11" or python_version >= "3.12"
+fsspec==2024.12.0 ; python_version == "3.11" or python_version >= "3.12"
+greenlet==3.1.1 ; python_version == "3.11" or python_version >= "3.12"
+h11==0.14.0 ; python_version == "3.11" or python_version >= "3.12"
+html5lib==1.1 ; python_version == "3.11" or python_version >= "3.12"
+httpcore==1.0.7 ; python_version == "3.11" or python_version >= "3.12"
+httpx==0.27.2 ; python_version == "3.11" or python_version >= "3.12"
+huggingface-hub==0.27.1 ; python_version == "3.11" or python_version >= "3.12"
+idna==3.10 ; python_version == "3.11" or python_version >= "3.12"
+importlib-metadata==8.6.1 ; python_version == "3.11" or python_version >= "3.12"
+iniconfig==2.0.0 ; python_version == "3.11" or python_version >= "3.12"
+jinja2==3.1.5 ; python_version == "3.11" or python_version >= "3.12"
+jiter==0.8.2 ; python_version == "3.11" or python_version >= "3.12"
+jsonschema-specifications==2024.10.1 ; python_version == "3.11" or python_version >= "3.12"
+jsonschema==4.23.0 ; python_version == "3.11" or python_version >= "3.12"
+levenshtein==0.26.1 ; python_version == "3.11" or python_version >= "3.12"
+litellm==1.59.8 ; python_version == "3.11" or python_version >= "3.12"
+lxml==5.3.0 ; python_version == "3.11" or python_version >= "3.12"
+mammoth==1.9.0 ; python_version == "3.11" or python_version >= "3.12"
+markdown-it-py==3.0.0 ; python_version == "3.11" or python_version >= "3.12"
+markdownify==0.14.1 ; python_version == "3.11" or python_version >= "3.12"
+markitdown==0.0.1a3 ; python_version == "3.11" or python_version >= "3.12"
+markupsafe==3.0.2 ; python_version == "3.11" or python_version >= "3.12"
+mdurl==0.1.2 ; python_version == "3.11" or python_version >= "3.12"
+multidict==6.1.0 ; python_version == "3.11" or python_version >= "3.12"
+multitasking==0.0.11 ; python_version == "3.11" or python_version >= "3.12"
+mysql-connector-python==9.2.0 ; python_version == "3.11" or python_version >= "3.12"
+numpy==2.2.2 ; python_version == "3.11" or python_version >= "3.12"
+openai==1.60.2 ; python_version == "3.11" or python_version >= "3.12"
+openpyxl==3.1.5 ; python_version == "3.11" or python_version >= "3.12"
+opik==1.4.5 ; python_version == "3.11" or python_version >= "3.12"
+packaging==24.2 ; python_version == "3.11" or python_version >= "3.12"
+pandas==2.2.3 ; python_version == "3.11" or python_version >= "3.12"
+pathvalidate==3.2.3 ; python_version == "3.11" or python_version >= "3.12"
+pdfminer-six==20240706 ; python_version == "3.11" or python_version >= "3.12"
+peewee==3.17.8 ; python_version == "3.11" or python_version >= "3.12"
+pillow==11.1.0 ; python_version == "3.11" or python_version >= "3.12"
+platformdirs==4.3.6 ; python_version == "3.11" or python_version >= "3.12"
+playwright==1.49.1 ; python_version == "3.11" or python_version >= "3.12"
+pluggy==1.5.0 ; python_version == "3.11" or python_version >= "3.12"
+propcache==0.2.1 ; python_version == "3.11" or python_version >= "3.12"
+puremagic==1.28 ; python_version == "3.11" or python_version >= "3.12"
+pycparser==2.22 ; python_version == "3.11" and platform_python_implementation != "PyPy" or python_version >= "3.12" and platform_python_implementation != "PyPy"
+pydantic-core==2.27.2 ; python_version == "3.11" or python_version >= "3.12"
+pydantic-settings==2.7.1 ; python_version == "3.11" or python_version >= "3.12"
+pydantic==2.10.6 ; python_version == "3.11" or python_version >= "3.12"
+pydub==0.25.1 ; python_version == "3.11" or python_version >= "3.12"
+pyee==12.0.0 ; python_version == "3.11" or python_version >= "3.12"
+pygments==2.19.1 ; python_version == "3.11" or python_version >= "3.12"
+pymongo==4.10.1 ; python_version == "3.11" or python_version >= "3.12"
+pytest==8.3.4 ; python_version == "3.11" or python_version >= "3.12"
+python-dateutil==2.9.0.post0 ; python_version == "3.11" or python_version >= "3.12"
+python-dotenv==1.0.1 ; python_version == "3.11" or python_version >= "3.12"
+python-pptx==1.0.2 ; python_version == "3.11" or python_version >= "3.12"
+pytz==2024.2 ; python_version == "3.11" or python_version >= "3.12"
+pyyaml==6.0.2 ; python_version == "3.11" or python_version >= "3.12"
+rapidfuzz==3.11.0 ; python_version == "3.11" or python_version >= "3.12"
+redis==5.2.1 ; python_version == "3.11" or python_version >= "3.12"
+referencing==0.36.2 ; python_version == "3.11" or python_version >= "3.12"
+regex==2024.11.6 ; python_version == "3.11" or python_version >= "3.12"
+requests==2.32.3 ; python_version == "3.11" or python_version >= "3.12"
+rich==13.9.4 ; python_version == "3.11" or python_version >= "3.12"
+rpds-py==0.22.3 ; python_version == "3.11" or python_version >= "3.12"
+sentry-sdk==2.20.0 ; python_version == "3.11" or python_version >= "3.12"
+setuptools==75.8.0 ; python_version == "3.11" or python_version >= "3.12"
+six==1.17.0 ; python_version == "3.11" or python_version >= "3.12"
+sniffio==1.3.1 ; python_version == "3.11" or python_version >= "3.12"
+soupsieve==2.6 ; python_version == "3.11" or python_version >= "3.12"
+speechrecognition==3.14.1 ; python_version == "3.11" or python_version >= "3.12"
+standard-aifc==3.13.0 ; python_version >= "3.13"
+standard-chunk==3.13.0 ; python_version >= "3.13"
+ta-lib==0.6.1 ; python_version == "3.11" or python_version >= "3.12"
+tenacity==9.0.0 ; python_version == "3.11" or python_version >= "3.12"
+tiktoken==0.8.0 ; python_version == "3.11" or python_version >= "3.12"
+tokencost==0.1.17 ; python_version == "3.11" or python_version >= "3.12"
+tokenizers==0.21.0 ; python_version == "3.11" or python_version >= "3.12"
+tqdm==4.67.1 ; python_version == "3.11" or python_version >= "3.12"
+typing-extensions==4.12.2 ; python_version == "3.11" or python_version >= "3.12"
+tzdata==2025.1 ; python_version == "3.11" or python_version >= "3.12"
+urllib3==2.3.0 ; python_version == "3.11" or python_version >= "3.12"
+uuid6==2024.7.10 ; python_version == "3.11" or python_version >= "3.12"
+webencodings==0.5.1 ; python_version == "3.11" or python_version >= "3.12"
+xlsxwriter==3.2.1 ; python_version == "3.11" or python_version >= "3.12"
+yarl==1.18.3 ; python_version == "3.11" or python_version >= "3.12"
+yfinance==0.2.52 ; python_version == "3.11" or python_version >= "3.12"
+youtube-transcript-api==0.6.2 ; python_version == "3.11" or python_version >= "3.12"
+zipp==3.21.0 ; python_version == "3.11" or python_version >= "3.12"
