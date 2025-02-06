@@ -1,29 +1,33 @@
-[project]
+[tool.poetry]
 name = "tonystock"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "jeff.yang"}
-]
+description = "Stock analysis project"
+authors = ["Jeff"]
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "anthropic (>=0.45.0,<0.46.0)",
-    "opik (>=1.4.5,<2.0.0)",
-    "beautifulsoup4 (>=4.12.3,<5.0.0)",
-    "html5lib (>=1.1,<2.0)",
-    "playwright (>=1.49.1,<2.0.0)",
-    "pytz (>=2024.2,<2025.0)",
-    "markitdown (>=0.0.1a3,<0.0.2)",
-    "yfinance (>=0.2.52,<0.3.0)",
-    "redis (>=5.2.1,<6.0.0)",
-    "pymongo (>=4.10.1,<5.0.0)",
-    "mysql-connector-python (>=9.2.0,<10.0.0)",
-    "tokencost (>=0.1.17,<0.2.0)",
-    "ta-lib (>=0.6.1,<0.7.0)",
-]
 
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.110.0"
+flask = "^3.1.0"
+uvicorn = "^0.29.0"
+pandas = "^2.2.3"
+numpy = "^1.26.4"
+httpx = "^0.28.1"
+aiohttp = "^3.11.11"
+beautifulsoup4 = "^4.12.3"
+crawl4ai = "^0.4.247"
+anthropic = "^0.42.0"
+openai = "^1.59.4"
+tiktoken = "^0.8.0"
+pydantic = "^2.10.4"
+python-dotenv = "^1.0.1"
+pydantic-settings = "^2.7.1"
+tenacity = "^9.0.0"
+opik = "^1.4.6"
+typing-extensions = "^4.12.2"
+line-bot-sdk = "^3.14.5"
+rich = "^13.9.4"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

@@ -10,29 +10,28 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional
 
-import anthropic
-from opik import opik_context, track
-from opik.integrations.anthropic import track_anthropic
-from tokencost import calculate_cost_by_tokens
+from opik import track
 
-from agents.research_agents.onlin_research_agents import research_keyword
-from agents.research_agents.search_framework_agent import generate_search_framework
-from prompts.system_prompts import (
-    finance_agent_prompt,
-    system_prompt,
+from prompts.agents.planning import report_planning_prompt
+from prompts.tools.tools_schema import (
     tool_prompt_construct_anthropic,
+    tool_prompt_construct_openai,
 )
 from settings import Settings
-from tools.time_tool import get_current_time
-from utils.stock_utils import retrieve_stock_name, stock_name_to_id
+from tools.analysis.analysis_tool import AnalysisTool
+from tools.core.tool_protocol import Tool
+from tools.llm_api import aquery_llm
+from tools.research.research_tool import ResearchTool
+from tools.time.time_tool import get_current_time
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+settings = Settings()
 
 
 class ToolExecutionError(Exception):
@@ -75,149 +74,55 @@ class ModelResponse:
     text_content: Optional[str] = None
 
 
-class Tool(Protocol):
-    """Protocol defining the interface for tools."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute the tool with given input data."""
-        ...
-
-
-class ResearchTool:
-    """Tool for performing research queries."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute research query using the research_keyword function.
-
-        Args:
-            input_data: Dictionary containing the 'query' key with search term
-
-        Returns:
-            Research results from the query
-        """
-        return await research_keyword(input_data["query"])
-
-
-class TimeTool:
-    """Tool for getting current time."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Get current time for specified timezone.
-
-        Args:
-            input_data: Dictionary optionally containing 'timezone' key (defaults to 'Asia/Taipei')
-
-        Returns:
-            Current time in specified timezone
-        """
-        return get_current_time(input_data.get("timezone", "Asia/Taipei"))
-
-
-class SearchFrameworkTool:
-    """Tool for generating search frameworks."""
-
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Generate a search framework for the given query.
-
-        Args:
-            input_data: Dictionary containing the 'query' key with search term
-
-        Returns:
-            Generated search framework
-        """
-        return generate_search_framework(input_data["query"])
-
-
-class ClaudeAgent:
+class Agent:
     """Agent for interacting with Claude AI model."""
 
     def __init__(
         self,
-        client: Optional[anthropic.Client] = None,
-        settings: Optional[Settings] = None,
+        provider: Optional[str] = None,
+        model_name: Optional[str] = None,
+        tools: Optional[Dict[str, Tool]] = None,
     ):
-        """Initialize the Claude agent.
+        """Initialize the LLM agent.
 
         Args:
-            client: Anthropic client instance
-            settings: Settings instance
+            provider: Provider name
+            model_name: Model name
+            tools: Tools
+            stock_name: Stock name for system prompt
         """
-        self.client = client or track_anthropic(anthropic.Client())
-        self.settings = settings or Settings()
-        self.message_history: List[Dict[str, Any]] = []
-        self.tools: Dict[str, Tool] = {
-            "research": ResearchTool(),
-            "time_tool": TimeTool(),
-            "search_framework": SearchFrameworkTool(),
-        }
+        self.provider = provider
+        self.model_name = model_name
+        self.tools: Dict[str, Tool] = tools if tools is not None else {}
+
+        # Initialize system message in history
+        system_text = report_planning_prompt(current_time=get_current_time())
+        self.message_history: List[Dict[str, Any]] = [
+            {"role": "system", "content": system_text},
+            {
+                "role": "system",
+                "content": "如果有user問你你是誰，或是問候你，請回答你的專長是分析京鼎、文曄還有群聯這三隻股票的觀察家。",
+            },
+        ]
+        self.company_news: list[Dict[str, Any]] = []
 
     @track()
-    def process_model_response(
-        self,
-        system: str,
-        model: str,
-        max_tokens: int,
-        tool_choice: Dict[str, Any],
-        tools: List[Dict[str, Any]],
-        messages: List[Dict[str, Any]],
-    ) -> ModelResponse:
-        """Process the model response."""
-        response = self.client.messages.create(
-            system=system,
-            model=model,
-            max_tokens=max_tokens,
-            tool_choice=tool_choice,
-            tools=tools,
-            messages=messages,
-        )
-
-        text_content = next(
-            (block.text for block in response.content if hasattr(block, "text")), None
-        )
-        tool_use = next(
-            (block for block in response.content if block.type == "tool_use"), None
-        )
-
-        opik_context.update_current_span(
-            total_cost=calculate_cost_by_tokens(
-                response.usage.input_tokens, model=response.model, token_type="input"
-            )
-            + calculate_cost_by_tokens(
-                response.usage.output_tokens, model=response.model, token_type="output"
-            )
-        )
-
-        return ModelResponse(
-            stop_reason=response.stop_reason,
-            content=response.content,
-            tool_use=tool_use,
-            text_content=text_content,
-        )
-
-    @track()
-    def call_model(
-        self,
-        user_messages: List[Dict[str, Any]],
-    ) -> ModelResponse:
+    async def call_model(self) -> ModelResponse:
         """Make an API call to the model."""
-        self.message_history.extend(user_messages)
-        stock_name = retrieve_stock_name(user_messages)
-        system_text = (
-            system_prompt(stock_name=stock_name)
-            + f"\n<{stock_name} instruction>"
-            + finance_agent_prompt(stock_id=stock_name_to_id(stock_name) or stock_name)
-            + f"</{stock_name} instruction>"
-        )
-        tool_choice = {"type": "auto"}
-        tool_prompt_text = tool_prompt_construct_anthropic()["tools"]
+        # Create new list with shallow copies of each message dict
+        messages = [dict(msg) for msg in self.message_history]
 
-        return self.process_model_response(
-            system=system_text,
-            model=self.settings.model.claude_large,
-            max_tokens=self.settings.max_tokens,
-            tool_choice=tool_choice,
+        tool_prompt_text = (
+            tool_prompt_construct_anthropic()
+            if self.provider == "anthropic"
+            else tool_prompt_construct_openai()
+        )
+
+        return await aquery_llm(
+            messages=messages,
+            model=self.model_name,
+            provider=self.provider,
             tools=tool_prompt_text,
-            messages=self.message_history,
         )
 
     @track()
@@ -227,9 +132,10 @@ class ClaudeAgent:
         """Process a tool call and return the result."""
         try:
             tool = self.tools.get(tool_name)
-            if tool is None:
+            if not tool:
                 raise ToolExecutionError(f"Unknown tool: {tool_name}")
             return await tool.execute(tool_input)
+
         except Exception as e:
             logger.error(f"Tool execution failed: {str(e)}")
             raise ToolExecutionError(f"Tool execution failed: {str(e)}")
@@ -238,57 +144,77 @@ class ClaudeAgent:
     async def chat(self, user_message: str) -> str:
         """Handle the chat flow with tool usage."""
         try:
-            # Initial call with system prompt
-            response = self.call_model([{"role": "user", "content": user_message}])
+            # Add user message to history
+            self.message_history.append({"role": "user", "content": user_message})
+            response, _ = await self.call_model()
+            # Add the assistant's message with tool calls to history
+            self.message_history.append(response.choices[0].message.model_dump())
 
-            while response.stop_reason == "tool_use" and response.tool_use:
-                tool_name = response.tool_use.name
-                tool_input = response.tool_use.input
+            while response.choices[0].message.tool_calls:
+                # Process all tool calls and collect their responses
+                tool_responses = []
+                for tool_call in response.choices[0].message.tool_calls:
+                    tool_name = tool_call.function.name
+                    tool_input = json.loads(tool_call.function.arguments)
 
-                logger.info(f"Executing tool {tool_name} with input: {tool_input}")
+                    logger.info(f"Executing tool {tool_name} with input: {tool_input}")
 
-                try:
-                    # Execute tool
-                    tool_result = await self.process_tool_call(tool_name, tool_input)
-                    logger.info(f"Tool result: {tool_result}")
+                    try:
+                        # Execute tool
+                        tool_result = await self.process_tool_call(
+                            tool_name, tool_input
+                        )
+                        logger.info(f"Tool result: {tool_result}")
 
-                    # Continue conversation with verified result
-                    self.message_history.append(
-                        {"role": "assistant", "content": response.content}
-                    )
+                        # Format tool result as JSON string if it's a list or dict
+                        formatted_result = (
+                            json.dumps(tool_result, ensure_ascii=False, indent=2)
+                            if isinstance(tool_result, (list, dict))
+                            else str(tool_result)
+                        )
 
-                    # Format tool result as JSON string if it's a list or dict
-                    formatted_result = (
-                        json.dumps(tool_result, ensure_ascii=False, indent=2)
-                        if isinstance(tool_result, (list, dict))
-                        else str(tool_result)
-                    )
+                        # Create tool response
+                        tool_response = {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": formatted_result,
+                        }
+                        tool_responses.append(tool_response)
+                    except ToolExecutionError as e:
+                        logger.error(f"Tool execution error: {str(e)}")
+                        return f"Error executing tool: {str(e)}"
 
-                    response = self.call_model(
-                        [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "tool_result",
-                                        "tool_use_id": response.tool_use.id,
-                                        "content": formatted_result,
-                                    }
-                                ],
-                            }
-                        ]
-                    )
-                except ToolExecutionError as e:
-                    logger.error(f"Tool execution error: {str(e)}")
-                    return f"Error executing tool: {str(e)}"
+                # Update message history with all tool responses at once
+                self.message_history.extend(tool_responses)
 
-            return response.text_content or "No response generated"
+                # Continue conversation with empty messages since history is updated
+                response, _ = await self.call_model()
+                self.message_history.append(response.choices[0].message.model_dump())
+
+            return response.choices[0].message.content or "No response generated"
         except Exception as e:
             logger.error(f"Chat error: {str(e)}")
             return f"Error during chat: {str(e)}"
 
 
 if __name__ == "__main__":
-    agent = ClaudeAgent()
-    response = asyncio.run(agent.chat("群聯最大宗的產品線是什麼？最大的客戶是誰？"))
+    # Create agent first without tools
+    agent = Agent(
+        provider="openai",
+        model_name="gpt-4o",
+        tools={},  # Empty tools dict initially
+    )
+
+    # Now set up tools using the fully created agent
+    tools: Dict[str, Tool] = {
+        "research": ResearchTool(lambda news: agent.company_news.extend(news)),
+        "analysis_report": AnalysisTool(lambda: agent.company_news),
+    }
+
+    # Update agent's tools
+    agent.tools = tools
+
+    # Run the chat
+    response = asyncio.run(agent.chat("文曄今天為什麼跌"))
     print(response)

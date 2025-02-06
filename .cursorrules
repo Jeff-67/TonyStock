@@ -493,4 +493,31 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * 中期（3-6個月）：市場發展、競爭反應
       * 長期（6個月以上）：策略實現、商業永續
 
+19. Python TypedDict Usage (Added 2025/02)
+    - Dictionary Access
+      * TypedDict returns regular dictionaries at runtime
+      * Use dict['key'] instead of dict.key to access values
+      * Cannot use attribute access (dot notation)
+      * TypedDict only provides type hints during development
+      * Remember it's still a regular dict when actually running
+
+20. Python Type Hints Best Practices (Added 2025/02)
+    - Protocol Implementation
+      * Classes implementing a Protocol should explicitly inherit from it
+      * Add type hints to collections containing Protocol implementations
+      * Use explicit type annotations for Protocol-based collections
+      * Ensure all Protocol methods are properly implemented
+
+    - Type Hints for Collections
+      * Use explicit type hints for collections of custom types
+      * Specify full type information for dictionaries and lists
+      * Avoid generic object or Any types when possible
+      * Use TypeVar for generic type constraints
+
+    - Initialization Patterns
+      * Handle circular references by separating initialization
+      * Create objects first with minimal dependencies
+      * Set up complex dependencies after object creation
+      * Update object state in a type-safe manner
+
 # Scratchpad

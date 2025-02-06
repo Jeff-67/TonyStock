@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 from opik import track
 
 from tools.search_engine import search_duckduckgo
-from tools.web_scraper import scrape_urls
+from tools.web_scraper_by_ai import scrape_urls
 
 # Configure logging
 logging.basicConfig(
@@ -20,13 +20,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAX_SEARCH_RESULTS = 8
+MAX_SEARCH_RESULTS = 2
 
 
 @track()
-async def research_keyword(
-    keyword: str, max_results: Optional[int] = None
-) -> List[Dict]:
+async def search_keyword(keyword: str, max_results: Optional[int] = None) -> List[Dict]:
     """Search for a keyword and scrape all retrieved URLs.
 
     Args:
@@ -47,7 +45,7 @@ async def research_keyword(
     """
     try:
         # Use the search engine to get URLs
-        search_results = search_duckduckgo(
+        search_results = await search_duckduckgo(
             keyword, max_results=max_results or MAX_SEARCH_RESULTS
         )
 
@@ -59,7 +57,7 @@ async def research_keyword(
         urls = [result["url"] for result in search_results]
 
         # Scrape all URLs
-        scraped_contents = await scrape_urls(urls)
+        scraped_contents = await scrape_urls(urls=urls, query=keyword)
 
         # Combine search results with scraped content
         research_results = []
@@ -83,8 +81,8 @@ async def research_keyword(
         return research_results
 
     except Exception as e:
-        logger.error(f"Error in research_keyword: {str(e)}")
-        return [{"error": f"Research failed: {str(e)}"}]
+        logger.error(f"Error in search_keyword: {str(e)}")
+        return [{"error": f"Search failed: {str(e)}"}]
 
 
 async def main():
@@ -92,7 +90,7 @@ async def main():
     test_query = "京鼎 3413 半導體設備 訂單 2025"
     logger.info(f"Starting research with query: {test_query}")
 
-    results = await research_keyword(test_query)
+    results = await search_keyword(test_query)
 
     # Print summary
     print("\nResearch Results Summary:")

@@ -2,7 +2,7 @@
 
 ## Analysis Workflow
 1. 前置準備
-   - 檢查 `prompts/{stock_id}_instruction.md` 了解：
+   - 檢查 `prompts/company_knowledge/{stock_id}_instruction.md` 了解：
      * 產業特性與價值鏈結構
      * 公司在產業鏈中的定位
      * 核心競爭力與關鍵指標

@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agents.research_agents.onlin_research_agents import research_keyword
+from agents.research_agents.online_search_agents import research_keyword
 
 # Configure logging
 logging.basicConfig(
