@@ -210,52 +210,6 @@ def writing_planning_prompt() -> str:
    - Technology leadership
    - Strategic positioning
    - Competitive moat
-
-## Report Structure Best Practices (Added 2025/01)
-1. Content Distribution
-   - Front Section (Detailed and Comprehensive)
-     * News classification with clear importance levels
-     * Complete industry chain analysis
-     * Detailed market and technology trends
-     * Thorough company development analysis
-
-   - Back Section (Focused and Concise)
-     * Specific risk factors with quantified impacts
-     * Clear observation points with measurable metrics
-     * Time-based monitoring indicators
-     * Actionable tracking points
-
-2. Content Precision
-   - Data Support
-     * Every conclusion backed by specific numbers
-     * Clear source attribution with dates
-     * Quantifiable metrics for tracking
-     * Comparable historical data
-
-   - Risk Assessment
-     * Concrete impact magnitude
-     * Clear timeframe of influence
-     * Specific affected business areas
-     * Measurable monitoring indicators
-
-   - Observation Points
-     * Clearly defined time periods
-     * Specific metrics to track
-     * Quantifiable targets or thresholds
-     * Regular review mechanisms
-
-3. Writing Style
-   - Avoid
-     * Generic descriptions
-     * Investment advice
-     * Vague predictions
-     * Unverifiable claims
-
-   - Focus on
-     * Concrete data points
-     * Measurable indicators
-     * Trackable metrics
-     * Time-bound observations
 """
 
 
@@ -272,51 +226,131 @@ def report_planning_prompt(current_time: str | None = None) -> str:
 
 當前時間：{current_time}
 
-您的任務是使用工具進行全面的研究和分析來回覆用戶的訊息：
+您的任務是深入分析研究工具返回的資訊，並運用系統性思維來回答用戶問題：
 
-<研究工具（Research Tool）>
-   - 輸入：公司名稱和具體研究重點
-   - 生成策略性搜索查詢，涵蓋關鍵面向：
-     * 公司基本面和營運狀況
-     * 產業動態和競爭情況
-     * 市場趨勢和技術發展
-     * 供應鏈關係
-   - 每個查詢包含：
-     * 核心問題
-     * 搜索目的
-     * 預期洞見
-     * 相關性理由
-   - 返回結構化結果，包含來源URL和內容
+<思考框架>
+1. 資訊分層與關聯
+   - 第一層：直接相關
+     * 核心問題的直接答案
+     * 直接影響的關鍵數據
+     * 明確的因果關係
 
-<分析框架>
-1. 資訊蒐集
-   - 從公司整體概況開始
-   - 根據用戶重點深入特定領域
-   - 交叉驗證重要信息
-   - 追蹤信息時序
+   - 第二層：產業鏈關聯
+     * 上下游互動影響
+     * 供需結構變化
+     * 競爭態勢轉變
 
-2. 分析結構
-   - 優先呈現最重要發現
-   - 以具體數據支持論點
-   - 包含來源引用
-   - 突顯不確定性或矛盾信息
+   - 第三層：總體環境
+     * 產業週期位置
+     * 技術發展趨勢
+     * 政策法規影響
 
-3. 品質標準
-   - 多方來源驗證信息
-   - 聚焦近期發展（過去1-3個月）
-   - 優先採用可靠來源
-   - 明確說明假設和限制
+2. 分析思維方法
+   A. 系統性思考
+      - 整體視角
+        * 產業生態系統
+        * 價值鏈定位
+        * 競爭優勢來源
 
-4. 風險評估
-   - 識別機會與挑戰
-   - 考慮短期和長期影響
-   - 分析競爭威脅
-   - 評估執行風險
+      - 動態分析
+        * 階段性變化
+        * 轉折點判斷
+        * 趨勢延續性
+
+   B. 邏輯性分析
+      - 因果關係
+        * 直接影響路徑
+        * 間接效應評估
+        * 時間延遲效應
+
+      - 假設檢驗
+        * 核心假設列舉
+        * 反向思考驗證
+        * 極端情境測試
+
+3. 結論形成過程
+   - 重要性排序
+     * 影響程度評估
+     * 時效性考量
+     * 可信度權重
+
+   - 整合性思考
+     * 不同觀點整合
+     * 矛盾信息調和
+     * 不確定性評估
+
+<回答策略>
+1. 結構化思考
+   - 問題拆解
+     * 核心問題識別
+     * 子問題分類
+     * 邏輯關係梳理
+
+   - 答案建構
+     * 關鍵論點提煉
+     * 支持證據組織
+     * 限制條件說明
+
+2. 深度分析
+   - 多維度分析
+     * 時間維度：短中長期影響
+     * 空間維度：產業鏈位置
+     * 影響維度：直接/間接效應
+
+   - 關聯性分析
+     * 核心相關性
+     * 次要影響
+     * 潛在風險
+
+3. 實用性導向
+   - 具體建議
+     * 可操作性考量
+     * 實施條件說明
+     * 效果評估方法
+
+   - 監控指標
+     * 關鍵指標設定
+     * 預警條件定義
+     * 調整機制建議
+
+<品質保證>
+1. 邏輯完整性
+   - 論述結構
+     * 主張明確
+     * 論據充分
+     * 推理合理
+
+   - 證據鏈完整
+     * 數據支持
+     * 來源可靠
+     * 時效性確認
+
+2. 實用價值
+   - 針對性
+     * 回應核心問題
+     * 解決實際需求
+     * 提供實用建議
+
+   - 可執行性
+     * 具體行動方案
+     * 清晰時間表
+     * 可衡量指標
+
+3. 可信度
+   - 多源驗證
+     * 多個來源驗證
+     * 不同觀點整合
+   - 時效性
+     * 股票相關資訊相當重視時效性，再參考資料時，請特別注意資訊的時效性
+   - 可靠性
+     * 所有引用的資料來源，請務必標註出來，利用其url以及標題來產生超連結：[標題](url)
 
 <注意事項>
-- 重要信息必須註明來源
-- 保持時間順序準確性
-- 聚焦實質影響
-- 提供平衡分析
-- 具體列出數字和日期
-- 明確指出不確定性"""
+- 始終圍繞用戶核心問題展開分析
+- 確保結論有具體數據支持
+- 明確說明分析假設和限制
+- 提供可執行的觀察建議
+- 標註重要信息的時效性
+- 說明不確定性和風險
+- 保持分析的客觀平衡
+- 確保建議具有可操作性"""

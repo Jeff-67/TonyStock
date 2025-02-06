@@ -20,6 +20,7 @@ class FilteredContent(BaseModel):
 
     Attributes:
         filtered_content (str): The filtered and cleaned content extracted from the raw text.
+        time (str): The time information extracted from the content.
     """
 
     filtered_content: str
@@ -27,8 +28,20 @@ class FilteredContent(BaseModel):
 
 
 @track()
-async def LLMfilter(scrapped_content: str, query: str) -> str:
-    """Filter the scrapped content by the query."""
+async def LLMfilter(scrapped_content: str, query: str) -> FilteredContent:
+    """Filter the scrapped content by the query.
+
+    Args:
+        scrapped_content (str): The raw content to filter
+        query (str): The query to filter with
+
+    Returns:
+        FilteredContent: A model containing the filtered content and time
+
+    Note:
+        In case of error, returns a FilteredContent with the original content
+        and current timestamp.
+    """
     prompt = f"""
     Given web-scraped raw content in Markdown format and a specific query, extract and return only the most relevant portion that may answer the query. Remove clearly irrelevant elements such as navigation menus, sidebars, and footer content, while preserving the exact language and structure of the original content.
     Here is the query: {query}
@@ -46,10 +59,15 @@ async def LLMfilter(scrapped_content: str, query: str) -> str:
             response_format=FilteredContent,
         )
         json_response = json.loads(response.choices[0].message.content)
-        return str(json_response)
+        return FilteredContent(**json_response)
     except Exception as e:
         print(f"Error parsing response: {str(e)}, response: {response}")
-        return scrapped_content
+        # Return a FilteredContent with original content and current time
+        from datetime import datetime
+
+        return FilteredContent(
+            filtered_content=scrapped_content, time=datetime.now().isoformat()
+        )
 
 
 def clean_markdown(text: str) -> str:
@@ -80,12 +98,30 @@ def clean_markdown(text: str) -> str:
 
 @track()
 async def scrape_url(url: str, query: str, crawler: AsyncWebCrawler) -> str:
-    """Run the web crawler and clean the retrieved content."""
+    """Run the web crawler and clean the retrieved content.
+
+    Args:
+        url (str): The URL to scrape
+        query (str): The query to filter content with
+        crawler (AsyncWebCrawler): The crawler instance to use
+
+    Returns:
+        str: A JSON string containing:
+            - content: The filtered content relevant to the query
+            - time: The time of the content
+            - url: The source URL
+    """
     result = await crawler.arun(url=url)
     # Clean the markdown content
     cleaned_content = clean_markdown(result.markdown)
-    cleaned_content = await LLMfilter(cleaned_content, query)
-    return cleaned_content
+    filtered_result = await LLMfilter(cleaned_content, query)
+    # Create a dictionary with all the information we want to return
+    response_dict = {
+        "content": filtered_result.filtered_content,
+        "time": filtered_result.time,
+        "url": url,
+    }
+    return json.dumps(response_dict, ensure_ascii=False)
 
 
 @track()

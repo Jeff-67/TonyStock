@@ -201,8 +201,8 @@ class Agent:
 if __name__ == "__main__":
     # Create agent first without tools
     agent = Agent(
-        provider="anthropic",
-        model_name="claude-3-5-sonnet-latest",
+        provider="openai",
+        model_name="gpt-4o",
         tools={},  # Empty tools dict initially
     )
 

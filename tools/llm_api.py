@@ -115,6 +115,8 @@ def create_completion_params(
         elif response_format:
             params["response_format"] = response_format
 
+    params["fallbacks"] = ["gpt-4o"]
+
     return params
 
 
@@ -298,7 +300,7 @@ async def aquery_llm(
 
     except Exception as e:
         print(f"Error querying LLM: {e}")
-        return None
+        raise e
 
 
 async def async_main(

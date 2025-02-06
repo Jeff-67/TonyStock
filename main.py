@@ -1,23 +1,23 @@
-"""LINE Bot server implementation for stock analysis.
+"""LINE Bot server implementation for stock analysis using FastAPI.
 
-This module implements a Flask server that handles LINE Bot webhook events,
+This module implements a FastAPI server that handles LINE Bot webhook events,
 processes user messages using Claude AI, and sends responses back to users
 through the LINE Messaging API.
 """
 
-import asyncio
+import logging
 import os
-from logging import getLogger
 from typing import Dict
 
+import uvicorn
 from dotenv import load_dotenv
-from flask import Flask, abort, request
-from linebot.v3 import WebhookHandler
+from fastapi import FastAPI, HTTPException, Request
+from linebot.v3 import WebhookParser
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
-    ApiClient,
+    AsyncApiClient,
+    AsyncMessagingApi,
     Configuration,
-    MessagingApi,
     ReplyMessageRequest,
     TextMessage,
 )
@@ -26,19 +26,23 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from agents.trial_agent import Agent
 from tools.analysis.analysis_tool import AnalysisTool
 from tools.research.research_tool import ResearchTool
-from tools.research.search_framework_tool import SearchFrameworkTool
-from tools.time.time_tool import TimeTool
 
 load_dotenv()
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# Create FastAPI app
+app = FastAPI(
+    title="LINE Bot Stock Analysis API",
+    description="FastAPI server for LINE Bot stock analysis",
+    version="1.0.0",
+)
+
 configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+parser = WebhookParser(os.getenv("LINE_CHANNEL_SECRET"))
 
-# Create event loop to run async functions
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+# Create async API client
+async_api_client = AsyncApiClient(configuration)
+line_bot_api = AsyncMessagingApi(async_api_client)
 
 # Dictionary to store agents for each user
 agent_management: Dict[str, Agent] = {}
@@ -48,15 +52,13 @@ def create_agent() -> Agent:
     """Create a new agent instance with all necessary tools."""
     agent = Agent(
         provider="anthropic",
-        model_name="claude-3-sonnet-20240229",
+        model_name="claude-3-5-sonnet-20241022",
         tools={},  # Empty tools dict initially
     )
 
     # Set up tools using the created agent
     tools = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
-        "time_tool": TimeTool(),
-        "search_framework": SearchFrameworkTool(),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
     }
 
@@ -65,11 +67,14 @@ def create_agent() -> Agent:
     return agent
 
 
-@app.route("/callback", methods=["POST"])
-def callback():
+@app.post("/callback")
+async def callback(request: Request):
     """Handle LINE webhook callback.
 
     Validates the signature and processes the webhook event.
+
+    Args:
+        request: The incoming FastAPI request
 
     Returns:
         str: 'OK' if successful
@@ -77,21 +82,28 @@ def callback():
     Raises:
         HTTPException: 400 if signature is invalid
     """
-    signature = request.headers["X-Line-Signature"]
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+    signature = request.headers.get("X-Line-Signature", "")
+    body = await request.body()
+    body_str = body.decode()
+
     try:
-        handler.handle(body, signature)
+        events = parser.parse(body_str, signature)
+        for event in events:
+            if isinstance(event, MessageEvent) and isinstance(
+                event.message, TextMessageContent
+            ):
+                await handle_text_message(event)
     except InvalidSignatureError:
-        print(
-            "Invalid signature. Please check your channel access token/channel secret."
+        logger.error("Invalid signature")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid signature. Please check your channel access token/channel secret.",
         )
-        abort(400)
+
     return "OK"
 
 
-@handler.add(MessageEvent, message=TextMessageContent)
-def handle_text_message(event):
+async def handle_text_message(event: MessageEvent):
     """Handle text messages from LINE users.
 
     Processes the message using Claude AI and sends the response
@@ -111,31 +123,28 @@ def handle_text_message(event):
 
         # Get user's agent and process message
         user_agent = agent_management[user_id]
-        response = loop.run_until_complete(user_agent.chat(text))
+        response = await user_agent.chat(text)
+
         msg = TextMessage(text=response)
 
-        # Send response
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message(
-                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
-            )
+        # Send response using async API client
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+        )
 
     except Exception as e:
         logger.error(f"Error processing message: {str(e)}")
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            error_message = "處理訊息時發生錯誤，請稍後再試"
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=error_message)],
-                )
+        error_message = "處理訊息時發生錯誤，請稍後再試"
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=error_message)],
             )
+        )
 
 
-@app.route("/", methods=["GET"])
-def home():
+@app.get("/")
+async def home():
     """Handle requests to the root endpoint.
 
     Returns:
@@ -145,7 +154,4 @@ def home():
 
 
 if __name__ == "__main__":
-    try:
-        app.run(host="0.0.0.0", port=8888)
-    finally:
-        loop.close()
+    uvicorn.run("main:app", host="0.0.0.0", port=8888, reload=True)
