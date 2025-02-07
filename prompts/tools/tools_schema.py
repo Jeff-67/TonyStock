@@ -47,6 +47,71 @@ Output Format:
                 "required": ["company_name", "user_message"],
             },
         },
+        {
+            "name": "technical_analysis",
+            "description": """Technical analysis tool using TA-Lib to analyze stock price patterns and indicators.
+
+Key Features:
+1. Trend analysis using moving averages
+2. Momentum indicators (RSI, MACD, Stochastic)
+3. Volatility measures (ATR, Bollinger Bands)
+4. Volume analysis and pattern recognition
+5. Support/resistance level identification
+
+Output Format:
+{
+    "trend_analysis": {
+        "overall_trend": str,
+        "moving_averages": {
+            "SMA_50": float,
+            "SMA_200": float,
+            "EMA_20": float
+        }
+    },
+    "momentum_indicators": {
+        "RSI": float,
+        "MACD": {
+            "macd": float,
+            "signal": float,
+            "histogram": float
+        },
+        "Stochastic": {
+            "slowK": float,
+            "slowD": float
+        }
+    },
+    "volatility_indicators": {
+        "ATR": float,
+        "Bollinger_Bands": {
+            "upper": float,
+            "middle": float,
+            "lower": float
+        }
+    },
+    "volume_indicators": {
+        "OBV": float
+    },
+    "patterns": List[str],
+    "support_resistance": {
+        "support_levels": List[float],
+        "resistance_levels": List[float]
+    }
+}""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Stock symbol to analyze",
+                    },
+                    "days": {
+                        "type": "integer",
+                        "description": "Number of days of historical data to analyze (default: 200)",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
     ]
 
 
@@ -96,6 +161,74 @@ Output Format:
                         },
                     },
                     "required": ["company_name", "user_message"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "technical_analysis",
+                "description": """Technical analysis tool using TA-Lib to analyze stock price patterns and indicators.
+
+Key Features:
+1. Trend analysis using moving averages
+2. Momentum indicators (RSI, MACD, Stochastic)
+3. Volatility measures (ATR, Bollinger Bands)
+4. Volume analysis and pattern recognition
+5. Support/resistance level identification
+
+Output Format:
+{
+    "trend_analysis": {
+        "overall_trend": str,
+        "moving_averages": {
+            "SMA_50": float,
+            "SMA_200": float,
+            "EMA_20": float
+        }
+    },
+    "momentum_indicators": {
+        "RSI": float,
+        "MACD": {
+            "macd": float,
+            "signal": float,
+            "histogram": float
+        },
+        "Stochastic": {
+            "slowK": float,
+            "slowD": float
+        }
+    },
+    "volatility_indicators": {
+        "ATR": float,
+        "Bollinger_Bands": {
+            "upper": float,
+            "middle": float,
+            "lower": float
+        }
+    },
+    "volume_indicators": {
+        "OBV": float
+    },
+    "patterns": List[str],
+    "support_resistance": {
+        "support_levels": List[float],
+        "resistance_levels": List[float]
+    }
+}""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {
+                            "type": "string",
+                            "description": "Stock symbol to analyze",
+                        },
+                        "days": {
+                            "type": "integer",
+                            "description": "Number of days of historical data to analyze (default: 200)",
+                        },
+                    },
+                    "required": ["symbol"],
                 },
             },
         },

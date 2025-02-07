@@ -24,6 +24,7 @@ from tools.analysis.analysis_tool import AnalysisTool
 from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
+from tools.technical_analysis.ta_tool import TATool
 from tools.time.time_tool import get_current_time
 
 # Configure logging
@@ -210,11 +211,12 @@ async def main():
     tools: Dict[str, Tool] = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
+        "technical_analysis": TATool(),
     }
 
     # Update agent's tools
     agent.tools = tools
-    response = await agent.chat("文曄今天為什麼跌")
+    response = await agent.chat("京鼎今天的股價變化如何？請從技術面分析。")
     print(response)
 
 
