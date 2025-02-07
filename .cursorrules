@@ -43,7 +43,7 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       - Debug flag available
 
    c. read_pdf.py
-      - Command: conda activate stock && python -m tools.read_pdf [pdf_path] [--model model_name]
+      - Command: conda activate stock && python -m tools.read_pdf [--pdf_path pdf_path] [--model model_name]
       - Default model: gpt-4o
       - Outputs markdown in same directory
 
