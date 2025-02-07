@@ -51,3 +51,12 @@ logs/
 *.db
 *.sqlite3
 .vercel
+
+
+# large files
+*.pdf
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz

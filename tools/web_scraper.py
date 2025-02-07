@@ -11,6 +11,7 @@ validation and error handling.
 import argparse
 import asyncio
 import logging
+import os
 import sys
 import time
 from multiprocessing import Pool
@@ -30,13 +31,169 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def download_file(
+    url: str, context, download_dir: str = "downloads"
+) -> Optional[str]:
+    """Asynchronously download a file."""
+    page = await context.new_page()
+    try:
+        logger.info(f"Downloading file from {url}")
+
+        # Create downloads directory if it doesn't exist
+        os.makedirs(download_dir, exist_ok=True)
+
+        # First navigate to the page
+        await page.goto(url)
+        await page.wait_for_load_state("networkidle")
+
+        # Try to find the main content area or PDF viewer
+        content_selectors = [
+            "#annotationLayer1",  # Try the annotation layer directly
+            "canvas",
+            ".contextMenu__link",
+            "#pdf-viewer",
+            ".pdf-container",
+        ]
+
+        for selector in content_selectors:
+            try:
+                element = await page.wait_for_selector(selector, timeout=5000)
+                if element:
+                    logger.info(f"Found content element with selector: {selector}")
+
+                    # Get element position
+                    box = await element.bounding_box()
+                    if box:
+                        # Click in the middle of the element
+                        x = box["x"] + box["width"] / 2
+                        y = box["y"] + box["height"] / 2
+
+                        # Simulate right click at coordinates
+                        await page.mouse.move(x, y)
+                        await page.mouse.down(button="right")
+                        await page.mouse.up(button="right")
+                        await page.wait_for_timeout(1000)  # Wait for context menu
+
+                        # Look for download links in the context menu
+                        download_selectors = [
+                            'a:has-text("下載")',
+                            "a.contextMenu__link",
+                            "a[download]",
+                            'a[href*=".pdf"]',
+                        ]
+
+                        for download_selector in download_selectors:
+                            try:
+                                # Use JavaScript to find and click the download link
+                                download_element = await page.wait_for_selector(
+                                    download_selector, timeout=5000
+                                )
+                                if download_element:
+                                    logger.info(
+                                        f"Found download element with selector: {download_selector}"
+                                    )
+
+                                    # Get the href and download attributes
+                                    href = await download_element.get_attribute("href")
+                                    download_filename = (
+                                        await download_element.get_attribute("download")
+                                    )
+
+                                    if href:
+                                        logger.info(f"Found download link: {href}")
+                                        # If it's a relative URL, make it absolute
+                                        if href.startswith("/"):
+                                            parsed_url = urlparse(url)
+                                            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+                                            href = base_url + href
+
+                                        # Setup download handling
+                                        async with page.expect_download(
+                                            timeout=30000
+                                        ) as download_info:
+                                            # Use JavaScript to trigger the download
+                                            await page.evaluate(
+                                                """(element) => {
+                                                element.click();
+                                                if (!element.click) {
+                                                    const event = new MouseEvent('click', {
+                                                        bubbles: true,
+                                                        cancelable: true,
+                                                        view: window
+                                                    });
+                                                    element.dispatchEvent(event);
+                                                }
+                                            }""",
+                                                download_element,
+                                            )
+
+                                            download = await download_info.value
+
+                                            # Use the download attribute filename if available
+                                            filename = (
+                                                download_filename
+                                                or download.suggested_filename
+                                            )
+                                            path = os.path.join(download_dir, filename)
+                                            await download.save_as(path)
+
+                                            logger.info(
+                                                f"Successfully downloaded file to {path}"
+                                            )
+                                            return path
+                            except Exception as e:
+                                logger.debug(
+                                    f"Download selector {download_selector} failed: {str(e)}"
+                                )
+                                continue
+            except Exception as e:
+                logger.debug(f"Content selector {selector} failed: {str(e)}")
+                continue
+
+        logger.error("No download link found on the page")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error downloading from {url}: {str(e)}")
+        return None
+    finally:
+        await page.close()
+
+
 async def fetch_page(url: str, context) -> Optional[str]:
     """Asynchronously fetch a webpage's content."""
     page = await context.new_page()
     try:
         logger.info(f"Fetching {url}")
+
+        # Monitor network requests
+        async def log_request(request):
+            if request.resource_type in ["xhr", "fetch"]:
+                logger.info(f"Network request: {request.method} {request.url}")
+                if request.post_data:
+                    logger.info(f"Post data: {request.post_data}")
+
+        page.on("request", log_request)
+
+        # Enable JavaScript console
+        page.on("console", lambda msg: logger.info(f"Console: {msg.text}"))
+
         await page.goto(url)
         await page.wait_for_load_state("networkidle")
+
+        # Get page state
+        state = await page.evaluate(
+            """() => {
+            return {
+                url: window.location.href,
+                token: new URLSearchParams(window.location.search).get('token'),
+                documentId: window.__NUXT__?.state?.document?.id,
+                fileInfo: window.__NUXT__?.state?.document?.fileInfo
+            }
+        }"""
+        )
+        logger.info(f"Page state: {state}")
+
         content = await page.content()
         logger.info(f"Successfully fetched {url}")
         return content
@@ -142,7 +299,12 @@ def parse_html(html_content: Optional[str]) -> str:
 
 
 @track()
-async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[str]:
+async def scrape_urls(
+    urls: List[str],
+    max_concurrent: int = 5,
+    download_mode: bool = False,
+    download_dir: str = "downloads",
+) -> List[str]:
     """Process multiple URLs concurrently."""
     async with async_playwright() as p:
         browser = await p.chromium.launch()
@@ -155,15 +317,19 @@ async def scrape_urls(urls: List[str], max_concurrent: int = 5) -> List[str]:
             tasks = []
             for i, url in enumerate(urls):
                 context = contexts[i % len(contexts)]
-                task = fetch_page(url, context)
+                if download_mode:
+                    task = download_file(url, context, download_dir)
+                else:
+                    task = fetch_page(url, context)
                 tasks.append(task)
 
             # Gather results
-            html_contents = await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks)
 
-            # Parse HTML contents in parallel
-            with Pool() as pool:
-                results = pool.map(parse_html, html_contents)
+            if not download_mode:
+                # Parse HTML contents in parallel
+                with Pool() as pool:
+                    results = pool.map(parse_html, results)
 
             return results
 
@@ -201,6 +367,14 @@ def main():
         help="Maximum number of concurrent browser instances (default: 5)",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument(
+        "--download",
+        action="store_true",
+        help="Download files instead of scraping content",
+    )
+    parser.add_argument(
+        "--download-dir", default="downloads", help="Directory to save downloaded files"
+    )
 
     args = parser.parse_args()
 
@@ -221,13 +395,23 @@ def main():
 
     start_time = time.time()
     try:
-        results = asyncio.run(scrape_urls(valid_urls, args.max_concurrent))
+        results = asyncio.run(
+            scrape_urls(
+                valid_urls, args.max_concurrent, args.download, args.download_dir
+            )
+        )
 
         # Print results to stdout
-        for url, text in zip(valid_urls, results):
-            print(f"\n=== Content from {url} ===")
-            print(text)
-            print("=" * 80)
+        for url, result in zip(valid_urls, results):
+            if args.download:
+                if result:
+                    print(f"Successfully downloaded from {url} to {result}")
+                else:
+                    print(f"Failed to download from {url}")
+            else:
+                print(f"\n=== Content from {url} ===")
+                print(result)
+                print("=" * 80)
 
         logger.info(f"Total processing time: {time.time() - start_time:.2f}s")
 
