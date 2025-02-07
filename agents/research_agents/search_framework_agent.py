@@ -145,8 +145,9 @@ async def generate_search_framework(
     messages = [{"role": "user", "content": prompt}]
     response, _ = await aquery_llm(
         messages=messages,
-        model="claude-3-5-sonnet-latest",
+        model="claude-3-sonnet-20240229",
         provider="anthropic",
+        json_mode=True,
     )
 
     if not response.choices[0].message.content:

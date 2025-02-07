@@ -36,7 +36,6 @@ settings = Settings()
 
 class ToolExecutionError(Exception):
     """Raised when a tool execution fails."""
-
     pass
 
 
@@ -50,7 +49,6 @@ class ToolExecutionResult:
         result: Optional result data from the tool execution
         message: Optional message describing the execution result
     """
-
     success: bool
     tool_name: str
     result: Optional[Any] = None
@@ -67,7 +65,6 @@ class ModelResponse:
         tool_use: Optional tool use request from the model
         text_content: Optional extracted text content from the response
     """
-
     stop_reason: str
     content: List[Any]
     tool_use: Optional[Dict[str, Any]] = None
@@ -109,21 +106,25 @@ class Agent:
     @track()
     async def call_model(self) -> ModelResponse:
         """Make an API call to the model."""
-        # Create new list with shallow copies of each message dict
-        messages = [dict(msg) for msg in self.message_history]
+        try:
+            # Create new list with shallow copies of each message dict
+            messages = [dict(msg) for msg in self.message_history]
 
-        tool_prompt_text = (
-            tool_prompt_construct_anthropic()
-            if self.provider == "anthropic"
-            else tool_prompt_construct_openai()
-        )
+            tool_prompt_text = (
+                tool_prompt_construct_anthropic()
+                if self.provider == "anthropic"
+                else tool_prompt_construct_openai()
+            )
 
-        return await aquery_llm(
-            messages=messages,
-            model=self.model_name,
-            provider=self.provider,
-            tools=tool_prompt_text,
-        )
+            return await aquery_llm(
+                messages=messages,
+                model=self.model_name,
+                provider=self.provider,
+                tools=tool_prompt_text,
+            )
+        except Exception as e:
+            logger.error(f"Model call failed: {str(e)}")
+            raise
 
     @track()
     async def process_tool_call(
@@ -135,11 +136,9 @@ class Agent:
             if not tool:
                 raise ToolExecutionError(f"Unknown tool: {tool_name}")
             return await tool.execute(tool_input)
-
         except Exception as e:
             logger.error(f"Tool execution failed: {str(e)}")
             raise ToolExecutionError(f"Tool execution failed: {str(e)}")
-
     @track(project_name="tony_stock")
     async def chat(self, user_message: str) -> str:
         """Handle the chat flow with tool usage."""
@@ -198,11 +197,12 @@ class Agent:
             return f"Error during chat: {str(e)}"
 
 
-if __name__ == "__main__":
+async def main():
+    """Run an interactive chat session with the agent."""
     # Create agent first without tools
     agent = Agent(
-        provider="openai",
-        model_name="gpt-4o",
+        provider="anthropic",
+        model_name="claude-3-sonnet-20240229",
         tools={},  # Empty tools dict initially
     )
 
@@ -214,7 +214,10 @@ if __name__ == "__main__":
 
     # Update agent's tools
     agent.tools = tools
-
-    # Run the chat
-    response = asyncio.run(agent.chat("文曄今天為什麼跌"))
+    response = await agent.chat("文曄今天為什麼跌")
     print(response)
+
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

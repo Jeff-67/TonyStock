@@ -67,6 +67,13 @@ class LLMConfig:
     @property
     def full_model_name(self) -> str:
         """Get the full model name with provider prefix."""
+        # For Anthropic models, just return the model name
+        if self.provider == Provider.ANTHROPIC:
+            return self.model
+        # For OpenAI models, just return the model name
+        if self.provider == Provider.OPENAI:
+            return self.model
+        # For other providers, prefix with provider name
         return f"{self.provider}/{self.model}"
 
 
