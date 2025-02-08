@@ -216,9 +216,11 @@ async def main():
 
     # Update agent's tools
     agent.tools = tools
-    response = await agent.chat("京鼎今天的股價變化如何？請從技術面分析。")
+    
+    response = await agent.chat("請分析京鼎(3413)近期走勢")
+    print('='*100)
     print(response)
-
+    print('='*100)
 
 
 if __name__ == "__main__":

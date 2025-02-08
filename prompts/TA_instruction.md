@@ -1,120 +1,224 @@
-# Technical Analysis Framework Using TA‑Lib
+# Technical Analysis Framework Using TA-Lib
 
 ## 1. Chart & Indicator Search Strategy
 
 ### A. Price Patterns & Trend Analysis
    - **Trend Determination:**  
-     * Identify whether the stock is in an uptrend, downtrend, or trading sideways.  
-     * Use TA‑Lib functions like SMA, EMA, and TEMA to compute moving averages and define trend direction.
+     * Determine if the stock is in an uptrend, downtrend, or consolidation.
+     * Use TA-Lib functions like SMA, EMA to calculate moving averages and define trend direction.
+     * Special attention to:
+       - 5MA, 10MA for short-term trends.
+       - 20MA, 60MA for medium-term trends.
+       - 120MA, 240MA for long-term trends.
    - **Support & Resistance Levels:**  
-     * Detect key support and resistance zones based on historical price data.  
-     * Utilize pivot point calculations and Fibonacci retracements.
+     * Detect key support and resistance zones based on historical price data.
+     * Utilize Fibonacci retracements.
+     * Observe:
+       - Integer levels (e.g., 100, 200) as support/resistance.
+       - Previous highs/lows.
    - **Pattern Recognition:**  
-     * Identify classic chart patterns (e.g., head and shoulders, triangles, flags).  
-     * Use candlestick pattern functions from TA‑Lib (such as CDLHAMMER, CDLDOJI, CDLENGULFING, etc.) to confirm reversal or continuation signals.
+     * Identify classic patterns (e.g., head and shoulders, triangles, flags).
+     * Use TA-Lib's candlestick pattern functions (like CDLHAMMER, CDLDOJI, CDLENGULFING).
+     * Focus on common patterns:
+       - Double bottoms/tops.
+       - Head and shoulders.
+       - Triangle patterns.
 
-### B. Technical Indicators via TA‑Lib
+### B. Technical Indicators via TA-Lib
    - **Momentum & Oscillators:**  
-     * Calculate RSI (TA‑Lib function: RSI) to detect overbought or oversold conditions.  
-     * Use MACD (TA‑Lib function: MACD or MACDEXT) for momentum analysis and crossover signals.  
-     * Evaluate the Stochastic Oscillator (TA‑Lib functions: STOCH, STOCHF, or STOCHRSI) for entry/exit signals.
+     * Calculate RSI (TA-Lib function: RSI) to detect overbought or oversold conditions.
+       - Focus on 5-day, 14-day RSI.
+       - Monitor 80/20 and 70/30 overbought/oversold zones.
+     * Use MACD (TA-Lib function: MACD or MACDEXT) for momentum analysis and crossover signals.
+       - DIF, MACD, OSC three-line golden/death crosses.
+       - Watch for divergence phenomena.
+     * Evaluate KD indicator (TA-Lib functions: STOCH, STOCHF or STOCHRSI) for entry/exit signals.
+       - Monitor 80/20 overbought/oversold zones.
+       - Watch K line and D line crossovers.
+     * DMI (TA-Lib function: ADX, PLUS_DI, MINUS_DI) for trend direction.
+       - Compare DI+ and DI- crossovers.
+       - Use with ADX for trend strength confirmation.
    - **Volatility Measures:**  
-     * Compute ATR (TA‑Lib function: ATR) to assess the market’s volatility.  
-     * Apply Bollinger Bands (TA‑Lib function: BBANDS) to understand price deviations.
+     * Apply Bollinger Bands (TA-Lib function: BBANDS) to understand price deviations.
+       - Focus on Bollinger Band compression and expansion.
+       - Confirm price breakouts above/below bands.
+     * ATR (TA-Lib function: ATR) for volatility measurement.
+       - Use for stop loss placement.
+       - Higher ATR indicates higher volatility.
    - **Volume & Trend Confirmation:**  
-     * Use OBV (TA‑Lib function: OBV) to analyze volume trends relative to price movements.
+     * Use OBV (TA-Lib function: OBV) to analyze volume trends relative to price movements.
+     * Volume Rate of Change (VROC).
+       - Compare with price movement.
+       - Identify volume expansion/contraction.
+     * Price Volume Trend (PVT).
+       - Confirm trend strength.
+       - Watch for divergences.
    - **Additional Indicators:**  
-     * Incorporate other TA‑Lib functions as needed (e.g., ADX for trend strength, CCI for cyclical trends, and various moving averages like DEMA, KAMA, or WMA).
+     * ADX (TA-Lib function: ADX) for trend strength.
+       - Values above 25 indicate strong trend.
+     * CCI (TA-Lib function: CCI) for cyclical trends.
+       - Standard 20-period setting.
+       - Overbought/oversold at +100/-100.
+     * Williams %R (TA-Lib function: WILLR).
+       - Complement to KD indicator.
+       - Focus on -20/-80 levels.
+     * Triple EMA (TEMA) for trend following.
+       - Less lag than simple MA.
+       - Good for quick trend changes.
 
 ## 2. Technical Analysis Framework
 
 ### A. Trend & Moving Average Analysis
    - **Trend Identification:**  
-     * Confirm the current trend by comparing short-term and long-term moving averages.  
-     * Look for crossovers (e.g., using EMA or SMA computed via TA‑Lib) that signal trend changes.
+     * Confirm current trend by comparing short-term and long-term moving averages.
+     * Look for moving average crossovers suggesting trend changes.
+     * Special focus on:
+       - 5MA, 10MA for short-term.
+       - 20MA, 60MA for medium-term.
+       - 120MA, 240MA for long-term.
    - **Divergence Analysis:**  
-     * Analyze divergences between price and momentum indicators (RSI, MACD) that may suggest trend reversals.
+     * Analyze price and momentum indicator (RSI, MACD) divergences that may signal trend reversals.
+     * Watch for:
+       - Bullish divergence (price makes new low but indicator doesn't).
+       - Bearish divergence (price makes new high but indicator doesn't).
 
-### B. Support, Resistance & Price Action Analysis
+### B. Support, Resistance & Candlestick Analysis
    - **Zone Mapping:**  
-     * Determine significant support and resistance levels from historical price data.  
+     * Determine significant support and resistance levels from historical data.
      * Identify potential breakout or breakdown areas.
+     * Special attention to:
+       - Integer levels.
+       - Previous wave highs and lows.
+       - Moving average support/resistance.
    - **Candlestick Pattern Evaluation:**  
-     * Use TA‑Lib’s candlestick pattern functions (such as CDLDOJI, CDLHAMMER, etc.) to validate reversal patterns.
+     * Use TA-Lib's candlestick pattern functions (like CDLDOJI, CDLHAMMER).
+     * Watch for common patterns:
+       - Bullish engulfing.
+       - Doji.
+       - Hammer.
+       - Morning/Evening star.
 
 ### C. Momentum, Oscillator & Volatility Analysis
    - **Momentum Assessment:**  
-     * Use RSI, MACD, and Stochastic readings to gauge market momentum.  
-     * Confirm signals with TA‑Lib computed values.
+     * Use RSI, MACD, and KD values to measure market momentum.
+     * Confirm signals with TA-Lib computed values.
+     * Special focus on:
+       - RSI 5, 14 overbought/oversold.
+       - MACD histogram changes.
+       - KD value crossover positions.
    - **Volatility Check:**  
-     * Analyze ATR and Bollinger Bands to assess current market volatility and potential price swings.
+     * Analyze Bollinger Bands to assess current market volatility and potential price swings.
+     * Monitor:
+       - Bollinger Band width changes.
+       - Price position within the channel.
 
 ## 3. Key Observation Indicators
 
 - **Price Action Metrics:**  
-  * Monitor the stock’s price relative to key moving averages (e.g., 50-day, 200-day).  
-  * Track breakout occurrences and validate them using TA‑Lib-derived support/resistance levels.
+  * Monitor price relative to key moving averages.
+  * Track breakouts and validate using TA-Lib-derived support/resistance levels.
+  * Special attention to:
+    - Integer level breakouts.
+    - Moving average convergence.
+    - Price gaps.
   
 - **Indicator Readings:**  
-  * Record values from TA‑Lib functions such as RSI, MACD, ADX, and others.  
-  * Note any divergence between price trends and oscillator readings.
+  * Record values from TA-Lib functions like RSI, MACD, KD.
+  * Note divergences between price trends and oscillator readings.
   
 - **Volume Analysis:**  
-  * Evaluate volume trends via OBV and compare them with price changes to confirm movements.
+  * Use OBV to evaluate volume trends relative to price changes for trend confirmation.
+  * Monitor:
+    - Volume-price correlation.
+    - Volume spike characteristics.
+    - Volume contraction.
 
 ## 4. Risk Assessment
 
 - **Technical Risks:**  
-  * Identify the potential for false breakouts or whipsaws, particularly in low-volume situations.  
-  * Watch for conflicting signals from different TA‑Lib indicators.
+  * Identify potential false breakouts or whipsaws, especially in low volume conditions.
+  * Watch for conflicting signals from different TA-Lib indicators.
+  * Special attention to:
+    - False breakouts in consolidation areas.
+    - Gap fills.
+    - Oscillation in moving average convergence zones.
   
 - **Market Conditions:**  
-  * Consider increased risks during periods of high volatility (as indicated by ATR and Bollinger Bands) or following major market news.
+  * Consider increased risk during high volatility periods (indicated by ATR and Bollinger Bands).
 
 ## 5. Trading Recommendations
 
 - **Entry & Exit Strategies:**  
-  * Define entry points based on confirmed technical signals (e.g., moving average crossovers, breakout confirmation, candlestick reversal patterns).  
-  * Set stop-loss orders at logical levels (e.g., below support zones) using ATR to guide the placement.
+  * Define entry points based on confirmed technical signals (moving average crossovers, breakout confirmation, candlestick reversal patterns).
+  * Set stop-losses at logical levels (below support zones) using ATR for placement.
+  * Special attention to:
+    - Trend trading entry timing.
+    - Reversal trade confirmation signals.
+    - Stop-loss/take-profit placement.
   
 - **Risk Management:**  
-  * Use position sizing based on volatility (ATR-based calculations) and ensure proper stop-loss/take-profit levels.
+  * Use position sizing based on volatility (ATR calculations) and ensure proper stop-loss/profit targets.
+  * Consider:
+    - Capital management ratios.
+    - Single trade risk.
+    - Overall position risk.
   
 - **Ongoing Monitoring:**  
-  * Continually update your TA‑Lib indicator values (RSI, MACD, etc.) to adjust your strategy as market conditions evolve.
+  * Continuously update TA-Lib indicator values (RSI, MACD, etc.) to adjust strategy with market conditions.
+  * Track:
+    - Indicator changes.
+    - Price pattern changes.
+    - Volume changes.
 
 ## 6. Regular Update & Review Schedule
 
 - **Daily Updates:**  
-  * Reassess chart patterns, update moving averages, and recalculate key TA‑Lib indicators.  
-  * Monitor intraday price action and volume spikes.
+  * Reassess chart patterns, update moving averages, and recalculate key TA-Lib indicators.
+  * Monitor intraday price action and volume breakouts.
+  * Focus on:
+    - Opening patterns.
+    - Intraday changes.
+    - Closing patterns.
   
 - **Weekly Updates:**  
-  * Revalidate support/resistance levels and update technical indicator thresholds with the latest data.
-  
-- **Event-Driven Reviews:**  
-  * Adjust the analysis immediately following major market news or unexpected price movements.
+  * Revalidate support/resistance levels and update technical indicator thresholds.
+  * Review:
+    - Weekly trends.
+    - Technical indicator changes.
+    - Volume patterns.
 
 ## 7. Methodology & Continuous Improvement
 
 - **Data-Driven Analysis:**  
-  * Convert qualitative chart observations into quantifiable metrics using TA‑Lib outputs.  
-  * Establish clear target levels, stop-loss points, and risk/reward ratios.
+  * Convert qualitative chart observations to quantifiable metrics using TA-Lib outputs.
+  * Establish clear targets, stops, and risk/reward ratios.
+  * Key focus:
+    - Indicator combinations.
+    - Signal confirmation.
+    - Risk control.
   
 - **Indicator Integration:**  
-  * Combine insights from multiple TA‑Lib functions for robust signal confirmation.  
+  * Combine multiple TA-Lib function insights for robust signal confirmation.
   * Cross-verify indicator signals across different timeframes.
+  * Integrate:
+    - Price indicators.
+    - Volume indicators.
+    - Volatility indicators.
   
 - **Feedback Loop:**  
-  * Regularly review and backtest your analysis framework to refine indicator settings and improve predictive accuracy.
+  * Regularly review and backtest analysis framework to optimize indicator settings and improve prediction accuracy.
+  * Track:
+    - Trading performance.
+    - Prediction accuracy rate.
+    - Risk control effectiveness.
 
 --------------------------------------------------
 
 **Instructions:**
-- Begin your report with a detailed chart analysis using the TA‑Lib-based framework outlined above.
-- Compute and integrate technical indicators using TA‑Lib functions (e.g., RSI, MACD, ATR, BBANDS, candlestick patterns, etc.).
-- Support your analysis with quantifiable indicator values and clear chart observations.
-- Summarize your findings with specific entry/exit recommendations and risk management strategies.
-- Cite the computed TA‑Lib indicator values and any relevant chart patterns throughout your report.
+- Begin your report with detailed chart analysis using the TA-Lib-based framework above.
+- Compute and integrate technical indicators using TA-Lib functions (e.g., RSI, MACD, ATR, BBANDS, candlestick patterns).
+- Support analysis with quantifiable indicator values and clear chart observations.
+- Summarize findings with specific entry/exit recommendations and risk management strategies.
+- Cite computed TA-Lib indicator values and relevant chart patterns throughout report.
 
 Generate a complete technical analysis report for [Stock Ticker/Name] based on the framework above.

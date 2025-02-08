@@ -10,7 +10,10 @@ import pandas as pd
 import yfinance as yf
 import asyncio
 
-from tools.financial_data import formatters, utils
+from tools.financial_data import utils
+from settings import Settings
+
+settings = Settings()
 
 # Configure logging
 logging.basicConfig(
@@ -85,12 +88,29 @@ async def fetch_market_data(
             # Convert dates to strings for yfinance
             start_str = start_time.strftime("%Y-%m-%d")
             end_str = end_time.strftime("%Y-%m-%d")
-
-            ticker = yf.Ticker(symbol_str)
-            data = ticker.history(interval=interval, start=start_str, end=end_str)
+            
+            for attempt in range(settings.max_retries):
+                try:
+                    ticker = yf.Ticker(symbol_str)
+                    data = ticker.history(interval=interval, start=start_str, end=end_str)
+                    
+                    if data is not None and not data.empty:
+                        break
+                        
+                    if attempt < settings.max_retries - 1:
+                        logger.warning(f"Retry {attempt + 1}/{settings.max_retries} for {symbol_str}")
+                        await asyncio.sleep(settings.retry_delay)
+                        settings.retry_delay *= 2  # Exponential backoff
+                except Exception as e:
+                    if attempt < settings.max_retries - 1:
+                        logger.warning(f"Retry {attempt + 1}/{settings.max_retries} for {symbol_str} due to error: {str(e)}")
+                        await asyncio.sleep(settings.retry_delay)
+                        settings.retry_delay *= 2
+                    else:
+                        raise
 
             if data is None or data.empty:
-                logger.error(f"No data available for {symbol_str}")
+                logger.error(f"No data available for {symbol_str} after {settings.  max_retries} retries")
                 return None
 
             if not isinstance(data, pd.DataFrame):
@@ -123,6 +143,10 @@ async def fetch_market_data(
             # Format date column
             data['date'] = pd.to_datetime(data['date']).dt.strftime('%Y-%m-%d')
 
+            # Validate data completeness
+            if len(data) < days * 0.8:  # If the amount of data is less than 80% of the expected
+                logger.warning(f"Retrieved only {len(data)} days of data for {symbol_str}, expected {days} days")
+            
             return data
 
         except Exception as e:
