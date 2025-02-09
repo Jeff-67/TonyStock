@@ -130,35 +130,47 @@ async def generate_search_framework(
     Raises:
         ValueError: If response validation fails after max retries
     """
-    # Generate prompt
-    stock_id = stock_name_to_id(company_name)
-    prompt = searching_framework_prompt(
-        company_name=company_name,
-        stock_id=stock_id,
-        current_time=get_current_time(),
-        company_instruction=finance_agent_prompt(stock_id=stock_id),
-        searching_instruction=search_experience_prompt(),
-        user_message=user_message,
-    )
+    try:
+        # Generate prompt
+        stock_id = stock_name_to_id(company_name)
+        prompt = searching_framework_prompt(
+            company_name=company_name,
+            stock_id=stock_id,
+            current_time=get_current_time(),
+            company_instruction=finance_agent_prompt(stock_id=stock_id),
+            searching_instruction=search_experience_prompt(),
+            user_message=user_message,
+        )
 
-    # Query LLM
-    messages = [{"role": "user", "content": prompt}]
-    response, _ = await aquery_llm(
-        messages=messages,
-        model="claude-3-sonnet-20240229",
-        provider="anthropic",
-        json_mode=True,
-    )
+        # Query LLM
+        messages = [{"role": "user", "content": prompt}]
+        logger.info(f"Querying LLM for search framework generation")
+        response, details = await aquery_llm(
+            messages=messages,
+            model="claude-3-sonnet-20240229",
+            provider="anthropic",
+            json_mode=True,
+        )
 
-    if not response.choices[0].message.content:
+        content = details["content"]
+        if not content:
+            logger.error("LLM returned empty content")
+            return None
+
+        logger.info(f"Received response from LLM, validating content")
+        
+        # Validate and parse response
+        is_valid, queries = validate_framework(content)
+        if not is_valid or queries is None:
+            logger.error(f"Failed to validate framework response: {content[:200]}...")
+            return None
+
+        logger.info(f"Successfully validated framework with {len(queries)} queries")
+        return queries
+
+    except Exception as e:
+        logger.error(f"Error generating search framework: {str(e)}")
         return None
-
-    # Validate and parse response
-    is_valid, queries = validate_framework(response.choices[0].message.content)
-    if not is_valid or queries is None:
-        return None
-
-    return queries
 
 
 async def main():

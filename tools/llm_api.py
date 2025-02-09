@@ -8,9 +8,11 @@ error handling. Supports both sync and async operations.
 import argparse
 import asyncio
 import json
+import logging
+import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict, Tuple
 
 import litellm
 from dotenv import load_dotenv
@@ -21,6 +23,12 @@ from opik.opik_context import get_current_span_data
 from tokencost import calculate_cost_by_tokens
 
 from settings import Settings
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 Settings()
 load_dotenv()
@@ -67,12 +75,12 @@ class LLMConfig:
     @property
     def full_model_name(self) -> str:
         """Get the full model name with provider prefix."""
-        # For Anthropic models, just return the model name
+        # For Anthropic models, add anthropic/ prefix
         if self.provider == Provider.ANTHROPIC:
-            return self.model
-        # For OpenAI models, just return the model name
+            return f"anthropic/{self.model}"
+        # For OpenAI models, add openai/ prefix
         if self.provider == Provider.OPENAI:
-            return self.model
+            return f"openai/{self.model}"
         # For other providers, prefix with provider name
         return f"{self.provider}/{self.model}"
 
@@ -98,7 +106,7 @@ def create_completion_params(
     """
     params = {
         "model": config.full_model_name,
-        "messages": messages,
+        "messages": messages.copy(),
         "metadata": {
             "opik": {
                 "current_span_data": get_current_span_data(),
@@ -121,101 +129,16 @@ def create_completion_params(
             params["response_format"] = {"type": "json_object"}
         elif response_format:
             params["response_format"] = response_format
+    elif config.provider == Provider.ANTHROPIC and json_mode:
+        # Add system message for JSON output
+        params["messages"].insert(0, {
+            "role": "system",
+            "content": "You must respond with valid JSON only, without any additional text or markdown formatting."
+        })
 
-    params["fallbacks"] = ["gpt-4o"]
+    params["fallbacks"] = ["openai/gpt-4o"]
 
     return params
-
-
-@track()
-def query_llm(
-    messages: List[Message],
-    tools: Optional[List[Dict]] = None,
-    model: Optional[str] = None,
-    provider: Optional[str] = None,
-    json_mode: bool = False,
-    response_format: Optional[Dict] = None,
-) -> Any:
-    """Send a synchronous query to the LLM and get the response using LiteLLM.
-
-    Args:
-        messages: List of message dictionaries with role and content
-        model: The specific model to use (defaults to "gpt-4o")
-        provider: The provider to use (defaults to "openai")
-        json_mode: Whether to request JSON output (OpenAI only)
-        response_format: Custom response format configuration
-
-    Returns:
-        The model's response text, or None if the query fails
-    """
-    try:
-        # Create and validate configuration
-        config = LLMConfig(
-            provider=Provider(provider) if provider else Provider.OPENAI,
-            model=model or "gpt-4o",
-            response_format=response_format,
-        )
-
-        # Get completion parameters
-        completion_params = create_completion_params(
-            config=config,
-            messages=messages,
-            tools=tools,
-            json_mode=json_mode,
-            response_format=response_format,
-        )
-
-        # Make the API call
-        response = completion(**completion_params)
-        opik_context.update_current_span(
-            total_cost=calculate_cost_by_tokens(
-                response.usage.prompt_tokens, model=response.model, token_type="input"
-            )
-            + calculate_cost_by_tokens(
-                response.usage.completion_tokens,
-                model=response.model,
-                token_type="output",
-            )
-        )
-
-        content = response.choices[0].message.content
-
-        # Handle tool calls serialization
-        tool_calls = []
-        if (
-            hasattr(response.choices[0].message, "tool_calls")
-            and response.choices[0].message.tool_calls
-        ):
-            for tool_call in response.choices[0].message.tool_calls:
-                try:
-                    tool_calls.append(
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": json.loads(tool_call.function.arguments),
-                            },
-                        }
-                    )
-                except Exception as e:
-                    print(f"Error parsing tool call arguments: {e}")
-                    tool_calls.append(
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
-                            },
-                        }
-                    )
-
-        return response, {"content": content, "tool_calls": tool_calls}
-
-    except Exception as e:
-        print(f"Error querying LLM: {e}")
-        return None
 
 
 @track()
@@ -226,7 +149,7 @@ async def aquery_llm(
     provider: Optional[str] = None,
     json_mode: bool = False,
     response_format: Optional[Dict] = None,
-) -> Any:
+) -> Tuple[Any, Dict[str, Any]]:
     """Send an asynchronous query to the LLM and get the response using LiteLLM.
 
     Args:
@@ -234,11 +157,15 @@ async def aquery_llm(
         tools: List of tool dictionaries
         model: The specific model to use (defaults to "gpt-4o")
         provider: The provider to use (defaults to "openai")
-        json_mode: Whether to request JSON output (OpenAI only)
+        json_mode: Whether to request JSON output
         response_format: Custom response format configuration
 
     Returns:
         Tuple of (response object, dict with content and tool_calls)
+
+    Raises:
+        ValueError: If response validation fails
+        Exception: For other errors during API call
     """
     try:
         # Create and validate configuration
@@ -257,68 +184,123 @@ async def aquery_llm(
             response_format=response_format,
         )
 
+        logger.info(f"Making LLM API call with model {config.model}")
         # Make the async API call
         response = await acompletion(**completion_params)
-        opik_context.update_current_span(
-            total_cost=calculate_cost_by_tokens(
-                response.usage.prompt_tokens, model=response.model, token_type="input"
-            )
-            + calculate_cost_by_tokens(
-                response.usage.completion_tokens,
-                model=response.model,
-                token_type="output",
-            )
-        )
+        
+        if not response:
+            logger.error("LLM API call returned None")
+            raise ValueError("Empty response from LLM API")
+            
+        if not hasattr(response, 'choices') or not response.choices:
+            logger.error("LLM response missing choices")
+            raise ValueError("Invalid response format from LLM API")
+            
+        if not response.choices[0].message:
+            logger.error("LLM response missing message")
+            raise ValueError("No message in LLM response")
+
+        # Update cost metrics
+        update_cost_metrics(response)
 
         content = response.choices[0].message.content
+        logger.info("Successfully received LLM response")
 
-        # Handle tool calls serialization
-        tool_calls = []
-        if (
-            hasattr(response.choices[0].message, "tool_calls")
-            and response.choices[0].message.tool_calls
-        ):
-            for tool_call in response.choices[0].message.tool_calls:
-                try:
-                    tool_calls.append(
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": json.loads(tool_call.function.arguments),
-                            },
-                        }
-                    )
-                except Exception as e:
-                    print(f"Error parsing tool call arguments: {e}")
-                    tool_calls.append(
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
-                            },
-                        }
-                    )
+        # Process tool calls
+        tool_calls = process_tool_calls(response.choices[0].message)
 
         return response, {"content": content, "tool_calls": tool_calls}
 
     except Exception as e:
-        print(f"Error querying LLM: {e}")
-        raise e
+        logger.error(f"Error in LLM API call: {str(e)}")
+        raise
+
+
+@track()
+def query_llm(
+    messages: List[Message],
+    tools: Optional[List[Dict]] = None,
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    json_mode: bool = False,
+    response_format: Optional[Dict] = None,
+) -> Tuple[Any, Dict[str, Any]]:
+    """Send a synchronous query to the LLM and get the response using LiteLLM.
+
+    Args:
+        messages: List of message dictionaries with role and content
+        tools: List of tool dictionaries
+        model: The specific model to use (defaults to "gpt-4o")
+        provider: The provider to use (defaults to "openai")
+        json_mode: Whether to request JSON output
+        response_format: Custom response format configuration
+
+    Returns:
+        Tuple of (response object, dict with content and tool_calls)
+
+    Raises:
+        ValueError: If response validation fails
+        Exception: For other errors during API call
+    """
+    try:
+        # Create and validate configuration
+        config = LLMConfig(
+            provider=Provider(provider) if provider else Provider.OPENAI,
+            model=model or "gpt-4o",
+            response_format=response_format,
+        )
+
+        # Get completion parameters
+        completion_params = create_completion_params(
+            config=config,
+            messages=messages,
+            tools=tools,
+            json_mode=json_mode,
+            response_format=response_format,
+        )
+
+        logger.info(f"Making LLM API call with model {config.model}")
+        # Make the API call
+        response = completion(**completion_params)
+
+        if not response:
+            logger.error("LLM API call returned None")
+            raise ValueError("Empty response from LLM API")
+            
+        if not hasattr(response, 'choices') or not response.choices:
+            logger.error("LLM response missing choices")
+            raise ValueError("Invalid response format from LLM API")
+            
+        if not response.choices[0].message:
+            logger.error("LLM response missing message")
+            raise ValueError("No message in LLM response")
+
+        # Update cost metrics
+        update_cost_metrics(response)
+
+        content = response.choices[0].message.content
+        logger.info("Successfully received LLM response")
+
+        # Process tool calls
+        tool_calls = process_tool_calls(response.choices[0].message)
+
+        return response, {"content": content, "tool_calls": tool_calls}
+
+    except Exception as e:
+        logger.error(f"Error in LLM API call: {str(e)}")
+        raise
 
 
 async def async_main(
     messages: List[Message], model: str = "gpt-4o", provider: str = "openai"
 ) -> None:
     """Async entry point for command line usage."""
-    response = await aquery_llm(messages, model=model, provider=provider)
-    if response:
-        print(response)
-    else:
-        print("Failed to get response from LLM")
+    try:
+        response, details = await aquery_llm(messages, model=model, provider=provider)
+        print(json.dumps(details, ensure_ascii=False, indent=2))
+    except Exception as e:
+        logger.error(f"Failed to get response from LLM: {e}")
+        raise
 
 
 def main():
@@ -342,14 +324,67 @@ def main():
 
     messages = [{"role": "user", "content": args.prompt}]
 
-    if args.use_async:
-        asyncio.run(async_main(messages, model=args.model))
-    else:
-        response, _ = query_llm(messages, model=args.model)
-        if response:
-            print(response)
+    try:
+        if args.use_async:
+            asyncio.run(async_main(messages, model=args.model))
         else:
-            print("Failed to get response from LLM")
+            response, details = query_llm(messages, model=args.model)
+            print(json.dumps(details, ensure_ascii=False, indent=2))
+    except Exception as e:
+        logger.error(f"Failed to get response from LLM: {e}")
+        sys.exit(1)
+
+
+def process_tool_calls(message: Any) -> List[Dict]:
+    """Process tool calls from message.
+
+    Args:
+        message: Message object containing potential tool calls
+
+    Returns:
+        List of processed tool calls
+    """
+    tool_calls = []
+    if hasattr(message, "tool_calls") and message.tool_calls:
+        for tool_call in message.tool_calls:
+            try:
+                tool_calls.append({
+                    "id": tool_call.id,
+                    "type": tool_call.type,
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": json.loads(tool_call.function.arguments),
+                    },
+                })
+            except Exception as e:
+                logger.error(f"Error parsing tool call arguments: {e}")
+                tool_calls.append({
+                    "id": tool_call.id,
+                    "type": tool_call.type,
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments,
+                    },
+                })
+    return tool_calls
+
+
+def update_cost_metrics(response: Any) -> None:
+    """Update cost metrics in opik context.
+
+    Args:
+        response: Response object containing token usage information
+    """
+    opik_context.update_current_span(
+        total_cost=calculate_cost_by_tokens(
+            response.usage.prompt_tokens, model=response.model, token_type="input"
+        )
+        + calculate_cost_by_tokens(
+            response.usage.completion_tokens,
+            model=response.model,
+            token_type="output",
+        )
+    )
 
 
 if __name__ == "__main__":

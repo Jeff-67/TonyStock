@@ -25,6 +25,7 @@ from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
 from tools.technical_analysis.ta_tool import TATool
+from tools.chips_analysis.chips_tool import ChipsTool
 from tools.time.time_tool import get_current_time
 
 # Configure logging
@@ -212,12 +213,22 @@ async def main():
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
         "technical_analysis": TATool(),
+        "chips_analysis": ChipsTool(),
     }
 
     # Update agent's tools
     agent.tools = tools
     
+    # Test technical analysis
+    print("Testing Technical Analysis:")
     response = await agent.chat("請分析京鼎(3413)近期走勢")
+    print('='*100)
+    print(response)
+    print('='*100)
+    
+    # Test chips analysis
+    print("\nTesting Chips Analysis:")
+    response = await agent.chat("請從各個面向詳細分析京鼎(3413)，並且給予未來的預測")
     print('='*100)
     print(response)
     print('='*100)
