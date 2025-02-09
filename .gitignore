@@ -62,6 +62,7 @@ logs/
 *.gz
 
 # Transcripts
+/transcripts/*
 *.mp3
 *.wav
 *.m4a
@@ -69,4 +70,3 @@ logs/
 *.flac
 *.aac
 *.wma
-*.png
