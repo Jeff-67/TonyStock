@@ -44,6 +44,7 @@ def get_device():
         str: Either 'cuda' for NVIDIA GPU or 'cpu' for CPU processing.
     """
     if torch.cuda.is_available():
+        print("CUDA is available")
         return "cuda"  # NVIDIA GPU
     return "cpu"  # Fall back to CPU
 
