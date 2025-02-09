@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tony Stock - Mark I | Audio Transcription</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/tony_stock_logo.png') }}">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg">
+            <div class="p-4 border-b">
+                <div class="flex items-center space-x-3">
+                    <img src="{{ url_for('static', filename='images/tony_stock_logo.png') }}"
+                         alt="Tony Stock Logo"
+                         class="h-10 w-10 object-contain">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-800">Tony Stock</h2>
+                        <p class="text-xs text-gray-500">Mark I</p>
+                    </div>
+                </div>
+            </div>
+            <div id="transcriptsList" class="overflow-y-auto h-full p-4">
+                <!-- Transcripts will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <header class="bg-white shadow">
+                <div class="max-w-7xl mx-auto py-6 px-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">Tony Stock</h1>
+                            <p class="text-sm text-gray-500">Audio Transcription - Mark I</p>
+                        </div>
+                        <img src="{{ url_for('static', filename='images/tony_stock_logo.png') }}"
+                             alt="Tony Stock Logo"
+                             class="h-16 w-16 object-contain">
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 p-6">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Upload Section -->
+                    <div class="bg-white shadow rounded-lg p-6 mb-6">
+                        <div class="upload-container">
+                            <form id="uploadForm" class="space-y-4">
+                                <div class="flex items-center justify-center w-full">
+                                    <label class="flex flex-col w-full h-32 border-4 border-dashed hover:bg-gray-100 hover:border-gray-300 transition-colors duration-200 cursor-pointer">
+                                        <div class="flex flex-col items-center justify-center pt-7">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400 group-hover:text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                                            </svg>
+                                            <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600 text-center px-4">
+                                                Select audio file
+                                            </p>
+                                            <p class="text-xs text-gray-500 mt-2">Supported formats: MP3, WAV, M4A, etc.</p>
+                                        </div>
+                                        <input type="file" class="opacity-0 absolute" accept="audio/*" id="audioFile" />
+                                    </label>
+                                </div>
+                                <button type="submit" class="w-full px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                    Transcribe Audio
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Current Transcript Section -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Current Transcript</h2>
+
+                        <!-- Tabs -->
+                        <div class="border-b border-gray-200 mb-4">
+                            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                                <button id="fullTextTab"
+                                        class="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                                        aria-current="page">
+                                    Full Text
+                                </button>
+                                <button id="timestampsTab"
+                                        class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                    Timestamped Segments
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Content Panels -->
+                        <div id="currentTranscript" class="prose max-w-none">
+                            <div id="fullTextContent" class="text-gray-500">
+                                <p>No transcript selected</p>
+                            </div>
+                            <div id="timestampsContent" class="hidden text-gray-500">
+                                <p>No transcript selected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-4 rounded-lg shadow-lg">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-700">Transcribing audio...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

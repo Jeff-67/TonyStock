@@ -60,3 +60,13 @@ logs/
 *.7z
 *.tar
 *.gz
+
+# Transcripts
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+*.aac
+*.wma
+*.png

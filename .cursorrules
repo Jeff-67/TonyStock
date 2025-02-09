@@ -520,4 +520,13 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Set up complex dependencies after object creation
       * Update object state in a type-safe manner
 
+21. Whisper Library Usage (Added 2025/02)
+    - Import Patterns
+      * Use `import whisper` directly despite linter warnings
+      * Don't change to `import openai.whisper` if code is working
+      * Linter may show false positives for module attributes
+      * Trust runtime behavior over static type checking
+      * Add `# type: ignore[attr-defined]` for `load_model()` calls to pass type checking
+      * Keep type checking enabled for rest of the codebase
+
 # Scratchpad

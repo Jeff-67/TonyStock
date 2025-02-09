@@ -1,0 +1,55 @@
+/* Custom scrollbar */
+#transcriptsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#transcriptsList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#transcriptsList::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#transcriptsList::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* File input hover effect */
+.upload-container label:hover {
+    border-color: #3b82f6;
+}
+
+/* Transcript text styling */
+#currentTranscript p {
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* Loading animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .flex.h-screen {
+        flex-direction: column;
+    }
+
+    .w-64 {
+        width: 100%;
+        max-height: 200px;
+    }
+
+    #transcriptsList {
+        max-height: 150px;
+    }
+}
