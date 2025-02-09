@@ -26,7 +26,7 @@ app = Flask(__name__)
 # Configure upload and transcript directories using os.path.join for cross-platform compatibility
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
-app.config["TRANSCRIPTS_FOLDER"] = os.path.join(BASE_DIR, "static", "transcripts")
+app.config["TRANSCRIPTS_FOLDER"] = os.path.join(BASE_DIR, "static", "transcripts_files")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 app.config["TRANSCRIPTS_INDEX"] = os.path.join(
     app.config["TRANSCRIPTS_FOLDER"], "index.json"
