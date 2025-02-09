@@ -62,7 +62,7 @@ logs/
 *.gz
 
 # Transcripts
-/transcripts/*
+**/transcripts/*
 *.mp3
 *.wav
 *.m4a
