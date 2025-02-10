@@ -1,34 +1,58 @@
-"""Analysis tool implementation.
+"""Analysis tool module.
 
-This module implements the analysis tool for generating stock news analysis reports.
+This module provides tools for performing various types of analysis.
 """
 
+import logging
 from typing import Any, Callable, Dict, List
 
-from agents.planning_agents.planning_report_agent import generate_planning_report
 from tools.core.tool_protocol import Tool
+from agents.planning_agents.planning_report_agent import PlanningAgent
+
+logger = logging.getLogger(__name__)
 
 
 class PlanningTool(Tool):
-    """Tool for generating stock news analysis report."""
+    """Tool for generating analysis plans."""
 
-    def __init__(self, get_news_callback: Callable[[], List[Dict[str, str]]]):
-        """Initialize the tool with a callback function.
-
+    def __init__(self, news_callback: Callable[[], List[Dict[str, Any]]]):
+        """Initialize the planning tool.
+        
         Args:
-            get_news_callback: Function to get company news
+            news_callback: Callback to get news data
         """
-        self.get_news = get_news_callback
+        super().__init__()
+        self.news_callback = news_callback
 
-    async def execute(self, input_data: Dict[str, Any]) -> Any:
-        """Execute analysis query using the analysis_report function.
-
+    async def execute(self, params: Dict[str, Any]) -> tuple[str, str]:
+        """Execute the planning tool.
+        
         Args:
-            input_data: Dictionary containing the 'company_name' key
-
+            params: Parameters including user message
+            
         Returns:
-            Generated analysis report
+            Tuple of (plan, company_name)
         """
-        return await generate_planning_report(
-            self.get_news(), input_data["company_name"], input_data["user_message"]
-        )
+        try:
+            user_message = params.get("user_message")
+            if not user_message:
+                raise ValueError("User message is required")
+
+            # Get news data using callback
+            news_data = self.news_callback()
+
+            # Generate planning report
+            agent = PlanningAgent()
+            result = await agent.analyze(
+                query=user_message,
+                news_data=news_data
+            )
+
+            if not result.success:
+                raise ValueError(f"Planning failed: {result.error}")
+
+            return result.content, result.metadata["company_name"]
+
+        except Exception as e:
+            logger.error(f"Planning tool execution failed: {str(e)}")
+            raise
