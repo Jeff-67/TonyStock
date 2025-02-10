@@ -5,11 +5,11 @@ This module implements the analysis tool for generating stock news analysis repo
 
 from typing import Any, Callable, Dict, List
 
-from agents.analysis_agents.analysis_report_agent import generate_analysis_report
+from agents.planning_agents.planning_report_agent import generate_planning_report
 from tools.core.tool_protocol import Tool
 
 
-class AnalysisTool(Tool):
+class PlanningTool(Tool):
     """Tool for generating stock news analysis report."""
 
     def __init__(self, get_news_callback: Callable[[], List[Dict[str, str]]]):
@@ -29,6 +29,6 @@ class AnalysisTool(Tool):
         Returns:
             Generated analysis report
         """
-        return await generate_analysis_report(
+        return await generate_planning_report(
             self.get_news(), input_data["company_name"], input_data["user_message"]
         )

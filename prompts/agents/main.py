@@ -1,27 +1,189 @@
 """Module containing core prompt generation functions for search and analysis tasks."""
+def writing_planning_prompt() -> str:
+   """Generate writing guidelines for analysis reports.
+
+   Returns:
+       str: Writing guidelines and formatting instructions
+   """
+   return """Writing Guidelines for Analysis Reports:
+
+1. Structure and Organization
+   - Begin with an executive summary
+   - Use clear section headings and subheadings
+   - Maintain logical flow between sections
+   - End with clear conclusions and action points
+
+2. Content Requirements
+   - Focus on factual, data-driven analysis
+   - Support claims with specific evidence
+   - Include quantitative metrics where possible
+   - Address both positive and negative factors
+   - Consider short-term and long-term implications
+
+3. Language and Style
+   - Use clear, professional language
+   - Avoid ambiguous statements
+   - Be concise and precise
+   - Use industry-standard terminology
+   - Maintain objective tone
+
+4. Data Presentation
+   - Present numbers in consistent format
+   - Use appropriate units and currencies
+   - Include time periods for all data
+   - Compare with relevant benchmarks
+   - Cite data sources clearly
+
+5. Risk Analysis
+   - Identify key risk factors
+   - Assess probability and impact
+   - Consider mitigating factors
+   - Highlight monitoring metrics
+   - Include both internal and external risks
+
+6. Recommendations
+   - Base on analyzed data
+   - Consider practical feasibility
+   - Provide specific action items
+   - Include implementation timeline
+   - Address potential challenges
+
+7. Quality Standards
+   - Ensure accuracy of all data
+   - Cross-verify critical information
+   - Maintain internal consistency
+   - Follow standard formatting
+   - Include proper citations
+
+8. Technical Details
+   - Use appropriate charts and graphs
+   - Include relevant technical metrics
+   - Explain complex concepts clearly
+   - Provide necessary context
+   - Define specialized terms
+
+9. Market Context
+   - Consider broader market conditions
+   - Include competitor analysis
+   - Address industry trends
+   - Examine regulatory environment
+   - Evaluate market positioning
+
+10. Future Outlook
+   - Project future scenarios
+   - Identify growth opportunities
+   - Consider potential challenges
+   - Include key metrics to monitor
+   - Set realistic expectations."""
+
+
+def planning_prompt(
+   company_news: str,
+   company_instruction: str,
+   chip_instruction: str,
+   technical_analysis_instruction: str,
+   writing_instruction: str,
+   user_message: str,
+) -> str:
+   """Generate prompt for agent usage planning.
+
+   Args:
+      company_news: Collected news content to analyze
+      company_instruction: Company-specific analysis instructions
+      chip_instruction: Chip industry analysis instructions
+      technical_analysis_instruction: Technical analysis framework
+      writing_instruction: Writing style and format instructions
+      user_message: User's query or request
+
+   Returns:
+      Formatted prompt for agent usage planning
+   """
+   return f"""Please develop a comprehensive analysis plan using the available agents to answer the user's question `{user_message}`.
+
+<Analysis Context>
+1. Company and Industry Characteristics
+{company_instruction}
+
+2. Market Sentiment Analysis Framework
+{chip_instruction}
+
+3. Technical Analysis Framework
+{technical_analysis_instruction}
+
+4. Writing Guidelines
+{writing_instruction}
+
+5. News Content to Analyze
+{company_news}
+</Analysis Context>
+
+Available Analysis Agents:
+
+1. Research Agent (research_agent.py)
+   - Purpose: Fundamental research and news analysis
+   - Capabilities:
+     * News content analysis
+     * Company research
+     * Industry analysis
+     * Market research
+     * Competitive analysis
+
+2. Technical Analysis Agent (ta_agents.py)
+   - Purpose: Technical market analysis
+   - Capabilities:
+     * Price trend analysis
+     * Volume analysis
+     * Technical indicators
+     * Chart pattern recognition
+     * Market timing signals
+
+3. Chip Analysis Agent (chip_agent.py)
+   - Purpose: Semiconductor industry specific analysis
+   - Capabilities:
+     * Supply chain analysis
+     * Industry cycle analysis
+     * Technology trend analysis
+     * Market demand analysis
+     * Competitive landscape analysis
+
+For each analysis phase, please specify:
+1. Which agent(s) to use
+2. Analysis objectives and scope
+3. Required input data
+4. Expected analysis output
+5. Dependencies on other agents' outputs
+6. Validation and cross-checking methods
+
+Special considerations:
+1. Logical sequence of agent deployment
+2. Integration of different analysis perspectives
+3. Cross-validation between agents
+4. Completeness of analysis coverage
+5. Efficiency of analysis process
+6. Quality assurance measures"""
 
 
 def searching_framework_prompt(
-    company_name: str,
-    stock_id: str | None,
-    current_time: str,
-    company_instruction: str,
-    searching_instruction: str,
-    user_message: str,
+   company_name: str,
+   stock_id: str | None,
+   current_time: str,
+   company_instruction: str,
+   searching_instruction: str,
+   user_message: str,
 ) -> str:
-    """Generate prompt for search framework analysis.
+   """Generate prompt for search framework analysis.
 
-    Args:
-        company_name: Target company name
-        stock_id: Company stock ID
-        current_time: Current time in Asia/Taipei timezone
-        company_instruction: Company specific instructions
-        searching_instruction: Additional search keywords instructions
-        user_message: User message
-    Returns:
-        Formatted prompt for search framework analysis
-    """
-    return f"""Current time: {current_time}
+   Args:
+      company_name: Target company name
+      stock_id: Company stock ID
+      current_time: Current time in Asia/Taipei timezone
+      company_instruction: Company specific instructions
+      searching_instruction: Additional search keywords instructions
+      user_message: User message
+   Returns:
+      Formatted prompt for search framework analysis
+   """
+   return f"""Current time: {current_time}
 
 For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me generate a comprehensive set of search queries to understand its investment opportunity by considering the user message: `{user_message}`.
 
@@ -115,36 +277,3 @@ Each query object should have:
 <Searching keywords instruction>
 {searching_instruction}
 </Searching keywords instruction>"""
-
-
-def analysis_report_prompt(
-    company_news: str,
-    company_instruction: str,
-    writing_instruction: str,
-    user_message: str,
-) -> str:
-    """Generate prompt for news analysis report.
-
-    Args:
-        company_news: Collected news content to analyze
-        company_instruction: Company-specific analysis instructions
-        writing_instruction: Writing style and format instructions
-
-    Returns:
-        Formatted prompt for generating analysis report
-    """
-    return f"""Please analyze the provided news content and generate a comprehensive analysis report following the structured framework below to answer the user's question `{user_message}`.
-
-<Company Context and Industry Characteristics>
-{company_instruction}
-</Company Context and Industry Characteristics>
-
-<Writing Guidelines>
-{writing_instruction}
-</Writing Guidelines>
-
-<News Content to Analyze>
-{company_news}
-</News Content to Analyze>
-
-Based on the above framework, please analyze the news content following the writing guidelines provided."""

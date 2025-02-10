@@ -21,3 +21,32 @@ def finance_agent_prompt(stock_id: str | None = None) -> str:
     ) as file:
         instruction = file.read()
     return instruction
+
+
+def technical_analysis_prompt() -> str:
+    """Generate technical analysis framework prompt.
+
+    Creates a comprehensive prompt for technical analysis using TA-Lib,
+    including detailed instructions for chart analysis, indicator usage,
+    and trading recommendations.
+
+    Returns:
+        Formatted prompt string containing the technical analysis framework
+    """
+    with open("prompts/TA_instruction.md", "r", encoding="utf-8") as file:
+        instruction = file.read()
+    return instruction
+
+
+def chip_agent_prompt() -> str:
+    """Generate chip agent prompt for semiconductor industry analysis.
+
+    Creates a specialized prompt for analyzing semiconductor industry news
+    and information, including detailed instructions for industry chain
+
+    Returns:
+        Formatted prompt string containing the chip analysis framework
+    """
+    with open("prompts/chip_instruction.md", "r", encoding="utf-8") as file:
+        instruction = file.read()
+    return instruction

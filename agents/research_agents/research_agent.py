@@ -73,7 +73,6 @@ async def main():
     test_message = "Please research recent news about AI and their market strategy"
 
     logger.info(f"Starting comprehensive research for: {test_company}")
-
     try:
         research_results = await perform_research(test_company, test_message)
 

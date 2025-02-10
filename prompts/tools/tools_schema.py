@@ -94,6 +94,186 @@ Output Format:
             },
         },
         {
+            "name": "chip_analysis",
+            "description": """Professional semiconductor industry analysis tool providing comprehensive chip industry chain analysis.
+
+Key Features:
+1. Industry Chain Analysis:
+   - Upstream: IP Providers, EDA Tool Vendors, Foundries
+   - Midstream: IC Design, Packaging & Testing
+   - Downstream: End Applications Market
+   - Supply Chain Relationship Mapping
+
+2. Technical Analysis:
+   - Process Technology Development Tracking
+   - Advanced Packaging Technology Analysis
+   - Design Tool Evolution
+   - Technical Barrier Assessment
+   - Patent Portfolio Analysis
+
+3. Market Analysis:
+   - Market Size Forecast
+   - Market Share Analysis
+   - Competitive Landscape
+   - Price Trends
+   - Supply-Demand Balance
+
+4. Application Domain Analysis:
+   - Computing Chips (CPU/GPU/NPU/DPU)
+   - Memory (DRAM/NAND/NOR)
+   - Mobile Chips
+   - Automotive Electronics
+   - Industrial Applications
+   - AI Accelerators
+
+5. Capacity Analysis:
+   - Capacity Utilization
+   - Expansion Plan Tracking
+   - Investment Amount Statistics
+   - Yield Status
+   - Capacity Bottleneck Analysis
+
+6. Innovation Technology Tracking:
+   - Advanced Process Development
+   - New Material Applications
+   - New Architecture Design
+   - Heterogeneous Integration
+   - Emerging Application Areas
+
+7. Risk Assessment:
+   - Technical Risks
+   - Supply Chain Risks
+   - Geopolitical Risks
+   - Capacity Risks
+   - Market Risks
+
+Output Format:
+{
+    "industry_chain": {
+        "upstream": {
+            "ip_providers": List[str],
+            "eda_vendors": List[str],
+            "foundries": List[str]
+        },
+        "midstream": {
+            "ic_design": List[str],
+            "packaging_testing": List[str]
+        },
+        "downstream": {
+            "applications": List[str],
+            "end_markets": List[str]
+        }
+    },
+    "technical_analysis": {
+        "process_node": {
+            "current": str,
+            "next_gen": str,
+            "timeline": str
+        },
+        "packaging": {
+            "technologies": List[str],
+            "capabilities": dict
+        },
+        "design_tools": {
+            "current_gen": str,
+            "limitations": List[str]
+        },
+        "patents": {
+            "key_areas": List[str],
+            "strength": float
+        }
+    },
+    "market_analysis": {
+        "market_size": {
+            "current": float,
+            "growth_rate": float,
+            "forecast": dict
+        },
+        "market_share": {
+            "company": float,
+            "competitors": dict
+        },
+        "pricing_trends": {
+            "current": str,
+            "forecast": str
+        }
+    },
+    "application_analysis": {
+        "computing": {
+            "cpu": dict,
+            "gpu": dict,
+            "npu": dict,
+            "dpu": dict
+        },
+        "memory": {
+            "dram": dict,
+            "nand": dict,
+            "nor": dict
+        },
+        "mobile": dict,
+        "automotive": dict,
+        "industrial": dict,
+        "ai_accelerator": dict
+    },
+    "capacity_analysis": {
+        "utilization_rate": float,
+        "expansion_plans": List[dict],
+        "investment": {
+            "amount": float,
+            "timeline": str
+        },
+        "yield_rate": {
+            "current": float,
+            "target": float
+        }
+    },
+    "innovation_tracking": {
+        "advanced_process": {
+            "status": str,
+            "challenges": List[str]
+        },
+        "new_materials": List[str],
+        "architectures": List[str],
+        "integration": {
+            "technologies": List[str],
+            "progress": str
+        }
+    },
+    "risk_assessment": {
+        "technical_risks": List[str],
+        "supply_chain_risks": List[str],
+        "geopolitical_risks": List[str],
+        "capacity_risks": List[str],
+        "market_risks": List[str]
+    }
+}""",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "company_name": {
+                        "type": "string",
+                        "description": "Name of the semiconductor company to analyze",
+                    },
+                    "analysis_type": {
+                        "type": "string",
+                        "description": "Analysis type (industry_chain, technical, market, application, capacity, innovation, risk, comprehensive)",
+                        "default": "comprehensive"
+                    },
+                    "focus_area": {
+                        "type": "string",
+                        "description": "Specific focus area (computing, memory, mobile, automotive, industrial, ai)",
+                        "default": "all"
+                    },
+                    "time_range": {
+                        "type": "string",
+                        "description": "Analysis time range (1m, 3m, 6m, 1y)",
+                        "default": "3m"
+                    }
+                },
+                "required": ["company_name"],
+            },
+        },
+        {
             "name": "technical_analysis",
             "description": """Comprehensive technical analysis tool using TA-Lib for advanced market analysis and trading signals.
 
@@ -366,6 +546,79 @@ Output Format:
                         },
                     },
                     "required": ["company_name", "user_message"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "chip_analysis",
+                "description": """Professional semiconductor industry analysis tool providing comprehensive chip industry chain analysis.
+
+Key Features:
+1. Industry Chain Analysis (Upstream/Midstream/Downstream)
+2. Technical Analysis (Process, Packaging, Design)
+3. Market Analysis (Size, Share, Trends)
+4. Application Domain Analysis (Computing, Memory, Mobile, Automotive)
+5. Capacity Analysis (Utilization, Expansion, Yield)
+6. Innovation Tracking (New Technologies, Materials)
+7. Risk Assessment
+
+Output Format:
+{
+    "industry_chain": {
+        "upstream": dict,
+        "midstream": dict,
+        "downstream": dict
+    },
+    "technical_analysis": {
+        "process": dict,
+        "packaging": dict,
+        "design": dict
+    },
+    "market_analysis": {
+        "size": dict,
+        "share": dict,
+        "trends": dict
+    },
+    "applications": {
+        "computing": dict,
+        "memory": dict,
+        "mobile": dict,
+        "automotive": dict
+    },
+    "capacity": {
+        "utilization": float,
+        "expansion": dict,
+        "yield": dict
+    },
+    "innovation": {
+        "technologies": List[str],
+        "materials": List[str]
+    },
+    "risks": {
+        "technical": List[str],
+        "market": List[str],
+        "supply_chain": List[str]
+    }
+}""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "company_name": {
+                            "type": "string",
+                            "description": "Name of the semiconductor company to analyze",
+                        },
+                        "analysis_type": {
+                            "type": "string",
+                            "description": "Analysis type (industry_chain, technical, market, application, capacity, innovation, risk, comprehensive)",
+                        },
+                        "focus_area": {
+                            "type": "string",
+                            "description": "Specific focus area (computing, memory, mobile, automotive, industrial, ai)",
+                        }
+                    },
+                    "required": ["company_name"],
                 },
             },
         },

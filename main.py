@@ -27,6 +27,9 @@ from agents.trial_agent import Agent
 from tools.analysis.analysis_tool import AnalysisTool
 from tools.research.research_tool import ResearchTool
 from agents.technical_analysis_agents.ta_agents import TechnicalAnalysisTool
+from tools.technical_analysis.ta_tool import TATool
+from agents.chip_analysis_agents.chip_agent import ChipAnalysisTool
+from agents.planning_agents.planning_agent import PlanningTool
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -61,7 +64,9 @@ def create_agent() -> Agent:
     tools = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
-        "technical_analysis": TechnicalAnalysisTool(),
+        "planning": PlanningTool(lambda: agent.company_news),
+        "technical_analysis": TATool(),
+        "chips_analysis": ChipAnalysisTool(),  # Changed from chip_analysis to chips_analysis
     }
 
     # Update agent's tools
@@ -125,13 +130,20 @@ async def handle_text_message(event: MessageEvent):
 
         # Get user's agent and process message
         user_agent = agent_management[user_id]
+        
+        # Process message and get response
         response = await user_agent.chat(text)
-
-        msg = TextMessage(text=response)
+        
+        # Split response into chunks if too long (LINE message limit is 5000 characters)
+        if len(response) > 5000:
+            chunks = [response[i:i+4999] for i in range(0, len(response), 4999)]
+            messages = [TextMessage(text=chunk) for chunk in chunks]
+        else:
+            messages = [TextMessage(text=response)]
 
         # Send response using async API client
         await line_bot_api.reply_message(
-            ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            ReplyMessageRequest(reply_token=event.reply_token, messages=messages)
         )
 
     except Exception as e:

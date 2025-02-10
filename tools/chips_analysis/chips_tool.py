@@ -16,7 +16,7 @@ from tools.market_data_fetcher import fetch_market_data
 from tools.financial_data import utils
 import asyncio
 from settings import Settings
-
+from opik import track
 settings = Settings()
 
 # Configure logging
@@ -312,6 +312,7 @@ class ChipsTool(Tool):
             }
         }
 
+    @track()
     async def execute(self, input_data: Dict) -> Dict:
         """Execute chips analysis.
 

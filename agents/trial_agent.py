@@ -20,7 +20,7 @@ from prompts.tools.tools_schema import (
     tool_prompt_construct_openai,
 )
 from settings import Settings
-from tools.analysis.analysis_tool import AnalysisTool
+from tools.analysis.analysis_tool import PlanningTool
 from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
@@ -104,6 +104,127 @@ class Agent:
             },
         ]
         self.company_news: list[Dict[str, Any]] = []
+        self.current_plan: Optional[str] = None
+        self.current_company: Optional[str] = None
+        self.current_user_message: Optional[str] = None
+
+    @track()
+    async def generate_plan(self, user_message: str, company_name: str) -> str:
+        """Generate analysis plan for the given company and user message.
+
+        Args:
+            user_message: User's query or request
+            company_name: Name of the company to analyze
+
+        Returns:
+            Generated analysis plan
+        """
+        try:
+            # Store user message first
+            self.current_user_message = user_message
+            
+            planning_tool = PlanningTool(lambda: self.company_news)
+            plan = await planning_tool.execute({
+                "company_name": company_name,
+                "user_message": user_message
+            })
+            self.current_plan = plan
+            self.current_company = company_name
+            
+            # Add plan to message history
+            self.message_history.append({
+                "role": "assistant",
+                "content": f"分析計畫：\n{plan}"
+            })
+            
+            return plan
+        except Exception as e:
+            logger.error(f"Error generating plan: {str(e)}")
+            raise
+
+    @track()
+    async def execute_analysis_step(self, step_name: str, tool_name: str, tool_input: Dict[str, Any]) -> str:
+        """Execute a single analysis step using the specified tool.
+
+        Args:
+            step_name: Name of the analysis step
+            tool_name: Name of the tool to use
+            tool_input: Input parameters for the tool
+
+        Returns:
+            Analysis result for this step
+        """
+        try:
+            logger.info(f"Executing {step_name} using {tool_name}")
+            result = await self.process_tool_call(tool_name, tool_input)
+            
+            # Add result to message history
+            self.message_history.append({
+                "role": "assistant",
+                "content": f"{step_name} 分析結果：\n{result}"
+            })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error executing {step_name}: {str(e)}")
+            raise
+
+    @track()
+    async def execute_analysis_plan(self) -> str:
+        """Execute the current analysis plan.
+
+        Returns:
+            Combined analysis results
+        """
+        if not self.current_plan or not self.current_company or not self.current_user_message:
+            raise ValueError("No analysis plan, company, or user message set")
+
+        try:
+            # 1. 執行研究步驟
+            await self.execute_analysis_step(
+                "市場研究",
+                "research",
+                {
+                    "company_name": self.current_company,
+                    "user_message": self.current_user_message
+                }
+            )
+
+            # 2. 執行技術分析
+            await self.execute_analysis_step(
+                "技術分析",
+                "technical_analysis",
+                {
+                    "symbol": self.current_company,
+                    "user_message": self.current_user_message
+                }
+            )
+
+            # 3. 執行籌碼分析
+            await self.execute_analysis_step(
+                "籌碼分析",
+                "chips_analysis",
+                {
+                    "company_name": self.current_company,
+                    "user_message": self.current_user_message
+                }
+            )
+
+            # 4. 生成最終報告
+            final_report = await self.execute_analysis_step(
+                "綜合分析",
+                "analysis_report",
+                {
+                    "company_name": self.current_company,
+                    "report_type": "comprehensive",
+                    "user_message": self.current_user_message
+                }
+            )
+
+            return final_report
+        except Exception as e:
+            logger.error(f"Error executing analysis plan: {str(e)}")
+            raise
 
     @track()
     async def call_model(self) -> ModelResponse:
@@ -141,59 +262,45 @@ class Agent:
         except Exception as e:
             logger.error(f"Tool execution failed: {str(e)}")
             raise ToolExecutionError(f"Tool execution failed: {str(e)}")
+
     @track(project_name="tony_stock")
     async def chat(self, user_message: str) -> str:
         """Handle the chat flow with tool usage."""
         try:
+            # Extract company name from user message
+            company_name = None
+            if "京鼎" in user_message:
+                company_name = "京鼎"
+            elif "文曄" in user_message:
+                company_name = "文曄"
+            elif "群聯" in user_message:
+                company_name = "群聯"
+
+            if not company_name:
+                return "抱歉，我只能分析京鼎、文曄和群聯這三家公司。請問您想了解哪一家公司？"
+
             # Add user message to history
             self.message_history.append({"role": "user", "content": user_message})
-            response, _ = await self.call_model()
-            # Add the assistant's message with tool calls to history
-            self.message_history.append(response.choices[0].message.model_dump())
 
-            while response.choices[0].message.tool_calls:
-                # Process all tool calls and collect their responses
-                tool_responses = []
-                for tool_call in response.choices[0].message.tool_calls:
-                    tool_name = tool_call.function.name
-                    tool_input = json.loads(tool_call.function.arguments)
+            try:
+                # 1. 生成分析計畫
+                await self.generate_plan(user_message, company_name)
+                
+                # 2. 執行分析計畫
+                final_report = await self.execute_analysis_plan()
+                
+                # 3. 添加最終報告到歷史記錄
+                self.message_history.append({
+                    "role": "assistant",
+                    "content": final_report
+                })
+                
+                return final_report
+                
+            except Exception as e:
+                logger.error(f"Error in analysis workflow: {str(e)}")
+                return f"分析過程中發生錯誤：{str(e)}"
 
-                    logger.info(f"Executing tool {tool_name} with input: {tool_input}")
-
-                    try:
-                        # Execute tool
-                        tool_result = await self.process_tool_call(
-                            tool_name, tool_input
-                        )
-                        logger.info(f"Tool result: {tool_result}")
-
-                        # Format tool result as JSON string if it's a list or dict
-                        formatted_result = (
-                            json.dumps(tool_result, ensure_ascii=False, indent=2)
-                            if isinstance(tool_result, (list, dict))
-                            else str(tool_result)
-                        )
-
-                        # Create tool response
-                        tool_response = {
-                            "tool_call_id": tool_call.id,
-                            "role": "tool",
-                            "name": tool_name,
-                            "content": formatted_result,
-                        }
-                        tool_responses.append(tool_response)
-                    except ToolExecutionError as e:
-                        logger.error(f"Tool execution error: {str(e)}")
-                        return f"Error executing tool: {str(e)}"
-
-                # Update message history with all tool responses at once
-                self.message_history.extend(tool_responses)
-
-                # Continue conversation with empty messages since history is updated
-                response, _ = await self.call_model()
-                self.message_history.append(response.choices[0].message.model_dump())
-
-            return response.choices[0].message.content or "No response generated"
         except Exception as e:
             logger.error(f"Chat error: {str(e)}")
             return f"Error during chat: {str(e)}"
@@ -211,21 +318,13 @@ async def main():
     # Now set up tools using the fully created agent
     tools: Dict[str, Tool] = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
-        "analysis_report": AnalysisTool(lambda: agent.company_news),
         "technical_analysis": TATool(),
         "chips_analysis": ChipsTool(),
     }
 
     # Update agent's tools
     agent.tools = tools
-    
-    # Test technical analysis
-    print("Testing Technical Analysis:")
-    response = await agent.chat("請分析京鼎(3413)近期走勢")
-    print('='*100)
-    print(response)
-    print('='*100)
-    
+
     # Test chips analysis
     print("\nTesting Chips Analysis:")
     response = await agent.chat("請從各個面向詳細分析京鼎(3413)，並且給予未來的預測")
