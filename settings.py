@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     environment: str = "local"
     model: Model = Model.claude_large
     max_tokens: int = 8000
+    min_days_for_analysis: int = 60
+    default_days: int = 120
+    max_retries: int = 3
+    retry_delay: int = 2
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -74,6 +78,3 @@ class Settings(BaseSettings):
         "password": os.getenv("MYSQL_ROOT_PASSWORD"),
         "database": os.getenv("MYSQL_DATABASE"),
     }
-
-
-settings = Settings()

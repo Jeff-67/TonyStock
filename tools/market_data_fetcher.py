@@ -4,12 +4,16 @@ import argparse
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pandas as pd
 import yfinance as yf
+import asyncio
 
-from tools.financial_data import formatters, utils
+from tools.financial_data import utils
+from settings import Settings
+
+settings = Settings()
 
 # Configure logging
 logging.basicConfig(
@@ -45,14 +49,15 @@ def setup_argparse():
     return parser
 
 
-def fetch_market_data(
-    symbol: str, interval: str = "1d", days: int = 365
-) -> pd.DataFrame:
+
+async def fetch_market_data(
+    symbol: Any, interval: str = "1d", days: int = 365
+) -> Optional[pd.DataFrame]:
     """
     Fetch market data for a symbol.
 
     Args:
-        symbol: Stock symbol
+        symbol: Stock symbol (can be string or int)
         interval: Data interval (1d, 1wk, 1mo)
         days: Number of days of historical data
 
@@ -63,35 +68,93 @@ def fetch_market_data(
         end_time = datetime.now()
         start_time = end_time - timedelta(days=days)
 
+        # Convert symbol to string and format Taiwan stock symbols
+        symbol_str = str(symbol)
         logger.info(
-            f"Fetching {interval} data for {symbol} from {start_time.date()} to {end_time.date()}"
+            f"Fetching {interval} data for {symbol_str} from {start_time.date()} to {end_time.date()}"
         )
 
         # Format Taiwan stock symbols
-        if symbol.isdigit() or any(
-            symbol.startswith(prefix) for prefix in ["2", "3", "4", "6", "8", "9"]
+        if symbol_str.isdigit() or any(
+            symbol_str.startswith(prefix) for prefix in ["2", "3", "4", "6", "8", "9"]
         ):
-            symbol = utils.format_taiwan_symbol(symbol)
+            symbol_str = utils.format_taiwan_symbol(symbol_str)
 
-        if not utils.is_valid_symbol(symbol):
-            logger.error(f"Invalid symbol: {symbol}")
+        if not utils.is_valid_symbol(symbol_str):
+            logger.error(f"Invalid symbol: {symbol_str}")
             return None
 
-        ticker = yf.Ticker(symbol)
-        data = ticker.history(interval=interval, start=start_time, end=end_time)
+        try:
+            # Convert dates to strings for yfinance
+            start_str = start_time.strftime("%Y-%m-%d")
+            end_str = end_time.strftime("%Y-%m-%d")
+            
+            for attempt in range(settings.max_retries):
+                try:
+                    ticker = yf.Ticker(symbol_str)
+                    data = ticker.history(interval=interval, start=start_str, end=end_str)
+                    
+                    if data is not None and not data.empty:
+                        break
+                        
+                    if attempt < settings.max_retries - 1:
+                        logger.warning(f"Retry {attempt + 1}/{settings.max_retries} for {symbol_str}")
+                        await asyncio.sleep(settings.retry_delay)
+                        settings.retry_delay *= 2  # Exponential backoff
+                except Exception as e:
+                    if attempt < settings.max_retries - 1:
+                        logger.warning(f"Retry {attempt + 1}/{settings.max_retries} for {symbol_str} due to error: {str(e)}")
+                        await asyncio.sleep(settings.retry_delay)
+                        settings.retry_delay *= 2
+                    else:
+                        raise
 
-        if data.empty:
-            logger.error(f"No data available for {symbol}")
+            if data is None or data.empty:
+                logger.error(f"No data available for {symbol_str} after {settings.  max_retries} retries")
+                return None
+
+            if not isinstance(data, pd.DataFrame):
+                logger.error(f"Invalid data type returned for {symbol_str}: {type(data)}")
+                return None
+
+            # Reset index to get Date as a column
+            data = data.reset_index()
+
+            # Rename columns to match expected format
+            column_mapping = {
+                'Date': 'date',
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Volume': 'volume'
+            }
+            data = data.rename(columns=column_mapping)
+
+            # Select only required columns
+            required_columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+            data = data[required_columns]
+
+            # Convert numeric columns to appropriate types
+            for col in ['open', 'high', 'low', 'close']:
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+            data['volume'] = pd.to_numeric(data['volume'], errors='coerce').astype('int64')
+
+            # Format date column
+            data['date'] = pd.to_datetime(data['date']).dt.strftime('%Y-%m-%d')
+
+            # Validate data completeness
+            if len(data) < days * 0.8:  # If the amount of data is less than 80% of the expected
+                logger.warning(f"Retrieved only {len(data)} days of data for {symbol_str}, expected {days} days")
+            
+            return data
+
+        except Exception as e:
+            logger.error(f"Error fetching data from yfinance for {symbol_str}: {str(e)}")
             return None
-
-        if not utils.is_valid_market_data(data):
-            logger.error(f"Invalid data format for {symbol}")
-            return None
-
-        return formatters.standardize_market_data(data)
 
     except Exception as e:
-        logger.error(f"Error fetching data for {symbol}: {str(e)}")
+        logger.error(f"Error in fetch_market_data for {symbol}: {str(e)}")
         return None
 
 
@@ -117,8 +180,8 @@ def save_output(data: Dict[str, Any], output_path: str = "", format: str = "json
                 print(combined_df.to_csv(index=False))
 
 
-def main():
-    """Execute the main function."""
+async def main_async():
+    """Execute the main function asynchronously."""
     parser = setup_argparse()
     args = parser.parse_args()
 
@@ -128,11 +191,16 @@ def main():
     # Fetch data for each symbol
     results = {}
     for symbol in args.symbols:
-        data = fetch_market_data(symbol=symbol, interval=args.interval, days=args.days)
+        data = await fetch_market_data(symbol=symbol, interval=args.interval, days=args.days)
         results[symbol] = data
 
     # Save or print results
     save_output(results, args.output, args.format)
+
+
+def main():
+    """Execute the main function."""
+    asyncio.run(main_async())
 
 
 if __name__ == "__main__":

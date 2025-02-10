@@ -26,6 +26,7 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from agents.trial_agent import Agent
 from tools.analysis.analysis_tool import AnalysisTool
 from tools.research.research_tool import ResearchTool
+from agents.technical_analysis_agents.ta_agents import TechnicalAnalysisTool
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ def create_agent() -> Agent:
     """Create a new agent instance with all necessary tools."""
     agent = Agent(
         provider="anthropic",
-        model_name="claude-3-5-sonnet-20241022",
+        model_name="claude-3-5-sonnet-20240229",
         tools={},  # Empty tools dict initially
     )
 
@@ -60,6 +61,7 @@ def create_agent() -> Agent:
     tools = {
         "research": ResearchTool(lambda news: agent.company_news.extend(news)),
         "analysis_report": AnalysisTool(lambda: agent.company_news),
+        "technical_analysis": TechnicalAnalysisTool(),
     }
 
     # Update agent's tools
