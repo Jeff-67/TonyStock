@@ -253,11 +253,11 @@ class InvestmentReportReader:
             logger.error(f"Error processing PDF {pdf_path}: {str(e)}")
             return None
 
-    async def process_directory_async(
+    async def process_directory(
         self, date_dir: str, max_files: Optional[int] = None
     ) -> bool:
         """
-        Process PDFs in a specific date directory asynchronously.
+        Process PDFs in a specific date directory.
 
         Args:
             date_dir (str): Date directory name (YYYY-MM-DD)
@@ -296,6 +296,35 @@ class InvestmentReportReader:
             return self.save_to_mongodb(processed_documents)
         return True
 
+    async def process_all_directories(
+        self, max_files_per_dir: Optional[int] = None
+    ) -> bool:
+        """
+        Process all date directories in the download directory.
+
+        Args:
+            max_files_per_dir (int, optional): Maximum number of files to process per directory.
+                                             If None, process all files.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not os.path.exists(DOWNLOAD_DIR):
+            logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
+            return False
+
+        success = True
+        for date_dir in os.listdir(DOWNLOAD_DIR):
+            if os.path.isdir(os.path.join(DOWNLOAD_DIR, date_dir)):
+                logger.info(f"Processing directory: {date_dir}")
+                if not await self.process_directory(
+                    date_dir, max_files=max_files_per_dir
+                ):
+                    success = False
+                    logger.error(f"Failed to process directory: {date_dir}")
+
+        return success
+
     def save_to_mongodb(self, documents: List[Dict]) -> bool:
         """
         Save processed documents to MongoDB.
@@ -322,50 +351,12 @@ class InvestmentReportReader:
             logger.error(f"Error saving to MongoDB: {str(e)}")
             return False
 
-    def process_directory(self, date_dir: str, max_files: Optional[int] = None) -> bool:
-        """
-        Process PDFs in a specific date directory.
-
-        Args:
-            date_dir (str): Date directory name (YYYY-MM-DD)
-            max_files (int, optional): Maximum number of files to process. If None, process all files.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        return asyncio.run(self.process_directory_async(date_dir, max_files))
-
-    def process_all_directories(self, max_files_per_dir: Optional[int] = None) -> bool:
-        """
-        Process all date directories in the download directory.
-
-        Args:
-            max_files_per_dir (int, optional): Maximum number of files to process per directory.
-                                             If None, process all files.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not os.path.exists(DOWNLOAD_DIR):
-            logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
-            return False
-
-        success = True
-        for date_dir in os.listdir(DOWNLOAD_DIR):
-            if os.path.isdir(os.path.join(DOWNLOAD_DIR, date_dir)):
-                logger.info(f"Processing directory: {date_dir}")
-                if not self.process_directory(date_dir, max_files=max_files_per_dir):
-                    success = False
-                    logger.error(f"Failed to process directory: {date_dir}")
-
-        return success
-
 
 def main():
     """Execute the investment report reader to process reports."""
     reader = InvestmentReportReader()
     # Process only 6 files per directory
-    if reader.process_all_directories(max_files_per_dir=6):
+    if asyncio.run(reader.process_all_directories(max_files_per_dir=6)):
         logger.info("Successfully processed all investment reports")
     else:
         logger.error("Errors occurred while processing investment reports")
