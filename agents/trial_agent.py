@@ -19,7 +19,6 @@ from prompts.tools.tools_schema import (
     tool_prompt_construct_anthropic,
     tool_prompt_construct_openai,
 )
-from settings import Settings
 from tools.analysis.analysis_tool import AnalysisTool
 from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
@@ -31,7 +30,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-settings = Settings()
 
 
 class ToolExecutionError(Exception):

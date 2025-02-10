@@ -1,4 +1,3 @@
-# type: ignore
 # flake8: noqa
 
 import base64
@@ -13,7 +12,7 @@ from mysql.connector import connect
 from pymongo import MongoClient
 from pymongo import errors as MongoErrors
 
-from settings import Settings
+from settings import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +25,7 @@ class DatabaseManager:
     """
 
     def __init__(self):
-        self.settings = Settings()
+        self.settings = settings
         self.redis_client = self._init_redis()
         self.mongo_client, self.mongo_db = self._init_mongo()
         self.mysql_config = self.settings.mysql_config
@@ -87,7 +86,7 @@ class DatabaseManager:
     def _init_mongo(self) -> Tuple[Optional[MongoClient], Optional[Any]]:
         try:
             client = MongoClient(
-                self.settings.mongo_config["uri"],
+                self.settings.mongo_config["url"],
                 username=self.settings.mongo_config.get("username"),
                 password=self.settings.mongo_config.get("password"),
                 maxPoolSize=self.settings.mongo_config["max_pool_size"],
@@ -166,6 +165,7 @@ class DatabaseManager:
             if conn.is_connected():
                 logger.info("Connected to MySQL.")
                 return conn
+            return None
         except MySQLError as e:
             logger.error(f"MySQL connection error: {e}")
             return None
@@ -298,12 +298,13 @@ class DatabaseManager:
     # ------------------- Helper Methods -------------------
 
     def _generate_cache_key(
-        self, collection_or_table: str, key: str, value: Optional[str]
+        self, collection_or_table: Optional[str], key: str, value: Optional[str]
     ) -> str:
+        table_name = collection_or_table or "default"
         encoded = (
             base64.urlsafe_b64encode(str(value).encode()).decode() if value else ""
         )
-        return f"{collection_or_table}:{key}:{encoded}"
+        return f"{table_name}:{key}:{encoded}"
 
     @staticmethod
     def serialize(data: Any) -> str:
@@ -320,6 +321,13 @@ class DatabaseManager:
         except json.JSONDecodeError as e:
             logger.error(f"Deserialization error: {e}")
             return None
+
+
+# Create a singleton instance
+db_manager: DatabaseManager = DatabaseManager()
+
+# Export both the class and instance
+__all__ = ["DatabaseManager", "db_manager"]
 
 
 def main():

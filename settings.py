@@ -60,7 +60,7 @@ class Settings(BaseSettings):
         "max_connections": 10,
     }
     mongo_config: dict = {
-        "uri": "mongodb://localhost:27017/",
+        "url": "mongodb://localhost:27017/",
         "db_name": os.getenv("MONGO_DATABASE"),
         "collection_name": os.getenv("MONGO_COLLECTION"),
         "username": os.getenv("MONGO_USERNAME"),

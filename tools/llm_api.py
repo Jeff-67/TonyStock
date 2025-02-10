@@ -20,9 +20,6 @@ from opik import opik_context, track
 from opik.opik_context import get_current_span_data
 from tokencost import calculate_cost_by_tokens
 
-from settings import Settings
-
-Settings()
 load_dotenv()
 
 opik_logger = OpikLogger()

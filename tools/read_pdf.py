@@ -13,7 +13,36 @@ from docling.document_converter import DocumentConverter, InputFormat, PdfFormat
 from docling.pipeline.standard_pdf_pipeline import PdfPipelineOptions
 
 
-def convert_pdf_to_md(pdf_path, output_path=None, model="gpt-4o"):
+async def convert_pdf_to_md(pdf_path, model="gpt-4o") -> str:
+    """Convert PDF to markdown using MarkItDown.
+
+    Args:
+        pdf_path (str): Path to the PDF file
+        model (str): OpenAI model to use (default: gpt-4o)
+
+    Returns:
+        str: Markdown content
+    """
+    # Configure pipeline options with the new recommended settings
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.generate_page_images = True  # Required for table images
+    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
+
+    # Create format options with our configured pipeline options
+    pdf_format_option = PdfFormatOption(pipeline_options=pipeline_options)
+    format_options = {InputFormat.PDF: pdf_format_option}
+
+    # Initialize converter with format options
+    converter = DocumentConverter(format_options=format_options)
+    result = converter.convert(pdf_path)
+
+    # Convert PDF
+    result_md = result.document.export_to_markdown()
+
+    return result_md
+
+
+def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
     """Convert PDF to markdown using MarkItDown.
 
     Args:
@@ -85,7 +114,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        output_file = convert_pdf_to_md(args.pdf_path, model=args.model)
+        output_file = save_pdf_to_md(args.pdf_path, model=args.model)
         print(f"Conversion complete. Output saved to: {output_file}")
     except Exception as e:
         print(f"Error during conversion: {str(e)}")
