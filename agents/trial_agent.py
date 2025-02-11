@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 from opik import track
 
 from .base import BaseAgent, AnalysisResult
-from .chips_agent import ChipsAnalysisAgent
+from .capital_agent import ChipsAnalysisAgent
 from .technical_agents import TechnicalAgent
 from prompts.agents.planning import report_planning_prompt
 from tools.time.time_tool import get_current_time

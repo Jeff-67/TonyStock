@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 load_dotenv()
 
@@ -51,6 +52,39 @@ class Settings(BaseSettings):
     default_days: int = 120
     max_retries: int = 3
     retry_delay: int = 2
+    findmind_api_key: str = os.getenv("FINDMIND_API_KEY")
+
+    # MongoDB settings
+    mongo_username: Optional[str] = None
+    mongo_password: Optional[str] = None
+    mongo_database: Optional[str] = None
+    mongo_collection: Optional[str] = None
+    
+    # MySQL settings
+    mysql_database: Optional[str] = None
+    mysql_root_password: Optional[str] = None
+    
+    # RabbitMQ settings
+    rabbitmq_default_user: Optional[str] = None
+    rabbitmq_default_pass: Optional[str] = None
+    
+    # Redis settings
+    redis_password: Optional[str] = None
+    
+    # API keys
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    alphavantage_api_key: Optional[str] = None
+    yahoo_finance_api_key: Optional[str] = None
+    
+    # OPIK settings
+    opik_url_override_local: Optional[str] = None
+    opik_url_override_dev: Optional[str] = None
+    opik_use_local: Optional[str] = None
+    
+    # Line settings
+    line_channel_secret: Optional[str] = None
+    line_channel_access_token: Optional[str] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -78,3 +112,8 @@ class Settings(BaseSettings):
         "password": os.getenv("MYSQL_ROOT_PASSWORD"),
         "database": os.getenv("MYSQL_DATABASE"),
     }
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False

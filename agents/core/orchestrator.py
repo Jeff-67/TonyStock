@@ -10,7 +10,7 @@ from .base import AnalysisResult, BaseAgent
 from agents.planning_agent import PlanningAgent
 from agents.research_agent import ResearchAgent
 from technical_agents.technical_agent import TechnicalAgent
-from agents.chips_agent import ChipsAgent
+from agents.capital_agent import ChipsAgent
 
 logger = logging.getLogger(__name__)
 
