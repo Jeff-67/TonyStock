@@ -6,6 +6,7 @@ path management, conversion process, and output file generation.
 """
 
 import argparse
+import asyncio
 import os
 
 from docling.datamodel.pipeline_options import TableFormerMode
@@ -34,15 +35,17 @@ async def convert_pdf_to_md(pdf_path, model="gpt-4o") -> str:
 
     # Initialize converter with format options
     converter = DocumentConverter(format_options=format_options)
+
+    # Run the synchronous conversion in a thread pool
     result = converter.convert(pdf_path)
 
-    # Convert PDF
+    # Convert PDF to markdown in a thread pool
     result_md = result.document.export_to_markdown()
 
     return result_md
 
 
-def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
+async def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
     """Convert PDF to markdown using MarkItDown.
 
     Args:
@@ -63,14 +66,14 @@ def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
 
     # Initialize converter with format options
     converter = DocumentConverter(format_options=format_options)
-    result = converter.convert(pdf_path)
+    result = await asyncio.to_thread(converter.convert, pdf_path)
 
     # Get the directory and filename
     dir_path = os.path.dirname(pdf_path)
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
 
-    # Convert PDF
-    result_md = result.document.export_to_markdown()
+    # Convert PDF to markdown in a thread pool
+    result_md = await asyncio.to_thread(result.document.export_to_markdown)
 
     # Create output directory if it doesn't exist
     os.makedirs(dir_path, exist_ok=True)
@@ -90,8 +93,8 @@ def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
     return output_path
 
 
-def main():
-    """Command-line interface for PDF to markdown conversion.
+async def amain():
+    """Async command-line interface for PDF to markdown conversion.
 
     Provides a command-line interface for converting PDF files to markdown format
     using MarkItDown. Supports custom model selection and handles errors gracefully.
@@ -114,11 +117,16 @@ def main():
     args = parser.parse_args()
 
     try:
-        output_file = save_pdf_to_md(args.pdf_path, model=args.model)
+        output_file = await save_pdf_to_md(args.pdf_path, model=args.model)
         print(f"Conversion complete. Output saved to: {output_file}")
     except Exception as e:
         print(f"Error during conversion: {str(e)}")
         exit(1)
+
+
+def main():
+    """Command-line interface wrapper for async operations."""
+    asyncio.run(amain())
 
 
 if __name__ == "__main__":

@@ -4,9 +4,12 @@ import asyncio
 import json
 import logging
 import os
+import shutil
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from opik import track
 from pydantic import BaseModel
 
 from database.utils import db_manager
@@ -25,6 +28,22 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Define the base directory for individual stock reports
+INDIVIDUAL_STOCK_DIR = "/Users/jeffyang/Desktop/investment_report"
+
+# Semaphore to limit concurrent operations
+MAX_CONCURRENT_TASKS = 3
+
+
+@asynccontextmanager
+async def get_semaphore():
+    """Context manager for semaphore to ensure proper cleanup."""
+    sem = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+    try:
+        yield sem
+    finally:
+        sem.release()
 
 
 class ReportType(BaseModel):
@@ -74,9 +93,25 @@ class ReportDocument(BaseModel):
 class InvestmentReportReader:
     """Reads investment reports and saves them to MongoDB."""
 
-    def __init__(self):
-        """Initialize the report reader."""
+    # Default collection name if not specified
+    DEFAULT_COLLECTION = "investment_reports"
+
+    def __init__(self, collection_name: Optional[str] = None):
+        """Initialize the report reader.
+
+        Args:
+            collection_name (Optional[str]): MongoDB collection name to use.
+                If None, will try to get from settings.py, then fall back to DEFAULT_COLLECTION.
+        """
         self.db_manager = db_manager
+        # Try to get collection name from settings, fall back to default
+        self.collection_name = (
+            collection_name
+            or self.DEFAULT_COLLECTION
+            or self.db_manager.settings.mongo_config.get("collection_name")
+        )
+        self.semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+        logger.info(f"Using MongoDB collection: {self.collection_name}")
 
     async def _generate_file_id(
         self, original_file_id: str, metadata: ReportMetadata, report_type: ReportType
@@ -103,15 +138,14 @@ class InvestmentReportReader:
 
         # Get report type identifier
         if report_type.level_1 == "個股分析":
-            type_id = (
-                f"stock_{report_type.level_4.split('.')[0]}"  # Extract stock number
-            )
+            type_id = "stock"
         else:
             type_id = "industry"
 
         # Combine all parts
         return f"{clean_date}_{source_id}_{type_id}_{original_file_id}"
 
+    @track()
     async def _extract_report_type(self, content: str) -> ReportType:
         """
         Extract report type information from content using LLM.
@@ -138,6 +172,7 @@ class InvestmentReportReader:
         json_response = json.loads(response.choices[0].message.content)
         return ReportType(**json_response)
 
+    @track()
     async def _extract_metadata(self, content: str) -> ReportMetadata:
         """
         Extract metadata from content using LLM.
@@ -164,6 +199,7 @@ class InvestmentReportReader:
         json_response = json.loads(response.choices[0].message.content)
         return ReportMetadata(**json_response)
 
+    @track()
     async def _extract_contents(self, content: str, file_path: str) -> ReportContents:
         """
         Extract report contents using LLM.
@@ -197,6 +233,47 @@ class InvestmentReportReader:
         # Convert to ReportContents model
         return ReportContents(**json_response)
 
+    async def _store_individual_stock_report(
+        self, pdf_path: str, report_type: ReportType
+    ) -> Optional[str]:
+        """
+        Store individual stock analysis reports in a separate directory.
+
+        Args:
+            pdf_path (str): Path to the original PDF file
+            report_type (ReportType): Report type information
+
+        Returns:
+            Optional[str]: Path to the copied file if successful, None otherwise
+        """
+        try:
+            if report_type.level_1 != "個股分析":
+                return None
+
+            # Create today's date directory
+            today = datetime.now().strftime("%Y-%m-%d")
+            target_dir = os.path.join(INDIVIDUAL_STOCK_DIR, today)
+            os.makedirs(target_dir, exist_ok=True)
+
+            # Get the stock code and original filename
+            stock_code = report_type.level_4.split(".")[0]
+            original_filename = os.path.basename(pdf_path)
+
+            # Create new filename with stock code prefix
+            new_filename = f"{stock_code}_{original_filename}"
+            target_path = os.path.join(target_dir, new_filename)
+
+            # Copy the file
+            shutil.copy2(pdf_path, target_path)
+            logger.info(f"Copied individual stock report to: {target_path}")
+
+            return target_path
+
+        except Exception as e:
+            logger.error(f"Error storing individual stock report: {str(e)}")
+            return None
+
+    @track(project_name="process_pdf")
     async def process_pdf(self, pdf_path: str) -> Optional[Dict]:
         """
         Process a single PDF file and convert it to markdown.
@@ -210,6 +287,21 @@ class InvestmentReportReader:
         try:
             # Get file information
             original_file_id = os.path.splitext(os.path.basename(pdf_path))[0]
+
+            # Check if this file has already been processed
+            # Use proper MongoDB regex to match any prefix followed by the original file ID
+            existing_doc = self.db_manager.get_data(
+                db_type="mongo",
+                key="file_id",
+                query={
+                    "file_id": {"$regex": f".*_{original_file_id}$"}
+                },  # Match any characters before underscore + original_file_id at the end
+                collection_or_table=self.collection_name,
+            )
+
+            if existing_doc:
+                logger.info(f"File {pdf_path} has already been processed. Skipping...")
+                return None
 
             # Convert PDF to markdown
             logger.info(f"Converting PDF to markdown: {pdf_path}")
@@ -230,10 +322,27 @@ class InvestmentReportReader:
                 self._extract_contents(markdown_content, pdf_path),
             )
 
+            # Store individual stock report if applicable
+            await self._store_individual_stock_report(pdf_path, report_type)
+
             # Generate meaningful file ID
             file_id = await self._generate_file_id(
                 original_file_id, metadata, report_type
             )
+
+            # Double check with the actual file_id (in case the first check missed it)
+            existing_doc = self.db_manager.get_data(
+                db_type="mongo",
+                key="file_id",
+                query={"file_id": file_id},
+                collection_or_table=self.collection_name,
+            )
+
+            if existing_doc:
+                logger.info(
+                    f"File {pdf_path} has already been processed (found by exact file_id). Skipping..."
+                )
+                return None
 
             # Create document for MongoDB
             document = {
@@ -256,23 +365,16 @@ class InvestmentReportReader:
     async def process_directory(
         self, date_dir: str, max_files: Optional[int] = None
     ) -> bool:
-        """
-        Process PDFs in a specific date directory.
-
-        Args:
-            date_dir (str): Date directory name (YYYY-MM-DD)
-            max_files (int, optional): Maximum number of files to process. If None, process all files.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Process PDFs in a specific date directory."""
         dir_path = os.path.join(DOWNLOAD_DIR, date_dir)
         if not os.path.exists(dir_path):
             logger.error(f"Directory does not exist: {dir_path}")
             return False
 
-        # Get all PDF files in directory
-        pdf_files = [f for f in os.listdir(dir_path) if f.endswith(".pdf")]
+        # Get all PDF files in directory and sort in descending order
+        pdf_files = sorted(
+            [f for f in os.listdir(dir_path) if f.endswith(".pdf")], reverse=True
+        )
         if not pdf_files:
             logger.info(f"No PDF files found in {dir_path}")
             return True
@@ -284,44 +386,44 @@ class InvestmentReportReader:
                 f"Processing {len(pdf_files)} files (limited by max_files={max_files})"
             )
 
-        # Process PDFs concurrently
-        pdf_paths = [os.path.join(dir_path, pdf_file) for pdf_file in pdf_files]
-        documents = await asyncio.gather(
-            *[self.process_pdf(pdf_path) for pdf_path in pdf_paths]
-        )
+        # Process PDFs sequentially
+        documents = []
+        for pdf_file in pdf_files:
+            pdf_path = os.path.join(dir_path, pdf_file)
+            try:
+                document = await self.process_pdf(pdf_path)
+                if document:
+                    documents.append(document)
+            except Exception as e:
+                logger.error(f"Error processing {pdf_file}: {str(e)}")
+                continue
 
-        # Filter out None values and save to MongoDB
-        processed_documents = [doc for doc in documents if doc is not None]
-        if processed_documents:
-            return self.save_to_mongodb(processed_documents)
+        if documents:
+            return self.save_to_mongodb(documents)
         return True
 
     async def process_all_directories(
         self, max_files_per_dir: Optional[int] = None
     ) -> bool:
-        """
-        Process all date directories in the download directory.
-
-        Args:
-            max_files_per_dir (int, optional): Maximum number of files to process per directory.
-                                             If None, process all files.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Process all date directories in the download directory."""
         if not os.path.exists(DOWNLOAD_DIR):
             logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
             return False
 
         success = True
         for date_dir in os.listdir(DOWNLOAD_DIR):
-            if os.path.isdir(os.path.join(DOWNLOAD_DIR, date_dir)):
+            dir_path = os.path.join(DOWNLOAD_DIR, date_dir)
+            if os.path.isdir(dir_path):
                 logger.info(f"Processing directory: {date_dir}")
-                if not await self.process_directory(
-                    date_dir, max_files=max_files_per_dir
-                ):
+                try:
+                    if not await self.process_directory(
+                        date_dir, max_files=max_files_per_dir
+                    ):
+                        success = False
+                        logger.error(f"Failed to process directory: {date_dir}")
+                except Exception as e:
+                    logger.error(f"Error processing directory {date_dir}: {str(e)}")
                     success = False
-                    logger.error(f"Failed to process directory: {date_dir}")
 
         return success
 
@@ -339,7 +441,7 @@ class InvestmentReportReader:
             result = self.db_manager.insert_data(
                 db_type="mongo",
                 data=documents,
-                collection="investment_reports",
+                collection=self.collection_name,
                 key="file_id",
             )
             if result:
@@ -354,12 +456,20 @@ class InvestmentReportReader:
 
 def main():
     """Execute the investment report reader to process reports."""
-    reader = InvestmentReportReader()
-    # Process only 6 files per directory
-    if asyncio.run(reader.process_all_directories(max_files_per_dir=6)):
-        logger.info("Successfully processed all investment reports")
-    else:
-        logger.error("Errors occurred while processing investment reports")
+
+    async def run():
+        reader = InvestmentReportReader(collection_name="investment_reports")
+        try:
+            # Process only 3 files per directory
+            success = await reader.process_all_directories(max_files_per_dir=3)
+            if success:
+                logger.info("Successfully processed all investment reports")
+            else:
+                logger.error("Errors occurred while processing investment reports")
+        except Exception as e:
+            logger.error(f"Fatal error: {str(e)}")
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":

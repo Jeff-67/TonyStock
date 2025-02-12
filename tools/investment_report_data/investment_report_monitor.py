@@ -90,6 +90,23 @@ class ReportMonitor:
         """Get today's date key in YYYY-MM-DD format."""
         return datetime.now().strftime("%Y-%m-%d")
 
+    def get_latest_date_from_downloads(self) -> Optional[str]:
+        """Get the latest date from DOWNLOAD_DIR in YYYY-MM-DD format."""
+        if not os.path.exists(DOWNLOAD_DIR):
+            return None
+
+        try:
+            # Get all directories and filter for valid dates
+            valid_dates = [
+                d
+                for d in os.listdir(DOWNLOAD_DIR)
+                if os.path.isdir(os.path.join(DOWNLOAD_DIR, d))
+                and datetime.strptime(d, "%Y-%m-%d")
+            ]
+            return max(valid_dates) if valid_dates else None
+        except ValueError:
+            return None
+
     def get_yesterday_key(self) -> str:
         """Get yesterday's date key in YYYY-MM-DD format."""
         yesterday = datetime.now() - timedelta(days=1)
@@ -102,73 +119,66 @@ class ReportMonitor:
         return None
 
     async def scan_for_reports(self):
-        """Scan for reports in a single run using a dynamic window around yesterday's max ID."""
+        """Scan for reports in a single run using a dynamic window around the latest known ID."""
         date_key = self.get_date_key()
-        yesterday_key = self.get_yesterday_key()
+        latest_date = self.get_latest_date_from_downloads()
         logger.info(f"Starting daily scan for {date_key}")
 
-        # Get yesterday's max ID as reference point
+        # Get reference ID from latest date or known IDs
         reference_id = None
-        if yesterday_key in self.known_ids and self.known_ids[yesterday_key]:
-            reference_id = max(self.known_ids[yesterday_key])
-
-        # If no yesterday's data, try to find the most recent max ID
-        if reference_id is None:
+        if latest_date and latest_date in self.known_ids:
+            reference_id = max(self.known_ids[latest_date])
+            logger.info(
+                f"Using reference ID from latest date {latest_date}: {reference_id}"
+            )
+        else:
+            # Try to find the most recent max ID from known IDs
             sorted_dates = sorted(self.known_ids.keys(), reverse=True)
             for prev_date in sorted_dates:
                 if self.known_ids[prev_date]:
                     reference_id = max(self.known_ids[prev_date])
+                    logger.info(
+                        f"Using reference ID from previous date {prev_date}: {reference_id}"
+                    )
                     break
 
-        # If still no reference, use base ID
+        # Use base ID if no reference found
         if reference_id is None:
             reference_id = 89270
             logger.info(f"No previous reports found, using base ID: {reference_id}")
-        else:
-            logger.info(f"Using reference ID: {reference_id} from previous data")
 
-        # Initialize new day's entry
+        # Initialize new day's entry and scanning parameters
         if date_key not in self.known_ids:
             self.known_ids[date_key] = []
 
-        # Define scanning limits
-        max_forward_distance = 100  # Maximum distance to scan forward
-        max_backward_distance = 100  # Maximum distance to scan backward
-
-        forward_window = reference_id  # Start from reference ID
-        backward_window = reference_id  # Also start backward from reference ID
-
-        # Calculate absolute limits
-        forward_limit = reference_id + max_forward_distance
-        backward_limit = max(reference_id - max_backward_distance, 0)
-
+        max_distance = 100
+        forward_window = reference_id
+        backward_window = reference_id
+        forward_limit = reference_id + max_distance
+        backward_limit = max(reference_id - max_distance, 0)
         found_reports = False
 
         # Scan until we hit the limits
         while forward_window <= forward_limit or backward_window >= backward_limit:
             tasks = []
-
-            # Check both IDs
             if forward_window <= forward_limit:
-                logger.info(f"Checking ID {forward_window}")
                 tasks.append(self.check_report_exists(forward_window))
-
             if backward_window >= backward_limit:
-                logger.info(f"Checking ID {backward_window}")
                 tasks.append(self.check_report_exists(backward_window))
 
-            if not tasks:  # If no tasks, we've hit both limits
+            if not tasks:
                 break
 
-            # Wait for all checks
             results = await asyncio.gather(*tasks)
-            ids_to_check = []
-
-            # Collect IDs that exist
-            if forward_window <= forward_limit and results[0]:
-                ids_to_check.append(forward_window)
-            if backward_window >= backward_limit and len(results) > 1 and results[1]:
-                ids_to_check.append(backward_window)
+            ids_to_check = [
+                id
+                for id, exists in zip(
+                    [fw for fw in [forward_window] if fw <= forward_limit]
+                    + [bw for bw in [backward_window] if bw >= backward_limit],
+                    results,
+                )
+                if exists
+            ]
 
             # Process found IDs
             for file_id in ids_to_check:
@@ -179,12 +189,9 @@ class ReportMonitor:
                     self.save_known_ids()
                     await self.download_reports({file_id})
 
-            # Update windows
             forward_window += 1
             backward_window -= 1
-
-            # Small delay between iterations to avoid overwhelming the server
-            await asyncio.sleep(0.1)  # Reduced delay since we're checking one at a time
+            await asyncio.sleep(0.1)
 
         if not found_reports:
             logger.info("No new reports found in today's scan")
