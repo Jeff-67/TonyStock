@@ -85,8 +85,31 @@ class BaseAgent:
     async def call_model(
         self,
         messages: Optional[List[Message]] = None,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None
+    ) -> Any:
+        """Make a simple API call to the model without tools.
+        
+        Args:
+            messages: List of messages to send to the model. If None, uses message history.
+            
+        Returns:
+            Model response
+        """
+        try:
+            if messages is None:
+                messages = [dict(msg) for msg in self.message_history]
+            
+            return await aquery_llm(
+                messages=messages,
+                model=self.model_name,
+                provider=self.provider
+            )
+        except Exception as e:
+            logger.error(f"Model call failed: {str(e)}")
+            raise
+    
+    async def call_tool(
+        self,
+        messages: Optional[List[Message]] = None,
     ) -> tuple[Any, Any]:
         """Make an API call to the model."""
         try:
@@ -103,7 +126,7 @@ class BaseAgent:
                 messages=messages,
                 model=self.model_name,
                 provider=self.provider,
-                tools=tool_prompt_text
+                tools=tool_prompt_text,
             )
         except Exception as e:
             logger.error(f"Model call failed: {str(e)}")

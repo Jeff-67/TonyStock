@@ -8,11 +8,9 @@ import logging
 from typing import Any, Dict, Optional, Tuple
 
 from ..base import BaseAgent, AnalysisResult
-from prompts.agents.knowledge import (
-    finance_agent_prompt,
-    capital_agent_prompt,
-    technical_agent_prompt
-)
+from prompts.agents.knowledge import finance_agent_prompt
+from prompts.agents.capital import CapitalPromptGenerator
+from prompts.agents.technical import TechnicalPromptGenerator
 from prompts.agents.main import planning_prompt, writing_planning_prompt
 from utils.stock_utils import stock_name_to_id
 
@@ -79,8 +77,8 @@ class PlanningAgent(BaseAgent):
             Complete planning prompt
         """
         company_instruction = finance_agent_prompt(stock_id=stock_id)
-        chip_instruction = capital_agent_prompt()
-        technical_instruction = technical_agent_prompt()
+        chip_instruction = CapitalPromptGenerator.generate_system_prompt()
+        technical_instruction = TechnicalPromptGenerator.generate_system_prompt()
         writing_instruction = writing_planning_prompt()
         
         return planning_prompt(

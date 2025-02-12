@@ -3,10 +3,11 @@
 import asyncio
 import logging
 import re
-import json
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Set
+from dataclasses import dataclass, field
+from datetime import datetime
 
-from agents.base import AnalysisResult, BaseAgent
+from agents.base import AnalysisResult, BaseAgent, BaseAnalysisData
 from .planning_agent import PlanningAgent
 from agents.research_agent import ResearchAgent
 from agents.technical_agents import TechnicalAgent
@@ -14,150 +15,127 @@ from agents.capital_agent import CapitalAgent
 
 logger = logging.getLogger(__name__)
 
-class AnalysisOrchestrator:
-    """Coordinates different analysis agents and manages the analysis workflow."""
+@dataclass
+class OrchestratorData(BaseAnalysisData):
+    """Analysis data for orchestrator results."""
+    company: str
+    query: str
+    plan: Optional[str] = None
+    agent_results: Dict[str, AnalysisResult] = field(default_factory=dict)
+
+class AnalysisOrchestrator(BaseAgent):
+    """Coordinates analysis agents and manages workflow."""
     
-    def __init__(
-        self,
-        provider: str = "anthropic",
-        model_name: str = "claude-3-sonnet-20240229",
-    ):
-        self.provider = provider
-        self.model_name = model_name
-        
-        # Initialize agents
+    ANALYSIS_KEYWORDS = {
+        'technical': ["technical", "price", "trend", "pattern", "技術面"],
+        'capital': ["chips", "volume", "institutional", "籌碼"],
+        'research': ["research", "fundamental", "news", "基本面", "新聞"]
+    }
+    
+    POSITIONAL_AGENTS = {'technical', 'capital'}  # Agents that take company as positional arg
+    
+    def __init__(self, provider: str = "openai", model_name: str = "gpt-4o"):
+        """Initialize orchestrator and its agents."""
+        super().__init__(provider=provider, model_name=model_name)
         self.agents = {
             'planning': PlanningAgent(provider, model_name),
             'research': ResearchAgent(provider, model_name),
             'technical': TechnicalAgent(provider, model_name),
             'capital': CapitalAgent()
         }
+    
+    def _extract_company(self, query: str) -> Optional[str]:
+        """Extract company identifier from query."""
+        if match := re.search(r'\((\d{4})\)', query):
+            return match.group(1)
+        if match := re.search(r'(京鼎|文曄|群聯)', query):
+            return match.group()
+        return None
+    
+    def _determine_required_agents(self, plan: str) -> Set[str]:
+        """Determine required agents based on planning output."""
+        required = set()
+        plan_lower = plan.lower()
         
-    def parse_query(self, query: str) -> Tuple[str, str]:
-        """Parse query to extract company name and analysis type."""
-        # First try to find stock number in parentheses
-        stock_number = re.search(r'\((\d{4})\)', query)
-        if stock_number:
-            return stock_number.group(1), "planning"
+        for agent_type, keywords in self.ANALYSIS_KEYWORDS.items():
+            if any(kw in plan_lower for kw in keywords):
+                required.add(agent_type)
+                
+        return required or {'research'}  # Default to research if no specific requirements
+    
+    async def _execute_analysis(self, company: str, query: str) -> AnalysisResult:
+        """Execute the full analysis workflow."""
+        # Get analysis plan
+        plan_result = await self.agents['planning'].analyze(query, company=company)
+        if not plan_result.success:
+            return plan_result
             
-        # If no stock number, try to find full company name
-        company_match = re.search(r'(京鼎|文曄|群聯)', query)
-        company_name = company_match.group() if company_match else ""
-        return company_name, "planning"  # Always start with planning
+        # Run required analyses
+        required_agents = self._determine_required_agents(plan_result.content)
+        analysis_tasks = []
         
-    def parse_plan(self, plan_content: str) -> Set[str]:
-        """Parse planning result to determine required analysis types.
+        for agent_type in required_agents:
+            if agent := self.agents.get(agent_type):
+                if agent_type in ('technical', 'capital'):
+                    # These agents expect company as the first argument
+                    analysis_tasks.append(agent.analyze(company))
+                else:
+                    # These agents expect query as first argument and company as kwarg
+                    analysis_tasks.append(agent.analyze(query, company=company))
         
-        Args:
-            plan_content: Planning agent's output
-            
-        Returns:
-            Set of required analysis types
-        """
-        required_agents = set()
+        results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
         
-        # Look for keywords indicating required analyses
-        if any(kw in plan_content.lower() for kw in ["technical", "price", "trend", "pattern", "技術面"]):
-            required_agents.add("technical")
-            
-        if any(kw in plan_content.lower() for kw in ["chips", "volume", "institutional", "籌碼"]):
-            required_agents.add("capital")
-            
-        if any(kw in plan_content.lower() for kw in ["research", "fundamental", "news", "基本面", "新聞"]):
-            required_agents.add("research")
-            
-        # Always include research for context if no specific analysis is mentioned
-        if not required_agents:
-            required_agents.add("research")
-            
-        return required_agents
+        # Process results
+        agent_results = {}
+        content_parts = [plan_result.content]
         
-    async def run_planned_analysis(self, company: str, query: str) -> AnalysisResult:
-        """Run analysis based on planning agent's output.
+        for agent_type, result in zip(required_agents, results):
+            if isinstance(result, Exception):
+                logger.error(f"Analysis error in {agent_type}: {str(result)}")
+                agent_results[agent_type] = self.format_error_response(result)
+                continue
+                
+            agent_results[agent_type] = result
+            if result.success:
+                content_parts.append(result.content)
+                
+        # Create analysis data
+        analysis_data = OrchestratorData(
+            symbol=company,
+            date=datetime.now().strftime("%Y%m%d"),
+            company=company,
+            query=query,
+            plan=plan_result.content,
+            agent_results=agent_results
+        )
         
-        Args:
-            company: Company name or symbol
-            query: Original user query
-            
-        Returns:
-            Combined analysis result
-        """
+        # Return combined result
+        return AnalysisResult(
+            success=len(content_parts) > 1,
+            content="\n\n".join(content_parts) if len(content_parts) > 1 else "",
+            error="All analyses failed" if len(content_parts) <= 1 else None,
+            metadata={"company": company, "analysis_types": list(required_agents)},
+            analysis_data=analysis_data
+        )
+    
+    async def analyze(self, query: str, **kwargs) -> AnalysisResult:
+        """Run analysis workflow for the given query."""
         try:
-            # 1. Get analysis plan
-            plan_result = await self.agents['planning'].analyze(query, company=company)
-            if not plan_result.success:
-                return plan_result
-                
-            # 2. Determine required analyses from plan
-            required_agents = self.parse_plan(plan_result.content)
-            logger.info(f"Required analyses from plan: {required_agents}")
-            
-            # 3. Run required analyses in parallel
-            analysis_tasks = []
-            for agent_type in required_agents:
-                if agent := self.agents.get(agent_type):
-                    analysis_tasks.append(
-                        agent.analyze(query, company=company)
-                    )
-            
-            results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
-            
-            # 4. Combine results
-            combined_content = [plan_result.content]  # Start with the plan
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.error(f"Analysis error: {str(result)}")
-                    continue
-                if result.success:
-                    combined_content.append(result.content)
-                    
-            if len(combined_content) <= 1:
-                return AnalysisResult(
-                    success=False,
-                    content="",
-                    error="All analyses failed"
-                )
-                
-            return AnalysisResult(
-                success=True,
-                content="\n\n".join(combined_content),
-                metadata={
-                    "company": company,
-                    "analysis_types": list(required_agents),
-                    "plan": plan_result.content
-                }
-            )
-            
-        except Exception as e:
-            logger.error(f"Planned analysis error: {str(e)}")
+            if company := self._extract_company(query):
+                return await self._execute_analysis(company, query)
             return AnalysisResult(
                 success=False,
                 content="",
-                error=str(e)
+                error="無法識別公司名稱，請確認輸入格式"
             )
-            
-    async def analyze(self, query: str) -> str:
-        """Main entry point for analysis."""
-        try:
-            # Parse query
-            company, _ = self.parse_query(query)
-            if not company:
-                return "無法識別公司名稱，請確認輸入格式"
-                
-            # Run analysis based on plan
-            result = await self.run_planned_analysis(company, query)
-                
-            return result.content if result.success else f"分析失敗: {result.error}"
-            
         except Exception as e:
             logger.error(f"Analysis error: {str(e)}")
-            return f"分析過程發生錯誤: {str(e)}" 
-
-def main():
-    orchestrator = AnalysisOrchestrator()
-    query = "請分析京鼎(2449)的技術面和籌碼面"
-    result = asyncio.run(orchestrator.analyze(query))
-    print(result)
+            return self.format_error_response(e)
 
 if __name__ == "__main__":
-    main()
+    async def test():
+        orchestrator = AnalysisOrchestrator()
+        result = await orchestrator.analyze("請分析京鼎(2449)的技術面和籌碼面")
+        print(result.content if result.success else f"分析失敗: {result.error}")
+    
+    asyncio.run(test())

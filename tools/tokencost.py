@@ -23,16 +23,16 @@ MODEL_COSTS: Dict[str, Dict[str, float]] = {
 
 def calculate_cost_by_tokens(
     model: str,
-    input_tokens: int,
-    output_tokens: int,
+    prompt_tokens: int,
+    completion_tokens: int,
     model_costs: Optional[Dict[str, Dict[str, float]]] = None
 ) -> float:
     """Calculate the cost of an LLM API call based on token usage.
 
     Args:
         model: The model name
-        input_tokens: Number of tokens in the input/prompt
-        output_tokens: Number of tokens in the output/completion
+        prompt_tokens: Number of tokens in the input/prompt
+        completion_tokens: Number of tokens in the output/completion
         model_costs: Optional custom model costs dictionary
 
     Returns:
@@ -46,7 +46,7 @@ def calculate_cost_by_tokens(
         model_name = "gpt-4o"
     
     model_cost = costs[model_name]
-    input_cost = (input_tokens / 1000.0) * model_cost["input"]
-    output_cost = (output_tokens / 1000.0) * model_cost["output"]
+    input_cost = (prompt_tokens / 1000.0) * model_cost["input"]
+    output_cost = (completion_tokens / 1000.0) * model_cost["output"]
     
     return input_cost + output_cost 

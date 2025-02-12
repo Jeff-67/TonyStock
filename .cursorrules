@@ -539,4 +539,31 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * 記錄詳細的錯誤資訊
       * 提供有意義的錯誤訊息
 
+22. Financial News Search Best Practices (Added 2025/02)
+    - Direct Site Search Strategy
+      * Target specific financial news sites
+      * Use flexible CSS selectors
+      * Handle relative URLs properly
+      * Implement fallback selectors
+      * Add robust error handling
+
+    - Site Selection
+      * Focus on reliable financial news sources
+      * Include both general and specialized sites
+      * Consider site-specific search features
+      * Monitor site structure changes
+
+    - Content Extraction
+      * Use multiple selector patterns
+      * Handle different HTML structures
+      * Clean and normalize content
+      * Preserve metadata (dates, sources)
+      * Validate extracted content
+
+    - Error Handling
+      * Graceful fallback for failed requests
+      * Detailed logging for debugging
+      * Retry mechanisms for timeouts
+      * Alternative search paths
+
 # Scratchpad
