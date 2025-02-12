@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     default_days: int = 120
     max_retries: int = 3
     retry_delay: int = 2
-    findmind_api_key: str = os.getenv("FINDMIND_API_KEY")
+    finmind_api_key: str = os.getenv("FINMIND_API_KEY")
 
     # MongoDB settings
     mongo_username: Optional[str] = None

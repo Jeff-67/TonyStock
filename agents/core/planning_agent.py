@@ -10,8 +10,8 @@ from typing import Any, Dict, Optional, Tuple
 from ..base import BaseAgent, AnalysisResult
 from prompts.agents.knowledge import (
     finance_agent_prompt,
-    chip_agent_prompt,
-    technical_analysis_prompt
+    capital_agent_prompt,
+    technical_agent_prompt
 )
 from prompts.agents.main import planning_prompt, writing_planning_prompt
 from utils.stock_utils import stock_name_to_id
@@ -23,48 +23,48 @@ class PlanningAgent(BaseAgent):
     
     def __init__(self, provider: str, model_name: str):
         system_prompt = """You are a strategic analysis planning expert. Focus on:
-1. Analysis Framework
-   - Comprehensive coverage
-   - Logical analysis flow
-   - Priority assessment
-   - Resource allocation
-   - Timeline planning
+            1. Analysis Framework
+            - Comprehensive coverage
+            - Logical analysis flow
+            - Priority assessment
+            - Resource allocation
+            - Timeline planning
 
-2. Information Sources
-   - News and announcements
-   - Financial reports
-   - Market data
-   - Industry research
-   - Expert opinions
+            2. Information Sources
+            - News and announcements
+            - Financial reports
+            - Market data
+            - Industry research
+            - Expert opinions
 
-3. Analysis Components
-   - Technical analysis needs
-   - Fundamental analysis areas
-   - Chips analysis focus
-   - Market sentiment tracking
-   - Risk assessment
+            3. Analysis Components
+            - Technical analysis needs
+            - Fundamental analysis areas
+            - Chips analysis focus
+            - Market sentiment tracking
+            - Risk assessment
 
-4. Integration Strategy
-   - Data correlation
-   - Cross-validation
-   - Conflict resolution
-   - Synthesis methods
-   - Consistency checks
+            4. Integration Strategy
+            - Data correlation
+            - Cross-validation
+            - Conflict resolution
+            - Synthesis methods
+            - Consistency checks
 
-5. Output Requirements
-   - Clear objectives
-   - Measurable goals
-   - Quality standards
-   - Delivery format
-   - Review criteria
+            5. Output Requirements
+            - Clear objectives
+            - Measurable goals
+            - Quality standards
+            - Delivery format
+            - Review criteria
 
-Always ensure:
-- Complete coverage of key areas
-- Clear prioritization of tasks
-- Efficient resource allocation
-- Proper sequencing of analysis
-- Quality control measures
-"""
+            Always ensure:
+            - Complete coverage of key areas
+            - Clear prioritization of tasks
+            - Efficient resource allocation
+            - Proper sequencing of analysis
+            - Quality control measures
+            """
         super().__init__(provider, model_name, system_prompt)
         
     def _get_planning_prompt(self, company_news: str, stock_id: str, user_message: str) -> str:
@@ -79,8 +79,8 @@ Always ensure:
             Complete planning prompt
         """
         company_instruction = finance_agent_prompt(stock_id=stock_id)
-        chip_instruction = chip_agent_prompt()
-        technical_instruction = technical_analysis_prompt()
+        chip_instruction = capital_agent_prompt()
+        technical_instruction = technical_agent_prompt()
         writing_instruction = writing_planning_prompt()
         
         return planning_prompt(

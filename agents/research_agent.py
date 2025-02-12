@@ -7,9 +7,11 @@ by combining search framework generation and online search execution.
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from datetime import datetime
 
 from opik import track
-from .base import BaseAgent, AnalysisResult
+from .base import BaseAgent, AnalysisResult, BaseAnalysisData
 from .research_agents.search_framework_agent import generate_search_framework
 from .research_agents.online_search_agents import search_keyword
 
@@ -19,52 +21,76 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@dataclass
+class ResearchData(BaseAnalysisData):
+    """Structure for research analysis data."""
+    company: str
+    query: str
+    framework_queries: int = 0
+    total_results: int = 0
+    search_results: List[Dict[str, Any]] = None
+    timestamp: datetime = None
+    
+    @classmethod
+    def from_research_results(cls, company: str, query: str, framework: List[Dict[str, Any]], results: List[Dict[str, Any]]) -> 'ResearchData':
+        """Create instance from research results."""
+        return cls(
+            symbol=company,  # Using company as symbol for compatibility
+            date=datetime.now().strftime("%Y%m%d"),
+            company=company,
+            query=query,
+            framework_queries=len(framework),
+            total_results=sum(len(r["search_results"]) for r in results),
+            search_results=results,
+            timestamp=datetime.now()
+        )
+
 class ResearchAgent(BaseAgent):
     """Agent specialized in online research and information gathering."""
     
     def __init__(self, provider: str, model_name: str):
         system_prompt = """You are an expert research analyst. Focus on:
-1. Research Strategy
-   - Comprehensive coverage
-   - Systematic search approach
-   - Source credibility
-   - Information validation
-   - Data organization
+    1. Research Strategy
+    - Comprehensive coverage
+    - Systematic search approach
+    - Source credibility
+    - Information validation
+    - Data organization
 
-2. Information Sources
-   - News articles
-   - Company announcements
-   - Industry reports
-   - Market analysis
-   - Expert insights
+    2. Information Sources
+    - News articles
+    - Company announcements
+    - Industry reports
+    - Market analysis
+    - Expert insights
 
-3. Research Components
-   - Company background
-   - Industry trends
-   - Market position
-   - Competitive analysis
-   - Future outlook
+    3. Research Components
+    - Company background
+    - Industry trends
+    - Market position
+    - Competitive analysis
+    - Future outlook
 
-4. Data Analysis
-   - Information synthesis
-   - Pattern recognition
-   - Trend identification
-   - Impact assessment
-   - Risk evaluation
+    4. Data Analysis
+    - Information synthesis
+    - Pattern recognition
+    - Trend identification
+    - Impact assessment
+    - Risk evaluation
 
-5. Quality Standards
-   - Source verification
-   - Data accuracy
-   - Comprehensive coverage
-   - Balanced reporting
-   - Clear attribution
+    5. Quality Standards
+    - Source verification
+    - Data accuracy
+    - Comprehensive coverage
+    - Balanced reporting
+    - Clear attribution
 
-Always ensure:
-- Multiple source verification
-- Recent and relevant information
-- Proper source attribution
-- Balanced perspective
-- Clear organization of findings
+    Always ensure:
+    - Multiple source verification
+    - Recent and relevant information
+    - Proper source attribution
+    - Balanced perspective
+    - Clear organization of findings
 """
         super().__init__(provider, model_name, system_prompt)
         
@@ -159,6 +185,14 @@ Always ensure:
             logger.info("Executing search tasks")
             research_results = await self._execute_search_tasks(framework)
             
+            # Create research data
+            research_data = ResearchData.from_research_results(
+                company=company,
+                query=query,
+                framework=framework,
+                results=research_results
+            )
+            
             # Format results
             formatted_content = self._format_research_results(research_results)
             
@@ -178,21 +212,18 @@ Always ensure:
                 metadata={
                     "company": company,
                     "analysis_type": "research",
-                    "framework_queries": len(framework),
-                    "total_results": sum(len(r["search_results"]) for r in research_results)
-                }
+                    "framework_queries": research_data.framework_queries,
+                    "total_results": research_data.total_results
+                },
+                analysis_data=research_data
             )
             
         except Exception as e:
             logger.error(f"Research error: {str(e)}")
-            return AnalysisResult(
-                success=False,
-                content="",
-                error=str(e)
-            )
+            return self.format_error_response(e)
 
 @track()
-async def perform_research(
+async def analyze(
     company_name: str, user_message: str
 ) -> List[Dict[str, Any]]:
     """Perform comprehensive research by combining search framework and online research.
@@ -243,7 +274,7 @@ async def main():
 
     logger.info(f"Starting comprehensive research for: {test_company}")
     try:
-        research_results = await perform_research(test_company, test_message)
+        research_results = await analyze(test_company, test_message)
 
         # Print results
         print("\nResearch Results:")

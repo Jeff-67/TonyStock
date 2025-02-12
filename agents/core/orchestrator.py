@@ -6,11 +6,11 @@ import re
 import json
 from typing import Dict, List, Optional, Tuple, Set
 
-from .base import AnalysisResult, BaseAgent
-from agents.planning_agent import PlanningAgent
+from agents.base import AnalysisResult, BaseAgent
+from .planning_agent import PlanningAgent
 from agents.research_agent import ResearchAgent
-from technical_agents.technical_agent import TechnicalAgent
-from agents.capital_agent import ChipsAgent
+from agents.technical_agents import TechnicalAgent
+from agents.capital_agent import CapitalAgent
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class AnalysisOrchestrator:
     def __init__(
         self,
         provider: str = "anthropic",
-        model_name: str = "claude-3-sonnet-20240229"
+        model_name: str = "claude-3-sonnet-20240229",
     ):
         self.provider = provider
         self.model_name = model_name
@@ -30,15 +30,18 @@ class AnalysisOrchestrator:
             'planning': PlanningAgent(provider, model_name),
             'research': ResearchAgent(provider, model_name),
             'technical': TechnicalAgent(provider, model_name),
-            'chips': ChipsAgent(provider, model_name)
+            'capital': CapitalAgent()
         }
-        
-        # Cache for storing intermediate results
-        self.result_cache: Dict[str, AnalysisResult] = {}
         
     def parse_query(self, query: str) -> Tuple[str, str]:
         """Parse query to extract company name and analysis type."""
-        company_match = re.search(r'\((\d{4})\)|[京鼎|文曄|群聯]', query)
+        # First try to find stock number in parentheses
+        stock_number = re.search(r'\((\d{4})\)', query)
+        if stock_number:
+            return stock_number.group(1), "planning"
+            
+        # If no stock number, try to find full company name
+        company_match = re.search(r'(京鼎|文曄|群聯)', query)
         company_name = company_match.group() if company_match else ""
         return company_name, "planning"  # Always start with planning
         
@@ -58,7 +61,7 @@ class AnalysisOrchestrator:
             required_agents.add("technical")
             
         if any(kw in plan_content.lower() for kw in ["chips", "volume", "institutional", "籌碼"]):
-            required_agents.add("chips")
+            required_agents.add("capital")
             
         if any(kw in plan_content.lower() for kw in ["research", "fundamental", "news", "基本面", "新聞"]):
             required_agents.add("research")
@@ -108,7 +111,7 @@ class AnalysisOrchestrator:
                 if result.success:
                     combined_content.append(result.content)
                     
-            if len(combined_content) <= 1:  # Only plan, no successful analyses
+            if len(combined_content) <= 1:
                 return AnalysisResult(
                     success=False,
                     content="",
@@ -141,20 +144,20 @@ class AnalysisOrchestrator:
             if not company:
                 return "無法識別公司名稱，請確認輸入格式"
                 
-            # Get cached result if available
-            cache_key = f"{company}:{query}"
-            if cache_key in self.result_cache:
-                return self.result_cache[cache_key].content
-                
             # Run analysis based on plan
             result = await self.run_planned_analysis(company, query)
-                
-            # Cache successful results
-            if result.success:
-                self.result_cache[cache_key] = result
                 
             return result.content if result.success else f"分析失敗: {result.error}"
             
         except Exception as e:
             logger.error(f"Analysis error: {str(e)}")
             return f"分析過程發生錯誤: {str(e)}" 
+
+def main():
+    orchestrator = AnalysisOrchestrator()
+    query = "請分析京鼎(2449)的技術面和籌碼面"
+    result = asyncio.run(orchestrator.analyze(query))
+    print(result)
+
+if __name__ == "__main__":
+    main()

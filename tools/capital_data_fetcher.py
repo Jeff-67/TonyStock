@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from FinMind.data import DataLoader
 import os
+from tools import get_api
 
 # Configure logging
 logging.basicConfig(
@@ -295,177 +296,61 @@ def get_securities_trader_info(api: DataLoader) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def fetch_market_data(
-    api: DataLoader,
-    symbol: str,
-    data_types: list,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
-) -> Dict[str, pd.DataFrame]:
-    """
-    Fetch market data for a symbol.
-
+async def fetch_market_data(stock_id: str) -> Dict[str, Any]:
+    """Fetch market data for a stock.
+    
     Args:
-        api: FinMind DataLoader instance
-        symbol: Stock symbol to fetch data for
-        data_types: List of data types to fetch
-        start_date: Start date in YYYY-MM-DD format
-        end_date: End date in YYYY-MM-DD format
-
+        stock_id: Stock ID in format "XXXX.TW"
+        
     Returns:
-        Dictionary containing the requested market data with standardized format
+        Dictionary containing market data
     """
-    logger.info(f"Fetching market data for {symbol}")
-
-    # Map data types to their corresponding functions and standardization methods
-    data_type_map = {
-        "margin": {
-            "func": get_margin_purchase_short_sale,
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'MarginPurchaseTodayBalance': 'margin_balance',
-                'ShortSaleTodayBalance': 'short_balance',
-                'MarginPurchaseYesterdayBalance': 'margin_yesterday',
-                'ShortSaleYesterdayBalance': 'short_yesterday'
-            })
-        },
-        "institutional": {
-            "func": get_institutional_investors,
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'Foreign_Investor': 'foreign_buy_sell',
-                'Investment_Trust': 'trust_buy_sell',
-                'Dealer': 'dealer_buy_sell'
-            })
-        },
-        "shareholding": {
-            "func": get_shareholding,
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'ForeignInvestmentSharesRatio': 'foreign_holding_ratio',
-                'ForeignInvestmentShares': 'foreign_holding_shares',
-                'ForeignInvestmentUpperLimitRatio': 'foreign_limit_ratio'
-            })
-        },
-        "lending": {
-            "func": get_securities_lending,
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'SecuritiesLending': 'lending_balance',
-                'SecuritiesLendingReturn': 'lending_return'
-            })
-        },
-        "short_sale": {
-            "func": get_daily_short_sale_balances,
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'ShortSaleShares': 'short_shares',
-                'ShortSaleAmount': 'short_amount',
-                'ShortSalePercent': 'short_ratio'
-            })
-        },
-        "total_institutional": {
-            "func": get_total_institutional_investors,
-            "requires_symbol": False,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'Foreign_Investor': 'total_foreign',
-                'Investment_Trust': 'total_trust',
-                'Dealer': 'total_dealer'
-            })
-        },
-        "total_margin": {
-            "func": get_total_margin_purchase_short_sale,
-            "requires_symbol": False,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'MarginPurchaseMoney': 'total_margin_money',
-                'MarginPurchaseVolume': 'total_margin_volume',
-                'ShortSaleMoney': 'total_short_money',
-                'ShortSaleVolume': 'total_short_volume'
-            })
-        },
-        "trader_info": {
-            "func": get_securities_trader_info,
-            "requires_symbol": False,
-            "standardize": lambda df: df.rename(columns={
-                'securities_trader_id': 'trader_id',
-                'securities_trader': 'trader_name',
-                'date': 'update_date'
-            })
-        },
-        "price": {
-            "func": lambda api, symbol, start_date, end_date: api.taiwan_stock_daily(
-                stock_id=symbol,
-                start_date=start_date,
-                end_date=end_date
-            ),
-            "requires_symbol": True,
-            "standardize": lambda df: df.rename(columns={
-                'date': 'date',
-                'stock_id': 'symbol',
-                'Trading_Volume': 'volume',
-                'Trading_money': 'amount',
-                'open': 'open',
-                'max': 'high',
-                'min': 'low',
-                'close': 'close',
-                'spread': 'spread',
-                'Trading_turnover': 'turnover'
-            })
-        }
-    }
-
-    results = {}
-    for data_type in data_types:
-        if data_type in data_type_map:
-            config = data_type_map[data_type]
-            try:
-                # Call the appropriate function based on whether it requires a symbol
-                if config["requires_symbol"]:
-                    df = config["func"](api, symbol, start_date, end_date)
-                elif data_type == "trader_info":
-                    df = config["func"](api)
-                else:
-                    df = config["func"](api, start_date, end_date)
-                
-                logger.info(f"Received data for {data_type}:")
-                logger.info(f"Shape: {df.shape if not df.empty else 'Empty DataFrame'}")
-                if not df.empty:
-                    logger.info(f"Columns: {df.columns.tolist()}")
-                    logger.info(f"First row: {df.iloc[0].to_dict()}")
-                
-                if not df.empty:
-                    # Standardize the DataFrame columns
-                    df = config["standardize"](df)
-                    
-                    # Add symbol column if not present for non-symbol specific data
-                    if not config["requires_symbol"] and 'symbol' not in df.columns and data_type != 'trader_info':
-                        df['symbol'] = symbol
-                    
-                    # Convert date columns to consistent format
-                    if 'date' in df.columns:
-                        df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
-                    
-                    results[data_type] = df
-                else:
-                    logger.warning(f"No data available for {data_type} - {symbol}")
-            except Exception as e:
-                logger.error(f"Error fetching {data_type} data for {symbol}: {str(e)}")
-                continue
-
-    return {symbol: results} if results else {}
+    try:
+        # Initialize API
+        api = get_api()
+        if api is None:
+            logger.error("Failed to initialize FinMind API")
+            return {}
+        
+        # Calculate date range
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+        
+        # Remove .TW suffix for FinMind API
+        stock_number = stock_id.replace(".TW", "")
+        
+        # Fetch data
+        market_data = {}
+        
+        # Get margin data
+        margin_df = get_margin_purchase_short_sale(api, stock_number, start_date, end_date)
+        if not margin_df.empty:
+            market_data["margin"] = margin_df
+            
+        # Get institutional data    
+        inst_df = get_institutional_investors(api, stock_number, start_date, end_date)
+        if not inst_df.empty:
+            market_data["institutional"] = inst_df
+            
+        # Get shareholding data
+        share_df = get_shareholding(api, stock_number, start_date, end_date)
+        if not share_df.empty:
+            market_data["shareholding"] = share_df
+            
+        # Get price data
+        price_df = api.taiwan_stock_daily(
+            stock_id=stock_number,
+            start_date=start_date,
+            end_date=end_date
+        )
+        if not price_df.empty:
+            market_data["price"] = price_df
+            
+        return market_data
+        
+    except Exception as e:
+        logger.error(f"Error fetching market data for {stock_id}: {str(e)}")
+        return {}
 
 
 def save_output(data: Dict[str, Any], output_path: str = "", format: str = "json"):
@@ -524,24 +409,10 @@ def main():
         datetime.now() - timedelta(days=30)
     ).strftime("%Y-%m-%d")
 
-    # Initialize FinMind API
-    try:
-        api = DataLoader()
-        api.login_by_token(api_token=os.getenv("FINDMIND_API_KEY"))
-    except Exception as e:
-        logger.error(f"Error initializing FinMind API: {str(e)}")
-        return
-
     # Fetch data for each symbol
     results = {}
     for symbol in args.symbols:
-        data = fetch_market_data(
-            api=api,
-            symbol=symbol,
-            data_types=args.data_types,
-            start_date=start_date,
-            end_date=end_date
-        )
+        data = fetch_market_data(symbol)
         results[symbol] = data
 
     # Save or print results

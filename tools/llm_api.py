@@ -262,7 +262,7 @@ def query_llm(
         logger.info(f"Making LLM API call with model {config.model}")
         # Make the API call
         response = completion(**completion_params)
-
+        
         if not response:
             logger.error("LLM API call returned None")
             raise ValueError("Empty response from LLM API")
@@ -294,70 +294,43 @@ def query_llm(
 async def async_main(
     messages: List[Message], model: str = "gpt-4o", provider: str = "openai"
 ) -> None:
-    """Async entry point for command line usage."""
-    try:
-        response, details = await aquery_llm(messages, model=model, provider=provider)
-        print(json.dumps(details, ensure_ascii=False, indent=2))
-    except Exception as e:
-        logger.error(f"Failed to get response from LLM: {e}")
-        raise
+    """Async main function for testing."""
+    response, _ = await aquery_llm(messages=messages, model=model, provider=provider)
+    print(response.choices[0].message.content)
 
 
 def main():
-    """Command-line interface for querying LLMs."""
-    parser = argparse.ArgumentParser(description="Query an LLM with a prompt")
-    parser.add_argument(
-        "--prompt", type=str, help="The prompt to send to the LLM", required=True
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        help="The model to use (e.g., openai/gpt-4o, anthropic/claude-3-sonnet-20240229)",
-    )
-    parser.add_argument(
-        "--async",
-        action="store_true",
-        help="Use async version of the API",
-        dest="use_async",
-    )
+    """Main function for testing."""
+    parser = argparse.ArgumentParser(description="Test LLM API")
+    parser.add_argument("--model", default="gpt-4o", help="Model name")
+    parser.add_argument("--provider", default="openai", help="Provider name")
     args = parser.parse_args()
 
-    messages = [{"role": "user", "content": args.prompt}]
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello! How are you?"},
+    ]
 
-    try:
-        if args.use_async:
-            asyncio.run(async_main(messages, model=args.model))
-        else:
-            response, details = query_llm(messages, model=args.model)
-            print(json.dumps(details, ensure_ascii=False, indent=2))
-    except Exception as e:
-        logger.error(f"Failed to get response from LLM: {e}")
-        sys.exit(1)
+    if sys.platform == "win32":
+        # Windows specific event loop policy
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    asyncio.run(async_main(messages, args.model, args.provider))
 
 
 def process_tool_calls(message: Any) -> List[Dict]:
-    """Process tool calls from message.
+    """Process tool calls from the message.
 
     Args:
-        message: Message object containing potential tool calls
+        message: Message object from LLM response
 
     Returns:
-        List of processed tool calls
+        List of tool call dictionaries
     """
     tool_calls = []
     if hasattr(message, "tool_calls") and message.tool_calls:
         for tool_call in message.tool_calls:
-            try:
-                tool_calls.append({
-                    "id": tool_call.id,
-                    "type": tool_call.type,
-                    "function": {
-                        "name": tool_call.function.name,
-                        "arguments": json.loads(tool_call.function.arguments),
-                    },
-                })
-            except Exception as e:
-                logger.error(f"Error parsing tool call arguments: {e}")
+            if tool_call.type == "function":
                 tool_calls.append({
                     "id": tool_call.id,
                     "type": tool_call.type,
@@ -370,21 +343,28 @@ def process_tool_calls(message: Any) -> List[Dict]:
 
 
 def update_cost_metrics(response: Any) -> None:
-    """Update cost metrics in opik context.
+    """Update cost metrics based on response.
 
     Args:
-        response: Response object containing token usage information
+        response: Response object from LLM API
     """
-    opik_context.update_current_span(
-        total_cost=calculate_cost_by_tokens(
-            response.usage.prompt_tokens, model=response.model, token_type="input"
-        )
-        + calculate_cost_by_tokens(
-            response.usage.completion_tokens,
-            model=response.model,
-            token_type="output",
-        )
-    )
+    try:
+        if hasattr(response, "usage"):
+            usage = response.usage
+            if usage:
+                cost = calculate_cost_by_tokens(
+                    model=response.model,
+                    input_tokens=usage.prompt_tokens,
+                    output_tokens=usage.completion_tokens,
+                )
+                logger.info(
+                    f"Cost: ${cost:.6f}, "
+                    f"Prompt tokens: {usage.prompt_tokens}, "
+                    f"Completion tokens: {usage.completion_tokens}, "
+                    f"Total tokens: {usage.total_tokens}"
+                )
+    except Exception as e:
+        logger.warning(f"Error updating cost metrics: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -19,8 +19,8 @@ project_root = str(Path(__file__).parent.parent)
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from tools.capital_data_fetcher import fetch_market_data, DataLoader
 from tools.llm_api import aquery_llm, Message
+from tools.utils import company_to_ticker
 from prompts.agents.capital_prompt import (
     CapitalPromptGenerator,
     MarketData,
@@ -39,7 +39,14 @@ class DataFormatter:
     @staticmethod
     def format_stock_number(symbol: str) -> str:
         """Format stock number to TWSE format."""
-        return ''.join(filter(str.isdigit, symbol)).zfill(4)
+        if not symbol:
+            return ""
+        # Extract digits from the symbol
+        digits = ''.join(filter(str.isdigit, str(symbol)))
+        if not digits:
+            return ""
+        # Pad with zeros to 4 digits
+        return digits.zfill(4)
     
     @staticmethod
     def format_date(date_obj: Optional[datetime] = None) -> str:
@@ -279,42 +286,92 @@ def validate_dataframe(df: pd.DataFrame, name: str) -> bool:
         return False
     return True
 
-class ChipsAnalysisAgent:
-    """Agent for performing chips analysis."""
+class CapitalAgent:
+    """Agent for performing capital analysis."""
     
     def __init__(self):
         self.market_analyzer = MarketAnalyzer()
         self.data_processor = DataProcessor(self.market_analyzer)
     
     @track()
-    async def analyze(self, symbol: str) -> Dict[str, Any]:
-        """Analyze stock chips data using LLM."""
+    async def analyze(self, company: str) -> Dict[str, Any]:
+        """Analyze stock chips data using LLM.
+        
+        Args:
+            company (str): Company name or stock ticker
+            
+        Returns:
+            Dict[str, Any]: Analysis results including market data and LLM analysis
+        """
         try:
+            # Convert company name to ticker if needed
+            symbol = company_to_ticker(company)
+            if not symbol:
+                # If conversion fails, assume input is already a ticker
+                symbol = company
+            
+            # Format the symbol
+            formatted_symbol = DataFormatter.format_stock_number(symbol)
+            if not formatted_symbol:
+                logger.error(f"Invalid stock symbol: {symbol}")
+                return {"error": "Invalid stock symbol"}
+                
+            logger.info(f"Analyzing company: {company} (Symbol: {formatted_symbol})")
+            
             # Use the initialized API from tools package
-            api = DataLoader()
-            api.login_by_token(api_token=os.getenv("FINMIND_API_KEY"))
+            from tools import get_api
+            api = get_api()
+            if api is None:
+                raise ValueError("Failed to initialize FinMind API")
             
             # Calculate date range
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
             
-            # Fetch and process data
-            formatted_symbol = DataFormatter.format_stock_number(symbol)
             logger.info(f"Fetching data for symbol {formatted_symbol} from {start_date} to {end_date}")
             
-            market_data = fetch_market_data(
-                api=api,
-                symbol=formatted_symbol,
-                data_types=["margin", "institutional", "shareholding", "price"],
-                start_date=start_date,
-                end_date=end_date
-            )
-            
-            if not market_data or formatted_symbol not in market_data:
-                logger.error(f"No data available for symbol {formatted_symbol}")
-                return {"error": "No data available"}
+            try:
+                market_data = {}
                 
-            market_data = market_data[formatted_symbol]
+                # Fetch margin data
+                margin_df = api.taiwan_stock_margin_purchase_short_sale(
+                    stock_id=formatted_symbol,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                market_data["margin"] = margin_df if not margin_df.empty else pd.DataFrame()
+                
+                # Fetch institutional investors data
+                inst_df = api.taiwan_stock_institutional_investors(
+                    stock_id=formatted_symbol,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                market_data["institutional"] = inst_df if not inst_df.empty else pd.DataFrame()
+                
+                # Fetch shareholding data
+                share_df = api.taiwan_stock_shareholding(
+                    stock_id=formatted_symbol,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                market_data["shareholding"] = share_df if not share_df.empty else pd.DataFrame()
+                
+                # Fetch price data
+                price_df = api.taiwan_stock_daily(
+                    stock_id=formatted_symbol,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                market_data["price"] = price_df if not price_df.empty else pd.DataFrame()
+                
+                if all(df.empty for df in market_data.values()):
+                    logger.error(f"No data available for symbol {formatted_symbol}")
+                    return {"error": "No data available"}
+                    
+            except Exception as e:
+                logger.error(f"Error fetching market data: {str(e)}")
+                return {"error": f"Failed to fetch market data: {str(e)}"}
             
             # Validate and clean data
             data_valid = True
@@ -384,12 +441,12 @@ class ChipsAnalysisAgent:
 
 async def main():
     """Test function."""
-    symbol = "2330"
+    company = "京鼎"
     
     try:
         # Run analysis
-        agent = ChipsAnalysisAgent()
-        result = await agent.analyze(symbol)
+        agent = CapitalAgent()
+        result = await agent.analyze(company)
         
         if "error" in result:
             logger.error(f"Analysis error: {result['error']}")

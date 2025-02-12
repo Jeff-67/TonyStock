@@ -520,4 +520,23 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * Set up complex dependencies after object creation
       * Update object state in a type-safe manner
 
+15. FinMind API 最佳實踐 (Added 2025/02)
+    - API 初始化
+      * 使用正確的環境變數名稱：FINMIND_API_KEY
+      * 統一使用 tools.get_api() 函數進行初始化
+      * 實作重試機制處理初始化失敗
+      * 記錄詳細的錯誤訊息
+
+    - 環境變數管理
+      * 確保 .env 檔案中的變數名稱正確
+      * 環境變數變更後需要重新啟動應用程式
+      * 定期驗證 API 金鑰的有效性
+      * 實作適當的錯誤處理機制
+
+    - 錯誤處理
+      * 檢查 API 初始化狀態
+      * 處理連線逾時和重試
+      * 記錄詳細的錯誤資訊
+      * 提供有意義的錯誤訊息
+
 # Scratchpad

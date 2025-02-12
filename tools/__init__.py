@@ -5,8 +5,10 @@ import logging
 import time
 from typing import Optional
 from FinMind.data import DataLoader
+from settings import Settings
 
-# Configure logging
+settings = Settings()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -26,10 +28,10 @@ def get_api(max_retries: int = 3, retry_delay: int = 2) -> Optional[DataLoader]:
     for attempt in range(max_retries):
         try:
             api = DataLoader()
-            api_token = os.getenv("FINDMIND_API_KEY")
+            api_token = settings.finmind_api_key
             
             if not api_token:
-                logger.error("FINDMIND_API_KEY environment variable not set")
+                logger.error("FINMIND_API_KEY environment variable not set")
                 return None
                 
             # Login with token
