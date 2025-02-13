@@ -56,7 +56,7 @@ class ResearchAgent(BaseAgent):
         )
         self.framework_agent = SearchFrameworkAgent(provider, model_name)
         self.search_agent = OnlineSearchAgent(provider, model_name)
-            
+    @track()
     async def _execute_search_tasks(self, framework: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Execute search tasks based on framework."""
         try:
@@ -85,7 +85,8 @@ class ResearchAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error executing search tasks: {str(e)}")
             raise
-            
+    
+    @track()
     async def analyze(self, query: str, **kwargs) -> AnalysisResult:
         """Perform comprehensive research analysis.
         

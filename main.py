@@ -22,10 +22,20 @@ from linebot.v3.messaging import (
     TextMessage,
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from opik import initialize_opik
 
 from agents.orchestrator import AnalysisOrchestrator
 
+# Initialize environment variables
 load_dotenv()
+
+# Initialize opik
+initialize_opik(
+    project_name="TonyStock",
+    service_name="stock-analysis",
+    environment=os.getenv("ENVIRONMENT", "local")
+)
+
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app

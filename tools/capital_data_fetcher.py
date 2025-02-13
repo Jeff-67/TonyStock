@@ -312,9 +312,15 @@ async def fetch_market_data(stock_id: str) -> Dict[str, Any]:
             logger.error("Failed to initialize FinMind API")
             return {}
         
-        # Calculate date range
-        end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+        # Calculate date range and adjust for business days
+        end_date = datetime.now()
+        while end_date.weekday() > 4:  # Adjust if current day is weekend
+            end_date -= timedelta(days=1)
+        start_date = end_date - timedelta(days=60)
+        
+        # Format dates
+        end_date_str = end_date.strftime("%Y-%m-%d")
+        start_date_str = start_date.strftime("%Y-%m-%d")
         
         # Remove .TW suffix for FinMind API
         stock_number = stock_id.replace(".TW", "")
@@ -323,25 +329,25 @@ async def fetch_market_data(stock_id: str) -> Dict[str, Any]:
         market_data = {}
         
         # Get margin data
-        margin_df = get_margin_purchase_short_sale(api, stock_number, start_date, end_date)
+        margin_df = get_margin_purchase_short_sale(api, stock_number, start_date_str, end_date_str)
         if not margin_df.empty:
             market_data["margin"] = margin_df
             
         # Get institutional data    
-        inst_df = get_institutional_investors(api, stock_number, start_date, end_date)
+        inst_df = get_institutional_investors(api, stock_number, start_date_str, end_date_str)
         if not inst_df.empty:
             market_data["institutional"] = inst_df
             
         # Get shareholding data
-        share_df = get_shareholding(api, stock_number, start_date, end_date)
+        share_df = get_shareholding(api, stock_number, start_date_str, end_date_str)
         if not share_df.empty:
             market_data["shareholding"] = share_df
             
         # Get price data
         price_df = api.taiwan_stock_daily(
             stock_id=stock_number,
-            start_date=start_date,
-            end_date=end_date
+            start_date=start_date_str,
+            end_date=end_date_str
         )
         if not price_df.empty:
             market_data["price"] = price_df

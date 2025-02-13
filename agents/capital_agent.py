@@ -10,10 +10,9 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import pandas as pd
-import numpy as np
 from pathlib import Path
 import sys
-
+from opik import track
 # Add project root to Python path
 project_root = str(Path(__file__).parent.parent)
 if project_root not in sys.path:
@@ -60,7 +59,6 @@ class CapitalAnalysisData(BaseAnalysisData):
     margin: MarginData
     last_update: datetime = field(default_factory=datetime.now)
 
-
 class CapitalAgent(BaseAgent):
     """Agent for performing capital analysis."""
     
@@ -74,7 +72,7 @@ class CapitalAgent(BaseAgent):
         super().__init__(provider=provider, model_name=model_name, system_prompt=system_prompt)
         self.market_analyzer = MarketAnalyzer()
         self.data_processor = DataProcessor(self.market_analyzer)
-    
+    @track()
     async def analyze(self, company: str) -> AnalysisResult:
         """Analyze stock chips data using LLM.
         
@@ -158,21 +156,21 @@ class MarketAnalyzer:
     
     def __init__(self, volatility_window: int = 20):
         self.volatility_window = volatility_window
-    
+    @track()
     def calculate_volatility(self, prices: List[float]) -> float:
         """Calculate price volatility."""
         if len(prices) < 2:
             return 0
         returns = [(b - a) / a for a, b in zip(prices[:-1], prices[1:])]
         return statistics.stdev(returns) if returns else 0
-    
+    @track()
     def calculate_trend(self, prices: List[float]) -> float:
         """Calculate price trend."""
         if not prices:
             return 0
         avg_price = sum(prices) / len(prices)
         return (prices[-1] - prices[0]) / avg_price if avg_price else 0
-    
+    @track()
     def analyze_market_condition(self, data: List[Dict[str, Any]]) -> str:
         """Determine market condition based on volatility and trend."""
         if not data or len(data) < self.volatility_window:
@@ -193,7 +191,7 @@ class DataProcessor:
     
     def __init__(self, market_analyzer: MarketAnalyzer):
         self.market_analyzer = market_analyzer
-    
+    @track()
     async def fetch_data(self, symbol: str) -> Dict[str, Any]:
         """Fetch market data for a specific symbol."""
         from tools import get_api
@@ -258,7 +256,7 @@ class DataProcessor:
                 market_data[data_type] = data.ffill()
             
         return market_data
-    
+    @track()
     def extract_latest_data(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract latest market data."""
         price_data = market_data.get("price", pd.DataFrame())
@@ -283,7 +281,7 @@ class DataProcessor:
         except Exception as e:
             logger.error(f"Error extracting latest data: {str(e)}")
             return {}
-    
+    @track()
     def calculate_institutional_sums(self, data: pd.DataFrame) -> Dict[str, float]:
         """Calculate institutional trading sums for the last 5 days."""
         if data.empty:
@@ -312,7 +310,7 @@ class DataProcessor:
         except Exception as e:
             logger.error(f"Error calculating institutional sums: {str(e)}")
             return {"foreign_net": 0.0, "trust_net": 0.0, "dealer_net": 0.0}
-    
+    @track()
     def prepare_analysis_data(self, market_data: Dict[str, Any], symbol: str) -> CapitalAnalysisData:
         """Prepare structured analysis data from raw market data."""
         try:

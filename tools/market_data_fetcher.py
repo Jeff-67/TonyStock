@@ -65,13 +65,20 @@ async def fetch_market_data(
         DataFrame with market data or None if error
     """
     try:
+        # Get current date and adjust for business days
         end_time = datetime.now()
+        while end_time.weekday() > 4:  # Adjust if current day is weekend
+            end_time -= timedelta(days=1)
+        
         start_time = end_time - timedelta(days=days)
+        # Format dates as strings
+        end_date = end_time.strftime("%Y-%m-%d")
+        start_date = start_time.strftime("%Y-%m-%d")
 
         # Convert symbol to string and format Taiwan stock symbols
         symbol_str = str(symbol)
         logger.info(
-            f"Fetching {interval} data for {symbol_str} from {start_time.date()} to {end_time.date()}"
+            f"Fetching {interval} data for {symbol_str} from {start_date} to {end_date}"
         )
 
         # Format Taiwan stock symbols
@@ -86,8 +93,8 @@ async def fetch_market_data(
 
         try:
             # Convert dates to strings for yfinance
-            start_str = start_time.strftime("%Y-%m-%d")
-            end_str = end_time.strftime("%Y-%m-%d")
+            start_str = start_date
+            end_str = end_date
             
             for attempt in range(settings.max_retries):
                 try:
@@ -110,7 +117,7 @@ async def fetch_market_data(
                         raise
 
             if data is None or data.empty:
-                logger.error(f"No data available for {symbol_str} after {settings.  max_retries} retries")
+                logger.error(f"No data available for {symbol_str} after {settings.max_retries} retries")
                 return None
 
             if not isinstance(data, pd.DataFrame):

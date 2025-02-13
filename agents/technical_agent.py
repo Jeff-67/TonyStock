@@ -15,9 +15,11 @@ from agents.base import BaseAgent, BaseAnalysisData, AnalysisResult
 from tools.market_data_utils import MarketDataProcessor
 from tools.llm_api import aquery_llm
 from prompts.agents.technical import TechnicalData, TechnicalPromptGenerator
+from tools.twse_service import TwseService
 import argparse
 from tools.utils import company_to_ticker
-from tools import get_api
+import asyncio
+from opik import track
 
 logger = logging.getLogger(__name__)
 
@@ -56,71 +58,136 @@ class TechnicalAgent(BaseAgent):
             system_prompt=TechnicalPromptGenerator.generate_system_prompt()
         )
         self.market_processor = MarketDataProcessor()
-            
+    @track()
     async def _fetch_data(self, symbol: str) -> pd.DataFrame:
-        """Fetch market data from FinMind."""
+        """Fetch market data from TWSE."""
         try:
-            api = get_api()
-            if api is None:
-                raise ValueError("Failed to initialize FinMind API")
+            # Get stock day all data for all stocks
+            data = await TwseService.get_stock_day_all()
+            if not data["success"]:
+                raise ValueError(f"Failed to fetch data: {data['message']}")
                 
-            # Calculate date range for 1 year of data
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+            # Try different formats of the stock code
+            stock_data = None
+            tried_codes = []
             
-            df = api.taiwan_stock_daily(
-                stock_id=symbol,
-                start_date=start_date,
-                end_date=end_date
-            )
+            # Original code
+            tried_codes.append(symbol)
+            stock_data = [d for d in data["data"] if d["Code"] == symbol]
             
-            if df.empty:
-                raise ValueError(f"No data found for {symbol}")
+            # Without leading zeros
+            if not stock_data:
+                no_zeros = symbol.lstrip('0')
+                tried_codes.append(no_zeros)
+                stock_data = [d for d in data["data"] if d["Code"] == no_zeros]
                 
-            # Rename columns to match the expected format
-            df = df.rename(columns={
-                'date': 'Date',
-                'open': 'Open',
-                'high': 'High',
-                'low': 'Low',
-                'close': 'Close',
-                'Trading_Volume': 'Volume'
-            })
+            # With exactly 4 digits
+            if not stock_data:
+                four_digits = symbol.zfill(4)
+                tried_codes.append(four_digits)
+                stock_data = [d for d in data["data"] if d["Code"] == four_digits]
+                
+            if not stock_data:
+                # Log available codes for debugging
+                sample_codes = sorted(set(d["Code"] for d in data["data"]))[:10]
+                logger.info(f"Sample of available codes: {sample_codes}")
+                raise ValueError(f"No data found for stock codes tried: {tried_codes}")
+                
+            # Get current date and adjust for business days
+            current_date = datetime.now()
+            while current_date.weekday() > 4:  # Adjust if current day is weekend
+                current_date -= timedelta(days=1)
+                
+            # Convert to DataFrame with proper data type conversion
+            df = pd.DataFrame([{
+                'Date': current_date.strftime('%Y-%m-%d'),  # Current business day
+                'Open': float(d['OpeningPrice'].replace(',', '') if d['OpeningPrice'] != '--' else 0),
+                'High': float(d['HighestPrice'].replace(',', '') if d['HighestPrice'] != '--' else 0),
+                'Low': float(d['LowestPrice'].replace(',', '') if d['LowestPrice'] != '--' else 0),
+                'Close': float(d['ClosingPrice'].replace(',', '') if d['ClosingPrice'] != '--' else 0),
+                'Volume': int(d['TradeVolume'].replace(',', '') if d['TradeVolume'] != '--' else 0)
+            } for d in stock_data])
             
             # Sort by date
+            df['Date'] = pd.to_datetime(df['Date'])
             df = df.sort_values('Date')
+            
+            # Convert columns to numpy arrays of type float64
+            for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+                df[col] = df[col].astype('float64')
             
             return df
             
         except Exception as e:
             logger.error(f"Data fetch error for {symbol}: {e}")
             raise
-            
+    
+    @track()
     def _calculate_indicators(self, df: pd.DataFrame) -> TechnicalIndicators:
-        """Calculate technical indicators."""
+        """Calculate technical indicators using TA-Lib."""
         try:
-            close = df["Close"]
+            close = df["Close"].values
+            high = df["High"].values
+            low = df["Low"].values
+            volume = df["Volume"].values
+
+            # Calculate Moving Averages
+            ma5 = talib.SMA(close, timeperiod=5)[-1]
+            ma20 = talib.SMA(close, timeperiod=20)[-1]
+            ma60 = talib.SMA(close, timeperiod=60)[-1]
+
+            # Calculate RSI
+            rsi = talib.RSI(close, timeperiod=14)[-1]
+
+            # Calculate MACD
+            macd, macd_signal, _ = talib.MACD(close, fastperiod=12, slowperiod=26, signalperiod=9)
+            macd = macd[-1]
+            macd_signal = macd_signal[-1]
+
+            # Calculate Bollinger Bands
+            bb_upper, bb_middle, bb_lower = talib.BBANDS(
+                close,
+                timeperiod=20,
+                nbdevup=2,
+                nbdevdn=2,
+                matype=0
+            )
+            bb_upper = bb_upper[-1]
+            bb_middle = bb_middle[-1]
+            bb_lower = bb_lower[-1]
+
+            # Calculate On Balance Volume
+            obv = talib.OBV(close, volume)[-1]
+
             return TechnicalIndicators(
-                ma5=talib.SMA(close, 5).iloc[-1],
-                ma20=talib.SMA(close, 20).iloc[-1],
-                ma60=talib.SMA(close, 60).iloc[-1],
-                rsi=talib.RSI(close, 14).iloc[-1],
-                macd=talib.MACD(close)[0].iloc[-1],
-                macd_signal=talib.MACD(close)[1].iloc[-1],
-                bb_upper=talib.BBANDS(close)[0].iloc[-1],
-                bb_middle=talib.BBANDS(close)[1].iloc[-1],
-                bb_lower=talib.BBANDS(close)[2].iloc[-1],
-                obv=talib.OBV(close, df["Volume"]).iloc[-1],
-                current_price=close.iloc[-1]
+                ma5=ma5,
+                ma20=ma20,
+                ma60=ma60,
+                rsi=rsi,
+                macd=macd,
+                macd_signal=macd_signal,
+                bb_upper=bb_upper,
+                bb_middle=bb_middle,
+                bb_lower=bb_lower,
+                obv=obv,
+                current_price=close[-1]
             )
         except Exception as e:
             logger.error(f"Indicator calculation error: {e}")
             raise
-        
+    @track()
     async def analyze(self, company: str) -> AnalysisResult:
         """Perform technical analysis."""
         try:
-            ticker = company_to_ticker(company)
+            # Convert company name to stock symbol if needed
+            if not company.isdigit():
+                ticker = company_to_ticker(company)
+                if ticker is None:
+                    raise ValueError(f"Could not find ticker for company: {company}")
+            else:
+                ticker = company
+                
+            # Try to fetch data
             df = await self._fetch_data(ticker)
             indicators = self._calculate_indicators(df)
             

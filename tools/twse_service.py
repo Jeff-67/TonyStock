@@ -6,7 +6,9 @@ import requests
 from json import JSONDecodeError
 import re
 import asyncio
+import logging
 
+logger = logging.getLogger(__name__)
 
 class TwseApiError(Exception):
     """TWSE API 錯誤"""
@@ -57,7 +59,8 @@ def with_twse_session(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(*args, **kwargs):
         async with aiohttp.ClientSession() as session:
-            return await func(*args, session=session, **kwargs)
+            kwargs['session'] = session
+            return await func(*args, **kwargs)
     return wrapper
 
 
@@ -115,7 +118,16 @@ class TwseService:
                         if 'application/json' not in content_type and 'text/html' in content_type:
                             print(f"Warning: Received HTML instead of JSON from {url}")
                             return None
-                        return await response.json()
+                        data = await response.json()
+                        # Log the first few items of data for debugging
+                        if isinstance(data, list):
+                            logger.info(f"Response contains {len(data)} items")
+                            if len(data) > 0:
+                                logger.info(f"First item: {data[0]}")
+                                # Log all unique stock codes
+                                codes = sorted(set(d["Code"] for d in data if "Code" in d))
+                                logger.info(f"Sample of stock codes: {codes[:10]}")
+                        return data
                     except JSONDecodeError as e:
                         print(f"Failed to parse JSON from {url}: {str(e)}")
                         return None

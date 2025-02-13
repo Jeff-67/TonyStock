@@ -4,6 +4,7 @@ import asyncio
 import json
 import re
 from typing import List
+from urllib.parse import urlparse, urljoin
 
 from crawl4ai import AsyncWebCrawler
 from dotenv import load_dotenv
@@ -96,6 +97,22 @@ def clean_markdown(text: str) -> str:
     return text
 
 
+def fix_relative_url(url: str) -> str:
+    """Convert relative URLs to absolute URLs.
+    
+    Args:
+        url (str): The URL to fix
+        
+    Returns:
+        str: The absolute URL
+    """
+    if url.startswith('//'):
+        return 'https:' + url
+    elif not url.startswith(('http://', 'https://')):
+        return 'https://' + url
+    return url
+
+
 @track()
 async def scrape_url(url: str, query: str, crawler: AsyncWebCrawler) -> str:
     """Run the web crawler and clean the retrieved content.
@@ -111,17 +128,45 @@ async def scrape_url(url: str, query: str, crawler: AsyncWebCrawler) -> str:
             - time: The time of the content
             - url: The source URL
     """
-    result = await crawler.arun(url=url)
-    # Clean the markdown content
-    cleaned_content = clean_markdown(result.markdown)
-    filtered_result = await LLMfilter(cleaned_content, query)
-    # Create a dictionary with all the information we want to return
-    response_dict = {
-        "content": filtered_result.filtered_content,
-        "time": filtered_result.time,
-        "url": url,
-    }
-    return json.dumps(response_dict, ensure_ascii=False)
+    try:
+        # Fix relative URLs
+        fixed_url = fix_relative_url(url)
+        
+        # Extract the actual URL from DuckDuckGo redirect if present
+        if 'duckduckgo.com/l/' in fixed_url:
+            parsed = urlparse(fixed_url)
+            query_params = dict(pair.split('=') for pair in parsed.query.split('&'))
+            if 'uddg' in query_params:
+                from urllib.parse import unquote
+                fixed_url = unquote(query_params['uddg'])
+                fixed_url = fix_relative_url(fixed_url)
+
+        result = await crawler.arun(url=fixed_url)
+        if result and result.markdown:
+            # Clean the markdown content
+            cleaned_content = clean_markdown(result.markdown)
+            filtered_result = await LLMfilter(cleaned_content, query)
+            # Create a dictionary with all the information we want to return
+            response_dict = {
+                "content": filtered_result.filtered_content,
+                "time": filtered_result.time,
+                "url": fixed_url,
+            }
+            return json.dumps(response_dict, ensure_ascii=False)
+        else:
+            return json.dumps({
+                "content": "",
+                "time": "",
+                "url": fixed_url,
+                "error": "No content retrieved"
+            }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({
+            "content": "",
+            "time": "",
+            "url": url,
+            "error": str(e)
+        }, ensure_ascii=False)
 
 
 @track()

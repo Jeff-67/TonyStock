@@ -539,6 +539,14 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
       * 記錄詳細的錯誤資訊
       * 提供有意義的錯誤訊息
 
+    - 日期處理 (Added 2024/02/13)
+      * 結束日期不能超過當前日期
+      * 開始日期不能是未來日期
+      * 使用 datetime.now().date() 取得當前日期
+      * 日期範圍驗證要在 API 呼叫前執行
+      * 建議使用 business_day 函數取得最近的交易日
+      * 處理跨日期時需考慮時區問題
+
 22. Financial News Search Best Practices (Added 2025/02)
     - Direct Site Search Strategy
       * Target specific financial news sites

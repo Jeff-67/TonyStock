@@ -83,6 +83,7 @@ def planning_prompt(
    chip_instruction: str,
    technical_analysis_instruction: str,
    writing_instruction: str,
+   planning_instruction: str,
    user_message: str,
 ) -> str:
    """Generate prompt for agent usage planning.
@@ -115,6 +116,9 @@ def planning_prompt(
 
 5. News Content to Analyze
 {company_news}
+
+6. Writing Guidelines
+{planning_instruction}
 </Analysis Context>
 
 Available Analysis Agents:
