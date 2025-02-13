@@ -5,6 +5,7 @@ It provides analysis of institutional investors, margin trading, and market data
 """
 
 import logging
+import statistics
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -249,15 +250,12 @@ class DataProcessor:
                 error=f"Failed to fetch market data: {str(e)}"
             )
         
-        # Clean and validate data
+        # Fill missing values
         for data_type, data in market_data.items():
-            if isinstance(data, pd.DataFrame) and not data.empty:
-                if data_type == "price":
-                    market_data[data_type] = data.fillna(method='ffill').fillna(method='bfill')
-                elif data_type in ["institutional", "margin"]:
-                    market_data[data_type] = data.fillna(0)
-                elif data_type == "shareholding":
-                    market_data[data_type] = data.fillna(method='ffill')
+            if data_type in ['price', 'volume']:
+                market_data[data_type] = data.ffill().bfill()
+            else:
+                market_data[data_type] = data.ffill()
             
         return market_data
     
@@ -411,5 +409,4 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
-    import statistics
     asyncio.run(main()) 

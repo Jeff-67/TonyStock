@@ -152,11 +152,19 @@ async def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str,
     encoded_query = urllib.parse.quote(query)
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
         "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+        "Pragma": "no-cache",
+        "Sec-Ch-Ua": '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"macOS"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1"
     }
 
     async with httpx.AsyncClient(
@@ -165,65 +173,88 @@ async def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str,
         follow_redirects=True,
     ) as client:
         try:
-            # Try both HTML and lite versions
+            # Try both HTML and lite versions with retries
             urls = [
                 f"https://html.duckduckgo.com/html/?q={encoded_query}",
-                f"https://duckduckgo.com/lite?q={encoded_query}"
+                f"https://duckduckgo.com/lite?q={encoded_query}",
+                f"https://duckduckgo.com/html/?q={encoded_query}"
             ]
             
             for url in urls:
-                try:
-                    response = await client.get(url)
-                    response.raise_for_status()
-                    
-                    soup = BeautifulSoup(response.text, "html.parser")
-                    
-                    # Try different result selectors
-                    result_elements = (
-                        soup.find_all("div", class_="result") or  # HTML version
-                        soup.find_all("tr", class_="result-link") or  # Lite version
-                        []
-                    )
-                    
-                    for element in result_elements:
-                        if len(results) >= max_results:
-                            break
+                retries = 0
+                while retries < MAX_RETRIES:
+                    try:
+                        # Add delay between retries
+                        if retries > 0:
+                            await asyncio.sleep(2 ** retries)  # Exponential backoff
                             
-                        link = element.find("a")
-                        if not link:
-                            continue
-                            
-                        title = link.get_text(strip=True)
-                        url = link.get("href", "")
+                        response = await client.get(url)
+                        response.raise_for_status()
                         
-                        # Skip if missing essential info
-                        if not (title and url):
-                            continue
-                            
-                        snippet = ""
-                        snippet_element = element.find(
-                            ["div", "td"], 
-                            class_=["result__snippet", "result-snippet"]
+                        soup = BeautifulSoup(response.text, "html.parser")
+                        
+                        # Try different result selectors
+                        result_elements = (
+                            soup.find_all("div", class_="result") or  # HTML version
+                            soup.find_all("tr", class_="result-link") or  # Lite version
+                            soup.find_all("div", class_="links_main") or  # Alternative HTML version
+                            []
                         )
-                        if snippet_element:
-                            snippet = snippet_element.get_text(strip=True)
+                        
+                        for element in result_elements:
+                            if len(results) >= max_results:
+                                break
+                                
+                            link = element.find("a")
+                            if not link:
+                                continue
+                                
+                            title = link.get_text(strip=True)
+                            url = link.get("href", "")
                             
-                        results.append({
-                            "title": title,
-                            "url": url,
-                            "snippet": snippet
-                        })
-                    
-                    if results:  # If we got results, no need to try other URLs
+                            # Skip if missing essential info
+                            if not (title and url):
+                                continue
+                                
+                            snippet = ""
+                            snippet_element = element.find(
+                                ["div", "td"], 
+                                class_=["result__snippet", "result-snippet", "result__snippet"]
+                            )
+                            if snippet_element:
+                                snippet = snippet_element.get_text(strip=True)
+                                
+                            results.append({
+                                "title": title,
+                                "url": url,
+                                "snippet": snippet
+                            })
+                        
+                        if results:  # If we got results, no need to try other URLs
+                            return results[:max_results]
+                            
+                        # If no results but response was successful, try next URL
                         break
                         
-                except Exception as e:
-                    logger.warning(f"Error with URL {url}: {str(e)}")
-                    continue
+                    except httpx.HTTPStatusError as e:
+                        logger.warning(f"HTTP error {e.response.status_code} for {url} (attempt {retries + 1}/{MAX_RETRIES})")
+                        retries += 1
+                        if retries == MAX_RETRIES:
+                            logger.error(f"Max retries reached for {url}")
+                            continue  # Try next URL
+                            
+                    except Exception as e:
+                        logger.warning(f"Error with URL {url} (attempt {retries + 1}/{MAX_RETRIES}): {str(e)}")
+                        retries += 1
+                        if retries == MAX_RETRIES:
+                            logger.error(f"Max retries reached for {url}")
+                            continue  # Try next URL
 
         except Exception as e:
             logger.error(f"Search error: {str(e)}")
 
+    # If DuckDuckGo search failed, return empty results
+    # The main search function will fall back to financial sites
     return results[:max_results]
 
 async def search(query: str, max_results: int = 10) -> List[Dict[str, str]]:

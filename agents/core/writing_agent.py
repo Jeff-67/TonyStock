@@ -5,104 +5,107 @@ It provides structured report generation with consistent formatting and style.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Dict
+from datetime import datetime
 
-from .base import BaseAgent, AnalysisResult
-from tools.writing.writing_tool import WritingTool
-
+from ..base import BaseAgent, AnalysisResult, BaseAnalysisData
+from prompts.agents.writing import WritingPromptGenerator
+from tools.orchestrator import Message
 logger = logging.getLogger(__name__)
+
+@dataclass
+class WritingAnalysisData(BaseAnalysisData):
+    """Structure for writing analysis data."""
+    company: str
+    raw_content: str
+    analysis_type: str = "writing"
+    timestamp: datetime = datetime.now()
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'WritingAnalysisData':
+        """Create instance from dictionary."""
+        return cls(**{
+            k: v for k, v in data.items() 
+            if k in cls.__dataclass_fields__
+        })
 
 class WritingAgent(BaseAgent):
     """Agent specialized in writing and formatting analysis reports."""
     
-    def __init__(self, provider: str, model_name: str):
-        system_prompt = """You are a professional financial report writing expert. Focus on:
-1. Report Structure
-   - Executive summary
-   - Key findings
-   - Detailed analysis sections
-   - Supporting data and charts
-   - Conclusions and recommendations
+    def __init__(
+        self,
+        provider: str = "anthropic",
+        model_name: str = "claude-3-sonnet-20240229"
+    ):
 
-2. Writing Style
-   - Clear and concise language
-   - Professional financial terminology
-   - Logical flow and transitions
-   - Balanced perspective
-   - Evidence-based arguments
-
-3. Data Presentation
-   - Key metrics and ratios
-   - Trend analysis
-   - Comparative analysis
-   - Risk factors
-   - Market context
-
-4. Report Components
-   - Title and headers
-   - Table of contents
-   - Section summaries
-   - Data tables and figures
-   - References and sources
-
-5. Quality Standards
-   - Accuracy of information
-   - Consistency in formatting
-   - Citation of sources
-   - Proper terminology
-   - Professional tone
-
-Always ensure:
-- Clear organization of ideas
-- Proper citation of data sources
-- Balanced analysis of pros and cons
-- Actionable recommendations
-- Professional formatting
-"""
-        super().__init__(provider, model_name, system_prompt)
-        self.tool = WritingTool()
+        super().__init__(provider, model_name)
         
     async def analyze(self, query: str, **kwargs) -> AnalysisResult:
         """Write and format analysis report.
         
         Args:
             query: User query or raw analysis content
-            **kwargs: Additional arguments including company name and analysis data
+            **kwargs: Additional arguments including:
+                - company: Company name
+                - analysis_data: Raw analysis content
+                - symbol: Stock symbol
+                - date: Analysis date
             
         Returns:
-            Analysis result with formatted report
+            AnalysisResult with formatted report
         """
         try:
+            # Validate required parameters
             company = kwargs.get('company')
-            analysis_data = kwargs.get('analysis_data')
+            raw_content = kwargs.get('analysis_data')
+            symbol = kwargs.get('symbol')
+            date = kwargs.get('date', datetime.now().strftime('%Y-%m-%d'))
+
+            system_prompt = WritingPromptGenerator.generate_system_prompt()
+            user_prompt = WritingPromptGenerator.get_user_prompt(company, raw_content)  
             
-            if not company:
+            messages = [
+                Message(role="system", content=system_prompt),
+                Message(role="user", content=user_prompt)
+            ]
+            
+            response = await self.call_model(messages=messages)
+            formatted_content = response.choices[0].message.content if isinstance(response, tuple) else str(response)       
+            
+            if not all([company, raw_content, symbol]):
+                missing = [k for k, v in {
+                    'company': company,
+                    'analysis_data': raw_content,
+                    'symbol': symbol
+                }.items() if not v]
                 return AnalysisResult(
                     success=False,
                     content="",
-                    error="Company name required for report writing"
+                    error=f"Missing required parameters: {', '.join(missing)}"
                 )
-                
-            if not analysis_data:
-                return AnalysisResult(
-                    success=False,
-                    content="",
-                    error="Analysis data required for report writing"
-                )
-                
+            
+            # Create analysis data structure
+            analysis_data = WritingAnalysisData(
+                symbol=symbol,
+                date=date,
+                company=company,
+                raw_content=raw_content
+            )
+            
             # Clear previous conversation
             self.clear_history()
             
             # Add writing request
             self.add_message(
                 "user",
-                f"Format and enhance the following analysis for {company}:\n\n{analysis_data}"
+                f"Format and enhance the following analysis for {company}:\n\n{raw_content}"
             )
             
             # Get formatted content using tool
             formatted_content = await self.tool.execute({
                 "company": company,
-                "content": analysis_data,
+                "content": raw_content,
                 "query": query
             })
             
@@ -129,14 +132,10 @@ Always ensure:
                 metadata={
                     "company": company,
                     "analysis_type": "writing",
-                    "raw_content": analysis_data
-                }
+                    "raw_content": raw_content
+                },
+                analysis_data=analysis_data
             )
             
         except Exception as e:
-            logger.error(f"Writing error: {str(e)}")
-            return AnalysisResult(
-                success=False,
-                content="",
-                error=str(e)
-            ) 
+            return self.format_error_response(e) 

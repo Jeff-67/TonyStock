@@ -7,7 +7,6 @@ error handling. Supports both sync and async operations.
 
 import argparse
 import asyncio
-import json
 import logging
 import sys
 from dataclasses import dataclass
@@ -18,9 +17,9 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion, completion
 from litellm.integrations.opik.opik import OpikLogger
-from opik import opik_context, track
+from opik import track
 from opik.opik_context import get_current_span_data
-from tokencost import calculate_cost_by_tokens
+from tools.tokencost import calculate_cost_by_tokens
 
 from settings import Settings
 
@@ -343,26 +342,35 @@ def process_tool_calls(message: Any) -> List[Dict]:
 
 
 def update_cost_metrics(response: Any) -> None:
-    """Update cost metrics based on response.
-
+    """Update cost metrics based on token usage.
+    
     Args:
         response: Response object from LLM API
     """
     try:
-        if hasattr(response, "usage"):
-            usage = response.usage
-            if usage:
-                cost = calculate_cost_by_tokens(
-                    model=response.model,
-                    input_tokens=usage.prompt_tokens,
-                    output_tokens=usage.completion_tokens,
-                )
-                logger.info(
-                    f"Cost: ${cost:.6f}, "
-                    f"Prompt tokens: {usage.prompt_tokens}, "
-                    f"Completion tokens: {usage.completion_tokens}, "
-                    f"Total tokens: {usage.total_tokens}"
-                )
+        if not hasattr(response, 'usage'):
+            return
+            
+        usage = response.usage
+        if not usage:
+            return
+            
+        # Get token counts
+        input_tokens = getattr(usage, 'prompt_tokens', 0)
+        output_tokens = getattr(usage, 'completion_tokens', 0)
+        
+        # Calculate cost
+        model = response.model.split('/')[-1]  # Remove provider prefix
+        cost = calculate_cost_by_tokens(
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens
+        )
+        
+        # Log cost information
+        logger.info(f"Token usage - Input: {input_tokens}, Output: {output_tokens}")
+        logger.info(f"Estimated cost: ${cost:.4f}")
+        
     except Exception as e:
         logger.warning(f"Error updating cost metrics: {str(e)}")
 

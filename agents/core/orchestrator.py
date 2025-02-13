@@ -3,15 +3,16 @@
 import asyncio
 import logging
 import re
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from agents.base import AnalysisResult, BaseAgent, BaseAnalysisData
 from .planning_agent import PlanningAgent
 from agents.research_agent import ResearchAgent
-from agents.technical_agents import TechnicalAgent
+from agents.technical_agent import TechnicalAgent
 from agents.capital_agent import CapitalAgent
+from .writing_agent import WritingAgent
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,8 @@ class AnalysisOrchestrator(BaseAgent):
             'planning': PlanningAgent(provider, model_name),
             'research': ResearchAgent(provider, model_name),
             'technical': TechnicalAgent(provider, model_name),
-            'capital': CapitalAgent()
+            'capital': CapitalAgent(),
+            'writing': WritingAgent(provider, model_name)
         }
     
     def _extract_company(self, query: str) -> Optional[str]:
@@ -108,15 +110,47 @@ class AnalysisOrchestrator(BaseAgent):
             plan=plan_result.content,
             agent_results=agent_results
         )
+
+        # If no successful results, return error
+        if len(content_parts) <= 1:
+            return AnalysisResult(
+                success=False,
+                content="",
+                error="All analyses failed",
+                metadata={"company": company, "analysis_types": list(required_agents)},
+                analysis_data=analysis_data
+            )
+
+        # Combine all content
+        combined_content = "\n\n".join(content_parts)
         
-        # Return combined result
-        return AnalysisResult(
-            success=len(content_parts) > 1,
-            content="\n\n".join(content_parts) if len(content_parts) > 1 else "",
-            error="All analyses failed" if len(content_parts) <= 1 else None,
-            metadata={"company": company, "analysis_types": list(required_agents)},
-            analysis_data=analysis_data
+        # Use writing agent to format final report
+        writing_result = await self.agents['writing'].analyze(
+            query,
+            company=company,
+            analysis_data=combined_content
         )
+        
+        if writing_result.success:
+            return AnalysisResult(
+                success=True,
+                content=writing_result.content,
+                metadata={
+                    "company": company,
+                    "analysis_types": list(required_agents),
+                    "raw_content": combined_content
+                },
+                analysis_data=analysis_data
+            )
+        else:
+            # Fallback to unformatted content if writing agent fails
+            logger.warning("Writing agent failed, returning unformatted content")
+            return AnalysisResult(
+                success=True,
+                content=combined_content,
+                metadata={"company": company, "analysis_types": list(required_agents)},
+                analysis_data=analysis_data
+            )
     
     async def analyze(self, query: str, **kwargs) -> AnalysisResult:
         """Run analysis workflow for the given query."""

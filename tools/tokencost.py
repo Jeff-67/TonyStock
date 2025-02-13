@@ -5,48 +5,49 @@ This module provides functions for calculating the cost of LLM API calls based o
 
 from typing import Dict, Optional
 
-# Cost per 1K tokens for different models
-MODEL_COSTS: Dict[str, Dict[str, float]] = {
-    "gpt-4o": {
-        "input": 0.03,  # $0.03 per 1K tokens
-        "output": 0.06,  # $0.06 per 1K tokens
-    },
-    "gpt-3.5-turbo": {
-        "input": 0.0015,  # $0.0015 per 1K tokens
-        "output": 0.002,  # $0.002 per 1K tokens
-    },
-    "claude-3-sonnet-20240229": {
-        "input": 0.03,  # $0.03 per 1K tokens
-        "output": 0.06,  # $0.06 per 1K tokens
-    }
+# Cost per 1K tokens for different models (USD)
+MODEL_COSTS = {
+    'gpt-4': {'input': 0.03, 'output': 0.06},
+    'gpt-4o': {'input': 0.03, 'output': 0.06},
+    'gpt-4-32k': {'input': 0.06, 'output': 0.12},
+    'gpt-3.5-turbo': {'input': 0.0015, 'output': 0.002},
+    'claude-3-sonnet-20240229': {'input': 0.003, 'output': 0.015}
 }
 
 def calculate_cost_by_tokens(
-    model: str,
-    prompt_tokens: int,
-    completion_tokens: int,
-    model_costs: Optional[Dict[str, Dict[str, float]]] = None
+    model: str = 'gpt-4o',
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    **kwargs
 ) -> float:
-    """Calculate the cost of an LLM API call based on token usage.
-
+    """Calculate cost based on token usage.
+    
     Args:
-        model: The model name
-        prompt_tokens: Number of tokens in the input/prompt
-        completion_tokens: Number of tokens in the output/completion
-        model_costs: Optional custom model costs dictionary
-
+        model: Model name
+        input_tokens: Number of input tokens (alternative to prompt_tokens)
+        output_tokens: Number of output tokens (alternative to completion_tokens)
+        prompt_tokens: Number of input tokens (alternative to input_tokens)
+        completion_tokens: Number of output tokens (alternative to output_tokens)
+        **kwargs: Additional keyword arguments (ignored)
+        
     Returns:
-        float: The calculated cost in dollars
+        Calculated cost in USD
     """
-    costs = model_costs or MODEL_COSTS
-    model_name = model.split("/")[-1]  # Handle provider prefixes like "openai/"
+    # Get model name and check if it exists in MODEL_COSTS
+    if model not in MODEL_COSTS:
+        return 0.0
+        
+    # Use input_tokens if provided, otherwise use prompt_tokens
+    input_count = input_tokens if input_tokens > 0 else prompt_tokens
     
-    if model_name not in costs:
-        # Default to gpt-4o costs if model not found
-        model_name = "gpt-4o"
+    # Use output_tokens if provided, otherwise use completion_tokens
+    output_count = output_tokens if output_tokens > 0 else completion_tokens
     
-    model_cost = costs[model_name]
-    input_cost = (prompt_tokens / 1000.0) * model_cost["input"]
-    output_cost = (completion_tokens / 1000.0) * model_cost["output"]
+    # Calculate costs
+    costs = MODEL_COSTS[model]
+    input_cost = (input_count / 1000) * costs['input']
+    output_cost = (output_count / 1000) * costs['output']
     
     return input_cost + output_cost 
