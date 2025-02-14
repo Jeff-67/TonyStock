@@ -379,6 +379,10 @@ class InvestmentReportReader:
             logger.info(f"No PDF files found in {dir_path}")
             return True
 
+        # Log total number of files found
+        total_files = len(pdf_files)
+        logger.info(f"Found {total_files} PDF files in {date_dir}")
+
         # Limit number of files if max_files is specified
         if max_files is not None:
             pdf_files = pdf_files[:max_files]
@@ -388,15 +392,32 @@ class InvestmentReportReader:
 
         # Process PDFs sequentially
         documents = []
+        processed_count = 0
+        error_count = 0
+
         for pdf_file in pdf_files:
             pdf_path = os.path.join(dir_path, pdf_file)
             try:
+                logger.info(
+                    f"Processing file {processed_count + 1}/{len(pdf_files)}: {pdf_file}"
+                )
                 document = await self.process_pdf(pdf_path)
                 if document:
                     documents.append(document)
+                    processed_count += 1
+                else:
+                    error_count += 1
+                    logger.warning(f"No document returned for {pdf_file}")
             except Exception as e:
+                error_count += 1
                 logger.error(f"Error processing {pdf_file}: {str(e)}")
                 continue
+
+        # Log summary for this directory
+        logger.info(f"Directory {date_dir} processing complete:")
+        logger.info(f"- Total files processed: {processed_count}")
+        logger.info(f"- Successful: {len(documents)}")
+        logger.info(f"- Errors: {error_count}")
 
         if documents:
             return self.save_to_mongodb(documents)
@@ -411,19 +432,43 @@ class InvestmentReportReader:
             return False
 
         success = True
+
+        # Get all directories and sort them by date (newest first)
+        date_dirs = []
         for date_dir in os.listdir(DOWNLOAD_DIR):
             dir_path = os.path.join(DOWNLOAD_DIR, date_dir)
             if os.path.isdir(dir_path):
-                logger.info(f"Processing directory: {date_dir}")
                 try:
-                    if not await self.process_directory(
-                        date_dir, max_files=max_files_per_dir
-                    ):
-                        success = False
-                        logger.error(f"Failed to process directory: {date_dir}")
-                except Exception as e:
-                    logger.error(f"Error processing directory {date_dir}: {str(e)}")
+                    # Parse directory name as date (assuming YYYY-MM-DD format)
+                    dir_date = datetime.strptime(date_dir, "%Y-%m-%d")
+                    date_dirs.append((dir_date, date_dir))
+                except ValueError as e:
+                    logger.warning(
+                        f"Skipping invalid date directory {date_dir}: {str(e)}"
+                    )
+                    continue
+
+        # Sort directories by date, newest first
+        date_dirs.sort(reverse=True)
+
+        if not date_dirs:
+            logger.warning("No valid date directories found in download directory")
+            return True
+
+        for _, date_dir in date_dirs:
+            dir_path = os.path.join(DOWNLOAD_DIR, date_dir)
+            logger.info(f"Processing directory: {date_dir}")
+            try:
+                if not await self.process_directory(
+                    date_dir, max_files=max_files_per_dir
+                ):
                     success = False
+                    logger.error(f"Failed to process directory: {date_dir}")
+            except Exception as e:
+                logger.error(f"Error processing directory {date_dir}: {str(e)}")
+                success = False
+                # Continue processing other directories even if one fails
+                continue
 
         return success
 
@@ -461,7 +506,7 @@ def main():
         reader = InvestmentReportReader(collection_name="investment_reports")
         try:
             # Process only 3 files per directory
-            success = await reader.process_all_directories(max_files_per_dir=3)
+            success = await reader.process_all_directories(max_files_per_dir=15)
             if success:
                 logger.info("Successfully processed all investment reports")
             else:

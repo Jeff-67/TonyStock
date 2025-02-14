@@ -1,4 +1,4 @@
-"""Monitor for new Yuanta research reports."""
+"""Monitor and download new Yuanta research reports."""
 
 import asyncio
 import json
@@ -70,8 +70,11 @@ class ReportMonitor:
         url = self.base_url.format(file_id=file_id)
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.head(url) as response:
+                async with session.head(url, timeout=30) as response:
                     return response.status == 200
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout checking {file_id}")
+            return False
         except Exception as e:
             logger.debug(f"Error checking {file_id}: {str(e)}")
             return False
@@ -152,46 +155,66 @@ class ReportMonitor:
             self.known_ids[date_key] = []
 
         max_distance = 100
-        forward_window = reference_id
-        backward_window = reference_id
         forward_limit = reference_id + max_distance
         backward_limit = max(reference_id - max_distance, 0)
+
+        # Scan in batches of 10 IDs
+        batch_size = 10
         found_reports = False
 
-        # Scan until we hit the limits
-        while forward_window <= forward_limit or backward_window >= backward_limit:
-            tasks = []
-            if forward_window <= forward_limit:
-                tasks.append(self.check_report_exists(forward_window))
-            if backward_window >= backward_limit:
-                tasks.append(self.check_report_exists(backward_window))
+        try:
+            # Process forward IDs in batches
+            for start_id in range(reference_id, forward_limit + 1, batch_size):
+                end_id = min(start_id + batch_size, forward_limit + 1)
+                tasks = [
+                    self.check_report_exists(file_id)
+                    for file_id in range(start_id, end_id)
+                ]
+                results = await asyncio.gather(*tasks)
 
-            if not tasks:
-                break
+                # Process found IDs
+                new_ids = {
+                    start_id + i
+                    for i, exists in enumerate(results)
+                    if exists
+                    and not any(start_id + i in ids for ids in self.known_ids.values())
+                }
 
-            results = await asyncio.gather(*tasks)
-            ids_to_check = [
-                id
-                for id, exists in zip(
-                    [fw for fw in [forward_window] if fw <= forward_limit]
-                    + [bw for bw in [backward_window] if bw >= backward_limit],
-                    results,
-                )
-                if exists
-            ]
-
-            # Process found IDs
-            for file_id in ids_to_check:
-                if not any(file_id in ids for ids in self.known_ids.values()):
+                if new_ids:
                     found_reports = True
-                    logger.info(f"Found new report {file_id}")
-                    self.known_ids[date_key].append(file_id)
+                    self.known_ids[date_key].extend(new_ids)
                     self.save_known_ids()
-                    await self.download_reports({file_id})
+                    await self.download_reports(new_ids)
 
-            forward_window += 1
-            backward_window -= 1
-            await asyncio.sleep(0.1)
+            # Process backward IDs in batches
+            for start_id in range(
+                reference_id - batch_size, backward_limit - 1, -batch_size
+            ):
+                end_id = max(start_id, backward_limit)
+                id_range = list(range(end_id, min(start_id + batch_size, reference_id)))
+                if not id_range:
+                    continue
+
+                tasks = [self.check_report_exists(file_id) for file_id in id_range]
+                results = await asyncio.gather(*tasks)
+
+                # Process found IDs
+                new_ids = {
+                    id_range[i]
+                    for i, exists in enumerate(results)
+                    if exists
+                    and not any(id_range[i] in ids for ids in self.known_ids.values())
+                }
+
+                if new_ids:
+                    found_reports = True
+                    self.known_ids[date_key].extend(new_ids)
+                    self.save_known_ids()
+                    await self.download_reports(new_ids)
+
+        except Exception as e:
+            logger.error(f"Error during scanning: {str(e)}")
+            return
 
         if not found_reports:
             logger.info("No new reports found in today's scan")
@@ -199,10 +222,8 @@ class ReportMonitor:
         logger.info(f"Completed daily scan for {date_key}")
         # Log statistics
         logger.info(f"Started from reference ID: {reference_id}")
-        logger.info(f"Scanned forward up to ID {min(forward_window, forward_limit)}")
-        logger.info(
-            f"Scanned backward down to ID {max(backward_window, backward_limit)}"
-        )
+        logger.info(f"Scanned forward up to ID {forward_limit}")
+        logger.info(f"Scanned backward down to ID {backward_limit}")
         logger.info(
             f"Total known reports: {sum(len(ids) for ids in self.known_ids.values())}"
         )
@@ -216,34 +237,44 @@ class ReportMonitor:
         download_dir = os.path.join(DOWNLOAD_DIR, date_key)
         os.makedirs(download_dir, exist_ok=True)
 
+        # Download reports in parallel
         async with aiohttp.ClientSession() as session:
+            download_tasks = []
             for file_id in report_ids:
                 url = self.base_url.format(file_id=file_id)
-                try:
-                    async with session.get(url) as response:
-                        if response.status == 200:
-                            # Save with ID
-                            filename = f"{file_id}.pdf"
-                            path = os.path.join(download_dir, filename)
-
-                            # Save the PDF content
-                            content = await response.read()
-                            with open(path, "wb") as f:
-                                f.write(content)
-
-                            logger.info(f"Downloaded report {file_id} to {path}")
-                        else:
-                            logger.error(
-                                f"Failed to download report {file_id}: HTTP {response.status}"
-                            )
-                except Exception as e:
-                    logger.error(f"Error downloading report {file_id}: {str(e)}")
+                download_tasks.append(
+                    self._download_single_report(session, file_id, url, download_dir)
+                )
+            await asyncio.gather(*download_tasks)
 
         logger.info(f"Completed downloading {len(report_ids)} reports")
 
+    async def _download_single_report(
+        self, session: aiohttp.ClientSession, file_id: int, url: str, download_dir: str
+    ):
+        """Download a single report from the given URL."""
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    filename = f"{file_id}.pdf"
+                    path = os.path.join(download_dir, filename)
+
+                    # Save the PDF content
+                    content = await response.read()
+                    with open(path, "wb") as f:
+                        f.write(content)
+
+                    logger.info(f"Downloaded report {file_id} to {path}")
+                else:
+                    logger.error(
+                        f"Failed to download report {file_id}: HTTP {response.status}"
+                    )
+        except Exception as e:
+            logger.error(f"Error downloading report {file_id}: {str(e)}")
+
 
 async def wait_until_next_run(run_time: time):
-    """Wait until the next run time."""
+    """Suspend execution until the next scheduled run time."""
     now = datetime.now()
     target = datetime.combine(now.date(), run_time)
 

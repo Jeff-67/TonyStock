@@ -32,14 +32,12 @@ class QueryModel(TypedDict):
 
     Attributes:
         query: The actual search query combining company identifiers with keywords
-        core_question: Which core question (1-6) this query primarily addresses
         purpose: What specific information we're looking for
         expected_insights: What insights we expect to gain from this query
-        reasoning: Why this query is relevant to the user's message
+        reasoning: Why this information is particularly relevant for this company
     """
 
     query: str
-    core_question: str
     purpose: str
     expected_insights: str
     reasoning: str
@@ -89,7 +87,6 @@ def validate_framework(content: str) -> tuple[bool, list[QueryModel] | None]:
             # Construct QueryModel with explicit field assignments
             query_model = QueryModel(
                 query=item["query"],
-                core_question=item["core_question"],
                 purpose=item["purpose"],
                 expected_insights=item["expected_insights"],
                 reasoning=item["reasoning"],
@@ -115,14 +112,11 @@ def validate_framework(content: str) -> tuple[bool, list[QueryModel] | None]:
         f"Validation failed, attempt {retry_state.attempt_number}. Retrying..."
     ),
 )
-async def generate_search_framework(
-    company_name: str, user_message: str
-) -> list[QueryModel] | None:
+async def generate_search_framework(company_name: str) -> list[QueryModel] | None:
     """Generate comprehensive search framework using LLM.
 
     Args:
         company_name: Name of the company to analyze
-        user_message: User's message to guide the search
 
     Returns:
         list[QueryModel] | None: List of validated search queries or None if validation fails
@@ -138,7 +132,6 @@ async def generate_search_framework(
         current_time=get_current_time(),
         company_instruction=finance_agent_prompt(stock_id=stock_id),
         searching_instruction=search_experience_prompt(),
-        user_message=user_message,
     )
 
     # Query LLM
@@ -166,9 +159,7 @@ async def main():
     logger.info(f"Generating search framework for: {test_company}")
 
     try:
-        framework = await generate_search_framework(
-            test_company, "Tell me about their latest products"
-        )
+        framework = await generate_search_framework(test_company)
         print(json.dumps(framework, ensure_ascii=False, indent=2))
 
     except Exception as e:

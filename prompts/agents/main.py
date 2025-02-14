@@ -7,7 +7,6 @@ def searching_framework_prompt(
     current_time: str,
     company_instruction: str,
     searching_instruction: str,
-    user_message: str,
 ) -> str:
     """Generate prompt for search framework analysis.
 
@@ -15,97 +14,100 @@ def searching_framework_prompt(
         company_name: Target company name
         stock_id: Company stock ID
         current_time: Current time in Asia/Taipei timezone
-        company_instruction: Company specific instructions
+        company_instruction: Company specific instructions including business context,
+                           key focus areas, and industry characteristics
         searching_instruction: Additional search keywords instructions
-        user_message: User message
     Returns:
         Formatted prompt for search framework analysis
     """
     return f"""Current time: {current_time}
 
-For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me generate a comprehensive set of search queries to understand its investment opportunity by considering the user message: `{user_message}`.
+For {company_name} (Stock ID: {stock_id if stock_id else 'N/A'}), help me generate a comprehensive set of search queries to systematically gather investment-critical information. The search strategy should be tailored based on the company-specific context provided.
 
-First, consider these core questions about the company:
+Core Information Framework:
 
-1. 為什麼會賺錢？(Why is it profitable?)
-   - Business model and revenue streams
-   - Core competencies and competitive advantages
-   - Key products/services and their market positioning
-   - Value chain position and pricing power
+1. Business Fundamentals
+   - Business model evolution and current state
+   - Revenue structure and profit drivers
+   - Core competencies and competitive moat
+   - Value chain positioning and pricing power
+   - Customer base and market segments
 
-2. 賺多少錢？(How much does it earn?)
-   - Current financial performance
-   - Profit margins and profitability metrics
-   - Revenue growth trends
-   - Cash flow generation capability
+2. Financial Performance & Health
+   - Revenue and profit trends
+   - Margin structure and dynamics
+   - Cash flow generation and capital efficiency
+   - Balance sheet strength and capital structure
+   - Working capital management
 
-3. 未來會賺多少錢？(Future earning potential?)
-   - Growth catalysts and opportunities
-   - Order visibility and backlog
-   - Capacity expansion plans
+3. Growth & Development
+   - Organic growth initiatives
+   - M&A and strategic investments
    - New product/market development
-   - Industry growth drivers
+   - Capacity expansion plans
+   - R&D pipeline and innovation
 
-4. 此產業的競爭如何？(Industry competition landscape?)
-   - Market share analysis
-   - Competitor strategies and movements
+4. Industry & Competition
+   - Market share and positioning
+   - Competitive landscape changes
    - Industry supply-demand dynamics
-   - Entry barriers and threats
-   - Regulatory environment
+   - Entry barriers and disruption risks
+   - Regulatory environment impact
 
-5. 他的優勢是什麼？(Competitive advantages?)
-   - Technology leadership
-   - Customer relationships
-   - Cost advantages
-   - Brand value/Market position
-   - Patents and intellectual property
+5. Operational Excellence
+   - Manufacturing capabilities
+   - Supply chain management
+   - Cost structure optimization
+   - Quality control systems
+   - Operational efficiency initiatives
 
-6. 他的劣勢是什麼？(Disadvantages/Weaknesses?)
-   - Technology gaps or limitations
-   - Customer concentration risks
-   - Cost structure challenges
-   - Market position vulnerabilities
-   - Resource constraints
-   - Financial weaknesses
-   - Geographic limitations
-   - Management risks
+6. Risk Assessment
+   - Customer concentration
+   - Technology obsolescence
+   - Supply chain vulnerabilities
+   - Financial risks
+   - Regulatory compliance
+   - Environmental and social risks
 
-Then, based on the user's message and company context, expand your search scope to include relevant external factors that could impact these core questions:
+External Factor Framework:
 
-A. 產業鏈關聯 (Industry Chain Connections)
-   - How do industry chain dynamics affect the core questions?
-   - What upstream/downstream trends are relevant?
-   - How do supply chain changes impact the company?
+A. Supply Chain Dynamics
+   - Upstream supplier relationships
+   - Downstream customer dynamics
+   - Material/component pricing trends
+   - Supply chain restructuring
 
-B. 總體環境 (Macro Environment)
-   - Which global economic factors are relevant?
-   - What geopolitical events could impact the analysis?
-   - How do government policies affect the situation?
+B. Market Evolution
+   - Technology transitions
+   - Customer preference shifts
+   - New market opportunities
+   - Substitution threats
 
-C. 市場趨勢 (Market Trends)
-   - What are the relevant technology transitions?
-   - How are customer preferences changing?
-   - What new market opportunities or threats exist?
+C. Policy & Regulation
+   - Government policies
+   - Industry regulations
+   - Environmental standards
+   - Trade relationships
 
-D. 競爭格局 (Competitive Landscape)
-   - How are competitor actions affecting the situation?
-   - What are the changes in market share?
-   - How is the industry structure evolving?
+D. Macro Factors
+   - Economic cycle impact
+   - Currency effects
+   - Geopolitical influences
+   - Regional market conditions
 
-Please analyze the user's message and generate search queries that:
-1. Address the relevant core questions (1-6)
-2. Incorporate necessary external factors (A-D) that could impact those core questions
-3. Consider both immediate and longer-term implications
-4. Connect company-specific issues with broader industry/market context
+Please generate search queries that:
+1. Prioritize the most relevant aspects based on company characteristics
+2. Consider industry-specific success factors
+3. Focus on company-specific risk factors
+4. Address both immediate operational and long-term strategic aspects
 
 Output your response as a raw JSON array of search queries (without any markdown code blocks or additional text).
 Each query object should have:
 {{
     "query": str,  // The actual search query combining company identifiers with keywords
-    "core_question": str,  // Which core question (1-6) this query primarily addresses
     "purpose": str,  // What specific information we're looking for
     "expected_insights": str,  // What insights we expect to gain from this query
-    "reasoning": str  // Why this query is relevant to the user's message
+    "reasoning": str  // Why this information is particularly relevant for this company
 }}
 
 <Company-specific context and industry characteristics>

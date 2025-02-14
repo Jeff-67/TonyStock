@@ -45,12 +45,11 @@ async def convert_pdf_to_md(pdf_path, model="gpt-4o") -> str:
     return result_md
 
 
-async def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
+async def save_pdf_to_md(pdf_path, output_path=None) -> str:
     """Convert PDF to markdown using MarkItDown.
 
     Args:
         pdf_path (str): Path to the PDF file
-        model (str): OpenAI model to use (default: gpt-4o)
 
     Returns:
         str: Path to the output markdown file
@@ -66,14 +65,14 @@ async def save_pdf_to_md(pdf_path, output_path=None, model="gpt-4o") -> str:
 
     # Initialize converter with format options
     converter = DocumentConverter(format_options=format_options)
-    result = await asyncio.to_thread(converter.convert, pdf_path)
+    result = converter.convert(pdf_path)
 
     # Get the directory and filename
     dir_path = os.path.dirname(pdf_path)
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
 
     # Convert PDF to markdown in a thread pool
-    result_md = await asyncio.to_thread(result.document.export_to_markdown)
+    result_md = result.document.export_to_markdown()
 
     # Create output directory if it doesn't exist
     os.makedirs(dir_path, exist_ok=True)
@@ -110,14 +109,11 @@ async def amain():
         description="Convert PDF to markdown using MarkItDown"
     )
     parser.add_argument("--pdf_path", help="Path to the PDF file")
-    parser.add_argument(
-        "--model", default="gpt-4o", help="OpenAI model to use (default: gpt-4o)"
-    )
 
     args = parser.parse_args()
 
     try:
-        output_file = await save_pdf_to_md(args.pdf_path, model=args.model)
+        output_file = await save_pdf_to_md(args.pdf_path)
         print(f"Conversion complete. Output saved to: {output_file}")
     except Exception as e:
         print(f"Error during conversion: {str(e)}")
