@@ -2,28 +2,40 @@
 
 from typing import Any, Dict, List
 
+from database.utils import db_manager
 
-def get_all_stock_mapping():
+
+def get_all_stock_mapping() -> Dict[str, str]:
     """Get mapping of stock names to their IDs.
 
     Returns:
         dict: Mapping of stock names (str) to stock IDs (str)
     """
-    return {
-        "群聯": "8299",
-        "京鼎": "3413",
-        "文曄": "3036",
-        "裕山": "7715",
-        "台積電": "2330",
-        "大成鋼": "2027",
-        "聯發科": "2454",
-    }
+    query = "SELECT company_name, ticker FROM TSE_STOCKS"
+    results = db_manager.get_data(
+        db_type="mysql", key="ticker", query=query, collection_or_table="TSE_STOCKS"
+    )
+
+    if not results:
+        return {}
+
+    # Convert the list of dicts to the required format
+    return {record["company_name"]: record["ticker"] for record in results}
 
 
 def stock_name_to_id(stock_name: str | None = None) -> str | None:
     """Convert stock name to its corresponding ID."""
-    mapping = get_all_stock_mapping()
-    return mapping.get(stock_name)
+    if stock_name is None:
+        return None
+
+    query = f"SELECT ticker FROM TSE_STOCKS WHERE company_name = '{stock_name}'"
+    result = db_manager.get_data(
+        db_type="mysql", key="ticker", query=query, collection_or_table="TSE_STOCKS"
+    )
+
+    if result and isinstance(result, list) and len(result) > 0:
+        return result[0]["ticker"]
+    return None
 
 
 def stock_id_to_name(stock_id: str | None = None) -> str | None:
@@ -38,16 +50,35 @@ def stock_id_to_name(stock_id: str | None = None) -> str | None:
     if stock_id is None:
         return None
 
-    mapping = get_all_stock_mapping()
-    # Invert the mapping to get ID -> name
-    inverted_mapping = {v: k for k, v in mapping.items()}
-    return inverted_mapping.get(stock_id)
+    query = f"SELECT company_name FROM TSE_STOCKS WHERE ticker = '{stock_id}'"
+    result = db_manager.get_data(
+        db_type="mysql", key="ticker", query=query, collection_or_table="TSE_STOCKS"
+    )
+
+    if result and isinstance(result, list) and len(result) > 0:
+        return result[0]["company_name"]
+    return None
 
 
 def retrieve_stock_name(user_messages: List[Dict[str, Any]]) -> str | None:
     """Retrieve the stock name from the user's messages."""
     last_message = user_messages[-1]["content"]
-    for stock_name in get_all_stock_mapping().keys():
+
+    # Get all stock names from database
+    query = "SELECT company_name FROM TSE_STOCKS"
+    results = db_manager.get_data(
+        db_type="mysql",
+        key="company_name",
+        query=query,
+        collection_or_table="TSE_STOCKS",
+    )
+
+    if not results:
+        return None
+
+    # Check if any stock name appears in the message
+    for record in results:
+        stock_name = record["company_name"]
         if stock_name in last_message:
             return stock_name
 
