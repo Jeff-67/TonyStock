@@ -9,13 +9,14 @@ import asyncio
 import logging
 from typing import Dict, List
 
-import httpx
-from bs4 import BeautifulSoup
+from duckduckgo_search import DDGS
 from opik import track
 
+# https://github.com/deedy5/duckduckgo_search
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG,  # Temporarily set to DEBUG for troubleshooting
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -30,50 +31,29 @@ async def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str,
     """
     Search DuckDuckGo using async HTTP client.
 
-    Returns a list of dictionaries containing title, url, and snippet.
+    Args:
+        query: Search query string
+        max_results: Maximum number of results to return (default: 10)
+
+    Returns:
+        List of dictionaries containing title, url, and snippet.
     """
     results: List[Dict[str, str]] = []
 
-    async with httpx.AsyncClient(
-        timeout=DEFAULT_TIMEOUT,
-        headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
-        },
-        follow_redirects=True,
-    ) as client:
-        try:
-            url = "https://duckduckgo.com/lite"
-            params = {"q": query}
+    try:
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=max_results):
+                result = {
+                    "title": r.get("title", ""),
+                    "url": r.get("href", ""),
+                    "snippet": r.get("body", ""),
+                }
+                if result["url"]:
+                    logger.debug(f"Found result: {result['title']} ({result['url']})")
+                    results.append(result)
 
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-            rows = soup.find_all("tr")
-
-            current_result: Dict[str, str] = {}
-            for row in rows:
-                link = row.find("a", class_="result-link")
-                snippet = row.find("td", class_="result-snippet")
-
-                if link:
-                    if current_result and len(results) < max_results:
-                        results.append(current_result)
-                    current_result = {
-                        "title": link.get_text(strip=True),
-                        "url": link.get("href", ""),
-                        "snippet": "",
-                    }
-                elif snippet and current_result:
-                    current_result["snippet"] = snippet.get_text(strip=True)
-
-            if current_result and len(results) < max_results:
-                results.append(current_result)
-
-        except Exception as e:
-            logger.error(f"Search error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}")
 
     return results[:max_results]
 

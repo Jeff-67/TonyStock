@@ -52,3 +52,14 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 # Lessons
 
 # Scratchpad
+
+Current Task: Modify investment report reader to process only recent directories
+- The directories are named by date (YYYY-MM-DD format)
+- Currently processes all directories
+- Need to limit to recent ones only
+
+Plan:
+[X] Add a parameter to specify how many recent days to process (added recent_only parameter)
+[X] Modify process_all_directories to filter for recent dates only (added break after first directory)
+[X] Update main function to use the new parameter (set recent_only=True)
+[X] Add documentation for the new functionality (updated docstring)

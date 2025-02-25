@@ -88,6 +88,9 @@ class ReportDocument(BaseModel):
     file_id: str
     source_path: str
     processed_at: str
+    processed_by_agents: List[str] = (
+        []
+    )  # List of agent names that have processed this report
 
 
 class InvestmentReportReader:
@@ -354,6 +357,7 @@ class InvestmentReportReader:
                 "file_id": file_id,
                 "source_path": pdf_path,
                 "processed_at": datetime.now().isoformat(),
+                "processed_by_agents": [],  # Initialize empty list of agents that have processed this report
             }
 
             return document
@@ -424,9 +428,17 @@ class InvestmentReportReader:
         return True
 
     async def process_all_directories(
-        self, max_files_per_dir: Optional[int] = None
+        self, max_files_per_dir: Optional[int] = None, recent_only: bool = False
     ) -> bool:
-        """Process all date directories in the download directory."""
+        """Process all date directories in the download directory.
+
+        Args:
+            max_files_per_dir (Optional[int]): Maximum number of files to process per directory
+            recent_only (bool): If True, only process the most recent directory. Defaults to False.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
         if not os.path.exists(DOWNLOAD_DIR):
             logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
             return False
@@ -464,6 +476,14 @@ class InvestmentReportReader:
                 ):
                     success = False
                     logger.error(f"Failed to process directory: {date_dir}")
+
+                # If recent_only is True, break after processing the first (most recent) directory
+                if recent_only:
+                    logger.info(
+                        "Recent only mode: stopping after most recent directory"
+                    )
+                    break
+
             except Exception as e:
                 logger.error(f"Error processing directory {date_dir}: {str(e)}")
                 success = False
@@ -505,10 +525,12 @@ def main():
     async def run():
         reader = InvestmentReportReader(collection_name="investment_reports")
         try:
-            # Process only 3 files per directory
-            success = await reader.process_all_directories(max_files_per_dir=15)
+            # Process only the most recent directory with up to 15 files
+            success = await reader.process_all_directories(
+                max_files_per_dir=25, recent_only=True
+            )
             if success:
-                logger.info("Successfully processed all investment reports")
+                logger.info("Successfully processed investment reports")
             else:
                 logger.error("Errors occurred while processing investment reports")
         except Exception as e:

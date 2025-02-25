@@ -42,7 +42,7 @@ async def perform_research(
     try:
         # Step 1: Generate search framework
         logger.info(f"Generating search framework for: {company_name}")
-        framework = await generate_search_framework(company_name, user_message)
+        framework = await generate_search_framework(company_name)
 
         # Step 2: Create tasks for concurrent execution
         tasks = []

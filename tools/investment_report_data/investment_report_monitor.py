@@ -110,11 +110,6 @@ class ReportMonitor:
         except ValueError:
             return None
 
-    def get_yesterday_key(self) -> str:
-        """Get yesterday's date key in YYYY-MM-DD format."""
-        yesterday = datetime.now() - timedelta(days=1)
-        return yesterday.strftime("%Y-%m-%d")
-
     def get_max_id_for_date(self, date_key: str) -> Optional[int]:
         """Get the maximum ID for a given date."""
         if date_key in self.known_ids and self.known_ids[date_key]:
@@ -154,7 +149,7 @@ class ReportMonitor:
         if date_key not in self.known_ids:
             self.known_ids[date_key] = []
 
-        max_distance = 100
+        max_distance = 50
         forward_limit = reference_id + max_distance
         backward_limit = max(reference_id - max_distance, 0)
 

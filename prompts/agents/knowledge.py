@@ -1,5 +1,7 @@
 """Module containing prompt generation functions for financial analysis agents."""
 
+from database.utils import db_manager
+
 
 def get_knowledge_update_prompt(
     current_knowledge: str,
@@ -146,8 +148,24 @@ def finance_agent_prompt(stock_id: str | None = None) -> str:
     """
     if not stock_id:
         return ""
-    with open(
-        f"prompts/company_knowledge/{stock_id}_background.md", "r", encoding="utf-8"
-    ) as file:
-        instruction = file.read()
-    return instruction
+
+    query = {"company_code": stock_id}
+    result = db_manager.get_data(
+        db_type="mongo",
+        key="company_code",
+        query=query,
+        collection_or_table="company_knowledge",
+    )
+
+    if result and isinstance(result, list) and len(result) > 0:
+        # If multiple entries exist, get the one with the most recent last_updated
+        if len(result) > 1:
+            # Sort by last_updated in descending order
+            sorted_results = sorted(
+                result, key=lambda x: x.get("last_updated", ""), reverse=True
+            )
+            return sorted_results[0].get("content", "")
+
+        return result[0].get("content", "")
+
+    return ""

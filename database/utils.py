@@ -126,6 +126,80 @@ class DatabaseManager:
             logger.error(f"MongoDB insertion error: {e}")
             return False
 
+    def _update_mongo_document(
+        self, collection: str, query: Dict, update: Dict, key: str
+    ) -> bool:
+        """Update a document in MongoDB.
+
+        Args:
+            collection (str): Collection name
+            query (Dict): Query to find the document to update
+            update (Dict): Update to apply
+            key (str): Key field name for caching
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if self.mongo_db is None:
+            logger.error("MongoDB database unavailable.")
+            return False
+
+        try:
+            coll = self.mongo_db[collection]
+
+            # Add query key to update document for upsert case
+            update_with_key = update.copy()
+            for key, value in query.items():
+                if key not in update_with_key:
+                    update_with_key[key] = value
+
+            # Use upsert=True to insert if document doesn't exist
+            result = coll.update_one(query, {"$set": update_with_key}, upsert=True)
+
+            if result.modified_count > 0 or result.upserted_id:
+                logger.info(f"Updated/inserted document in '{collection}'")
+                # Update cache with the new document
+                updated_doc = coll.find_one(query)
+                if updated_doc:
+                    cache_key = self._generate_cache_key(
+                        collection, key, updated_doc.get(key)
+                    )
+                    self._cache_data(cache_key, updated_doc)
+                return True
+            else:
+                logger.warning(f"No changes made to document in '{collection}'")
+                return True  # Return true if document exists but no changes needed
+
+        except MongoErrors.PyMongoError as e:
+            logger.error(f"MongoDB update error: {e}")
+            return False
+
+    def update_data(
+        self,
+        db_type: str,
+        collection_or_table: str,
+        query: Dict,
+        update: Dict,
+        key: str,
+    ) -> bool:
+        """Update data in the specified database.
+
+        Args:
+            db_type (str): Database type ('mongo' or 'mysql')
+            collection_or_table (str): Collection or table name
+            query (Dict): Query to find the document to update
+            update (Dict): Update to apply
+            key (str): Key field name for caching
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if db_type.lower() == "mongo":
+            return self._update_mongo_document(collection_or_table, query, update, key)
+        else:
+            logger.error(f"Update not supported for database type: {db_type}")
+            return False
+
     def _fetch_from_mongo(
         self, query: Dict, key: str, collection: str
     ) -> Optional[List[Dict]]:
