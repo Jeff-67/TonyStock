@@ -1,15 +1,18 @@
 """Module containing prompt generation functions for report planning and writing."""
 
 
-def search_experience_prompt() -> str:
+def search_experience_prompt(enabled: bool = False) -> str:
     """Generate search planning prompt for stock analysis.
 
     Args:
-        stock_name: Name of the stock to analyze
+        enabled: Whether to return the search experience content (default: False)
 
     Returns:
         Formatted prompt string for the search planning
     """
+    if not enabled:
+        return ""
+
     return """
 以下是一些實戰經驗，請參考：
 1. Keyword Structure

@@ -131,15 +131,15 @@ async def generate_search_framework(company_name: str) -> list[QueryModel] | Non
         stock_id=stock_id,
         current_time=get_current_time(),
         company_instruction=finance_agent_prompt(stock_id=stock_id),
-        searching_instruction=search_experience_prompt(),
+        searching_instruction=search_experience_prompt(enabled=False),
     )
 
     # Query LLM
     messages = [{"role": "user", "content": prompt}]
     response, _ = await aquery_llm(
         messages=messages,
-        model="claude-3-5-sonnet-latest",
-        provider="anthropic",
+        model="o3-mini",
+        provider="openai",
     )
 
     if not response.choices[0].message.content:
