@@ -20,8 +20,6 @@ from opik import opik_context, track
 from opik.opik_context import get_current_span_data
 from tokencost import calculate_cost_by_tokens
 
-from utils.asyncio_support import async_http_connections_expire_immediately
-
 load_dotenv()
 
 opik_logger = OpikLogger()
@@ -249,10 +247,8 @@ async def aquery_llm(
             response_format=response_format,
         )
 
-        # Make the async API call with the context manager
-        with async_http_connections_expire_immediately():
-            response = await acompletion(**completion_params)
-
+        # Make the async API call
+        response = await acompletion(**completion_params)
         opik_context.update_current_span(
             total_cost=calculate_cost_by_tokens(
                 response.usage.prompt_tokens, model=response.model, token_type="input"
@@ -308,8 +304,7 @@ async def async_main(
     messages: List[Message], model: str = "gpt-4o", provider: str = "openai"
 ) -> None:
     """Async entry point for command line usage."""
-    with async_http_connections_expire_immediately():
-        response = await aquery_llm(messages, model=model, provider=provider)
+    response = await aquery_llm(messages, model=model, provider=provider)
     if response:
         print(response)
     else:

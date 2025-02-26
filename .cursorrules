@@ -51,29 +51,15 @@ You should also use the `.cursorrules` file as a scratchpad to organize your tho
 
 # Lessons
 
-1. httpx AsyncClient Connection Issues
-   - Problem: httpx.ReadTimeout errors when using AsyncClient across multiple event loops
-   - Solution: Created utils/asyncio_support.py with async_http_connections_expire_immediately context manager
-   - Implementation: Patched httpcore.AsyncHTTPConnection.__init__ to set keepalive_expiry=0
-   - Usage: Wrap all async API calls with this context manager
-   - Applied to: agents/trial_agent.py and tools/llm_api.py
-   - Reference: https://github.com/encode/httpx/discussions/2959
-
-2. Type Handling in Async Functions with Exception Handling
-   - Problem: Type error when appending results from asyncio.gather() with return_exceptions=True
-   - Solution: Always convert results to the expected type before appending to a typed list
-   - Implementation: Use isinstance() to check for exceptions and handle them separately
-   - Example: `processed_results.append(str(result) if not isinstance(result, str) else result)`
-   - Applied to: tools/web_scraper_by_ai.py
-
 # Scratchpad
 
-Current Task: Fix missing docstring in utils/asyncio_support.py
-- The issue is a D100 error (missing docstring in public module)
-- Need to add a module-level docstring that explains the purpose of the module
+Current Task: Modify investment report reader to process only recent directories
+- The directories are named by date (YYYY-MM-DD format)
+- Currently processes all directories
+- Need to limit to recent ones only
 
 Plan:
-[X] Read the file to understand its purpose and functionality
-[X] Add a comprehensive module-level docstring
-[X] Test the changes by running flake8
-[X] Document the fix in the .cursorrules file
+[X] Add a parameter to specify how many recent days to process (added recent_only parameter)
+[X] Modify process_all_directories to filter for recent dates only (added break after first directory)
+[X] Update main function to use the new parameter (set recent_only=True)
+[X] Add documentation for the new functionality (updated docstring)

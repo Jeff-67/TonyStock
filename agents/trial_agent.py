@@ -24,7 +24,6 @@ from tools.core.tool_protocol import Tool
 from tools.llm_api import aquery_llm
 from tools.research.research_tool import ResearchTool
 from tools.time.time_tool import get_current_time
-from utils.asyncio_support import async_http_connections_expire_immediately
 
 # Configure logging
 logging.basicConfig(
@@ -113,13 +112,12 @@ class Agent:
             else tool_prompt_construct_openai()
         )
 
-        with async_http_connections_expire_immediately():
-            return await aquery_llm(
-                messages=messages,
-                model=self.model_name,
-                provider=self.provider,
-                tools=tool_prompt_text,
-            )
+        return await aquery_llm(
+            messages=messages,
+            model=self.model_name,
+            provider=self.provider,
+            tools=tool_prompt_text,
+        )
 
     @track()
     async def process_tool_call(
@@ -211,7 +209,6 @@ if __name__ == "__main__":
     # Update agent's tools
     agent.tools = tools
 
-    # Run the chat with the context manager
-    with async_http_connections_expire_immediately():
-        response = asyncio.run(agent.chat("聯發科今天所有消息"))
+    # Run the chat
+    response = asyncio.run(agent.chat("聯發科今天所有消息"))
     print(response)
